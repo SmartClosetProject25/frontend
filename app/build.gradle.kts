@@ -60,6 +60,8 @@ dependencies {
     implementation("androidx.navigation:navigation-compose:2.8.3")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.4")
     implementation("io.coil-kt:coil-compose:2.6.0")
+    implementation("androidx.compose.ui:ui-tooling-preview:1.7.3")
+    debugImplementation("androidx.compose.ui:ui-tooling:1.7.3")
 
     // Compose 用 Activity
     implementation("androidx.activity:activity-compose:1.9.2")
