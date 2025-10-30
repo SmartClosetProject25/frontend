@@ -6,6 +6,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.example.smartcloset_frontend.ui.HomeScreen
 import com.example.smartcloset_frontend.ui.LoginScreen
+import com.example.smartcloset_frontend.ui.SignupScreen
+import com.example.smartcloset_frontend.ui.SignupCompleteScreen
 
 @Composable
 fun NavGraph(navController: NavHostController) {
@@ -20,7 +22,7 @@ fun NavGraph(navController: NavHostController) {
                     }
                 },
                 onRegisterClick = {
-                    // 新規登録画面へ遷移（後で実装）
+                    navController.navigate("signup")
                 },
                 onForgotPasswordClick = {
                     // パスワード再設定画面へ遷移（後で実装）
@@ -32,7 +34,10 @@ fun NavGraph(navController: NavHostController) {
 //        composable("coordinate") { CoordinateScreen(navController) }
 //        composable("favorite") { FavoriteScreen(navController) }
 //        composable("settings") { SettingsScreen(navController) }
-        composable("register") { /* TODO: RegisterScreen(navController) */ }
+        // 既存ナビ用の register は別用途で使用する想定
+        // composable("register") { RegisterScreen(navController) }
+        composable("signup") { SignupScreen(navController) }
+        composable("signup_complete") { SignupCompleteScreen(navController) }
         composable("forgot") { /* TODO: ForgotPasswordScreen(navController) */ }
     }
 }
