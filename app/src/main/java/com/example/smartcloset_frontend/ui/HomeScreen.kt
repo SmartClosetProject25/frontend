@@ -9,7 +9,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.example.smartcloset_frontend.ui.dialogs.*
+//import com.example.smartcloset_frontend.ui.dialogs.*
 
 @Composable
 fun HomeScreen(navController: NavController) {
@@ -20,24 +20,24 @@ fun HomeScreen(navController: NavController) {
 
 
 
-    // 成功ダイアログ
-    if (showSuccess) {
-        ProfileUpdateSuccessDialog(onDismiss = { showSuccess = false })
-    }
-
-    // 失敗ダイアログ
-    if (showError) {
-        ProfileUpdateErrorDialog(onDismiss = { showError = false })
-    }
+//    // 成功ダイアログ
+//    if (showSuccess) {
+//        ProfileUpdateSuccessDialog(onDismiss = { showSuccess = false })
+//    }
+//
+//    // 失敗ダイアログ
+//    if (showError) {
+//        ProfileUpdateErrorDialog(onDismiss = { showError = false })
+//    }
 
     // 削除確認ダイアログ
-    if (showDelete) {
-        ProfileDeleteConfirmDialog(
-            onConfirm = {
-                // TODO: 削除処理をここに書く
-                showDelete = false
-            },
-            onDismiss = { showDelete = false }
-        )
-    }
+//    if (showDelete) {
+//        ProfileDeleteConfirmDialog(
+//            onConfirm = {
+//                // TODO: 削除処理をここに書く
+//                showDelete = false
+//            },
+//            onDismiss = { showDelete = false }
+//        )
+//    }
 }
