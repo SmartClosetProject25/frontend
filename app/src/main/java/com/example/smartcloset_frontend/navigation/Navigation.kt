@@ -11,6 +11,8 @@ import com.example.smartcloset_frontend.ui.SignupCompleteScreen
 import com.example.smartcloset_frontend.ui.ForgotPasswordRequestScreen
 import com.example.smartcloset_frontend.ui.ForgotPasswordResetScreen
 import com.example.smartcloset_frontend.ui.ForgotPasswordCompleteScreen
+import com.example.smartcloset_frontend.ui.ProfileEditScreen
+import com.example.smartcloset_frontend.ui.ProfileScreen
 
 @Composable
 fun NavGraph(navController: NavHostController) {
@@ -33,6 +35,8 @@ fun NavGraph(navController: NavHostController) {
             )
         }
         composable("home") { HomeScreen(navController) }
+        composable("profile") { ProfileScreen(navController) }
+        composable("profile_edit") { ProfileEditScreen(navController) }
 //        composable("register") { RegisterScreen(navController) }
 //        composable("coordinate") { CoordinateScreen(navController) }
 //        composable("favorite") { FavoriteScreen(navController) }
