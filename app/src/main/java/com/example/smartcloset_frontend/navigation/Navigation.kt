@@ -8,6 +8,9 @@ import com.example.smartcloset_frontend.ui.HomeScreen
 import com.example.smartcloset_frontend.ui.LoginScreen
 import com.example.smartcloset_frontend.ui.SignupScreen
 import com.example.smartcloset_frontend.ui.SignupCompleteScreen
+import com.example.smartcloset_frontend.ui.ForgotPasswordRequestScreen
+import com.example.smartcloset_frontend.ui.ForgotPasswordResetScreen
+import com.example.smartcloset_frontend.ui.ForgotPasswordCompleteScreen
 
 @Composable
 fun NavGraph(navController: NavHostController) {
@@ -25,7 +28,7 @@ fun NavGraph(navController: NavHostController) {
                     navController.navigate("signup")
                 },
                 onForgotPasswordClick = {
-                    // パスワード再設定画面へ遷移（後で実装）
+                    navController.navigate("forgot")
                 }
             )
         }
@@ -38,6 +41,8 @@ fun NavGraph(navController: NavHostController) {
         // composable("register") { RegisterScreen(navController) }
         composable("signup") { SignupScreen(navController) }
         composable("signup_complete") { SignupCompleteScreen(navController) }
-        composable("forgot") { /* TODO: ForgotPasswordScreen(navController) */ }
+        composable("forgot") { ForgotPasswordRequestScreen(navController) }
+        composable("forgot_reset") { ForgotPasswordResetScreen(navController) }
+        composable("forgot_complete") { ForgotPasswordCompleteScreen(navController) }
     }
 }

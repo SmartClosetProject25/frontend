@@ -22,7 +22,7 @@ class MainActivity : ComponentActivity() {
                 val navController = rememberNavController()
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentRoute = navBackStackEntry?.destination?.route
-                val showBottomBar = currentRoute != null && currentRoute !in listOf("login", "register", "forgot", "signup", "signup_complete")
+                val showBottomBar = currentRoute != null && currentRoute !in listOf("login", "register", "forgot", "signup", "signup_complete", "forgot_reset", "forgot_complete")
 
                 Scaffold(
                     bottomBar = {
