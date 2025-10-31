@@ -73,5 +73,8 @@ dependencies {
 
     // Compose 用 Activity
     implementation("androidx.activity:activity-compose:1.9.2")
+    
+    // Material Icons Extended (メール・ロックアイコン用)
+    implementation("androidx.compose.material:material-icons-extended:1.7.3")
 
 }
