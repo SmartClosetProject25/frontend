@@ -8,13 +8,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ThumbUp
-import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -58,16 +57,6 @@ fun SuggestionScreen(navController: NavHostController) {
                 .verticalScroll(rememberScrollState())
         ) {
             Spacer(modifier = Modifier.height(16.dp))
-
-            // ヘッダー
-            Text(
-                text = "提案画面 (Suggestion)",
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.Black
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
 
             // 天気・場所情報セクション
             Card(
@@ -114,10 +103,9 @@ fun SuggestionScreen(navController: NavHostController) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Cloud,
-                                contentDescription = "天気",
-                                tint = Color(0xFF2196F3),
+                            Text(
+                                text = "🌧️",
+                                fontSize = 24.sp,
                                 modifier = Modifier.size(24.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
@@ -216,19 +204,31 @@ fun SuggestionScreen(navController: NavHostController) {
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // おすすめのコーディネート一覧
-            Text(
-                text = "おすすめのコーディネート",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.Black,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
-
             // コーディネートリスト
             coordinateSuggestions.forEach { suggestion ->
                 CoordinateCard(suggestion = suggestion)
                 Spacer(modifier = Modifier.height(16.dp))
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // 履歴ボタン
+            Button(
+                onClick = {
+                    navController.navigate("suggestion_history")
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.Black
+                )
+            ) {
+                Text(
+                    text = "履歴を見る",
+                    color = Color.White,
+                    fontSize = 16.sp
+                )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -306,7 +306,7 @@ fun CoordinateCard(suggestion: CoordinateSuggestion) {
                             ) {
                                 Text(
                                     text = tag,
-                                    color = Color.White,
+                                    color = Color(0xFF2196F3),
                                     fontSize = 12.sp
                                 )
                             }
@@ -349,10 +349,12 @@ fun CoordinateCard(suggestion: CoordinateSuggestion) {
                         modifier = Modifier.size(40.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Close,
+                            imageVector = Icons.Default.ThumbUp,
                             contentDescription = "よくない",
                             tint = if (isDisliked) Color(0xFFE53935) else Color.Gray,
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier
+                                .size(24.dp)
+                                .rotate(180f)
                         )
                     }
                 }
