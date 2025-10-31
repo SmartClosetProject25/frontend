@@ -18,7 +18,7 @@ fun SignupCompleteScreen(navController: NavHostController) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF4A4A4A))
+            .background(Color.White)
     ) {
         Column(
             modifier = Modifier
@@ -29,7 +29,7 @@ fun SignupCompleteScreen(navController: NavHostController) {
             Spacer(modifier = Modifier.height(80.dp))
             Text(
                 text = "新規登録",
-                color = Color.White,
+                color = Color.Black,
                 fontSize = 32.sp,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center
@@ -38,7 +38,7 @@ fun SignupCompleteScreen(navController: NavHostController) {
 
             Text(
                 text = "新規登録が完了しました。\n作成したアカウントを利用してログインしてください。",
-                color = Color.White,
+                color = Color.Black,
                 fontSize = 16.sp,
                 textAlign = TextAlign.Center
             )
@@ -52,7 +52,7 @@ fun SignupCompleteScreen(navController: NavHostController) {
                         launchSingleTop = true
                     }
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2C2C2C)),
+                colors = ButtonDefaults.buttonColors(containerColor = Color.Black),
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp)

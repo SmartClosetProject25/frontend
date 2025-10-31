@@ -61,7 +61,7 @@ fun SignupScreen(navController: NavHostController) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF4A4A4A))
+            .background(Color.White)
     ) {
         Column(
             modifier = Modifier
@@ -72,7 +72,7 @@ fun SignupScreen(navController: NavHostController) {
             Spacer(modifier = Modifier.height(80.dp))
             Text(
                 text = "新規登録",
-                color = Color.White,
+                color = Color.Black,
                 fontSize = 32.sp,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center
@@ -91,11 +91,11 @@ fun SignupScreen(navController: NavHostController) {
                     )
                 },
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color.White,
-                    unfocusedBorderColor = Color.White,
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White,
-                    cursorColor = Color.White
+                    focusedBorderColor = Color.Black,
+                    unfocusedBorderColor = Color.Gray,
+                    focusedTextColor = Color.Black,
+                    unfocusedTextColor = Color.Black,
+                    cursorColor = Color.Black
                 ),
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
@@ -115,11 +115,11 @@ fun SignupScreen(navController: NavHostController) {
                     )
                 },
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color.White,
-                    unfocusedBorderColor = Color.White,
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White,
-                    cursorColor = Color.White
+                    focusedBorderColor = Color.Black,
+                    unfocusedBorderColor = Color.Gray,
+                    focusedTextColor = Color.Black,
+                    unfocusedTextColor = Color.Black,
+                    cursorColor = Color.Black
                 ),
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
@@ -130,7 +130,7 @@ fun SignupScreen(navController: NavHostController) {
 
             Button(
                 onClick = { pickImageLauncher.launch("image/*") },
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2C2C2C)),
+                colors = ButtonDefaults.buttonColors(containerColor = Color.Black),
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp)
@@ -159,7 +159,7 @@ fun SignupScreen(navController: NavHostController) {
             Button(
                 onClick = { onSubmit() },
                 enabled = !isSubmitting,
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2C2C2C)),
+                colors = ButtonDefaults.buttonColors(containerColor = Color.Black),
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp)
@@ -175,7 +175,7 @@ fun SignupScreen(navController: NavHostController) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
                 Text(text = "すでに登録がお済みの方 ", color = Color.Gray, fontSize = 14.sp)
                 TextButton(onClick = { navController.popBackStack() }) {
-                    Text(text = "ログイン", color = Color(0xFF00BCD4), fontSize = 14.sp)
+                    Text(text = "ログイン", color = Color.Black, fontSize = 14.sp)
                 }
             }
         }

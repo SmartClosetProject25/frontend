@@ -51,7 +51,7 @@ fun ForgotPasswordResetScreen(navController: NavHostController) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF4A4A4A))
+            .background(Color.White)
     ) {
         Column(
             modifier = Modifier
@@ -62,7 +62,7 @@ fun ForgotPasswordResetScreen(navController: NavHostController) {
             Spacer(modifier = Modifier.height(80.dp))
             Text(
                 text = "パスワード再設定",
-                color = Color.White,
+                color = Color.Black,
                 fontSize = 32.sp,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center
@@ -75,11 +75,11 @@ fun ForgotPasswordResetScreen(navController: NavHostController) {
                 placeholder = { Text("新規パスワード", color = Color.Gray) },
                 leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = Color.Gray) },
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color.White,
-                    unfocusedBorderColor = Color.White,
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White,
-                    cursorColor = Color.White
+                    focusedBorderColor = Color.Black,
+                    unfocusedBorderColor = Color.Gray,
+                    focusedTextColor = Color.Black,
+                    unfocusedTextColor = Color.Black,
+                    cursorColor = Color.Black
                 ),
                 singleLine = true,
                 visualTransformation = PasswordVisualTransformation(),
@@ -94,11 +94,11 @@ fun ForgotPasswordResetScreen(navController: NavHostController) {
                 placeholder = { Text("新規パスワード再入力", color = Color.Gray) },
                 leadingIcon = { Icon(Icons.Default.LockReset, contentDescription = null, tint = Color.Gray) },
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color.White,
-                    unfocusedBorderColor = Color.White,
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White,
-                    cursorColor = Color.White
+                    focusedBorderColor = Color.Black,
+                    unfocusedBorderColor = Color.Gray,
+                    focusedTextColor = Color.Black,
+                    unfocusedTextColor = Color.Black,
+                    cursorColor = Color.Black
                 ),
                 singleLine = true,
                 visualTransformation = PasswordVisualTransformation(),
@@ -115,7 +115,7 @@ fun ForgotPasswordResetScreen(navController: NavHostController) {
             Button(
                 onClick = { onSubmit() },
                 enabled = !submitting,
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2C2C2C)),
+                colors = ButtonDefaults.buttonColors(containerColor = Color.Black),
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp)
@@ -129,6 +129,7 @@ fun ForgotPasswordResetScreen(navController: NavHostController) {
         }
     }
 }
+
 
 
 

@@ -18,7 +18,7 @@ fun ForgotPasswordCompleteScreen(navController: NavHostController) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF4A4A4A))
+            .background(Color.White)
     ) {
         Column(
             modifier = Modifier
@@ -29,7 +29,7 @@ fun ForgotPasswordCompleteScreen(navController: NavHostController) {
             Spacer(modifier = Modifier.height(80.dp))
             Text(
                 text = "パスワード再設定",
-                color = Color.White,
+                color = Color.Black,
                 fontSize = 32.sp,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center
@@ -38,7 +38,7 @@ fun ForgotPasswordCompleteScreen(navController: NavHostController) {
 
             Text(
                 text = "再設定が完了しました。\n新しいパスワードを利用してログインしてください。",
-                color = Color.White,
+                color = Color.Black,
                 fontSize = 16.sp,
                 textAlign = TextAlign.Center
             )
@@ -51,7 +51,7 @@ fun ForgotPasswordCompleteScreen(navController: NavHostController) {
                         launchSingleTop = true
                     }
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2C2C2C)),
+                colors = ButtonDefaults.buttonColors(containerColor = Color.Black),
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp)
@@ -61,6 +61,7 @@ fun ForgotPasswordCompleteScreen(navController: NavHostController) {
         }
     }
 }
+
 
 
 

@@ -32,7 +32,7 @@ fun LoginScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF4A4A4A))
+            .background(Color.White)
     ) {
         Column(
             modifier = Modifier
@@ -45,7 +45,7 @@ fun LoginScreen(
             // メインタイトル
             Text(
                 text = "ログイン",
-                color = Color.White,
+                color = Color.Black,
                 fontSize = 32.sp,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center
@@ -74,11 +74,11 @@ fun LoginScreen(
                     )
                 },
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color.White,
-                    unfocusedBorderColor = Color.White,
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White,
-                    cursorColor = Color.White
+                    focusedBorderColor = Color.Black,
+                    unfocusedBorderColor = Color.Gray,
+                    focusedTextColor = Color.Black,
+                    unfocusedTextColor = Color.Black,
+                    cursorColor = Color.Black
                 ),
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
@@ -108,11 +108,11 @@ fun LoginScreen(
                     )
                 },
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color.White,
-                    unfocusedBorderColor = Color.White,
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White,
-                    cursorColor = Color.White
+                    focusedBorderColor = Color.Black,
+                    unfocusedBorderColor = Color.Gray,
+                    focusedTextColor = Color.Black,
+                    unfocusedTextColor = Color.Black,
+                    cursorColor = Color.Black
                 ),
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
@@ -149,7 +149,7 @@ fun LoginScreen(
                     }
                 },
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF2C2C2C)
+                    containerColor = Color.Black
                 ),
                 modifier = Modifier
                     .fillMaxWidth()
@@ -177,11 +177,11 @@ fun LoginScreen(
                 TextButton(
                     onClick = onRegisterClick
                 ) {
-                    Text(
-                        text = "新規登録",
-                        color = Color(0xFF00BCD4), // 青緑色
-                        fontSize = 14.sp
-                    )
+                Text(
+                    text = "新規登録",
+                    color = Color.Black,
+                    fontSize = 14.sp
+                )
                 }
             }
             
@@ -198,15 +198,16 @@ fun LoginScreen(
                 TextButton(
                     onClick = onForgotPasswordClick
                 ) {
-                    Text(
-                        text = "再設定",
-                        color = Color(0xFF00BCD4), // 青緑色
-                        fontSize = 14.sp
-                    )
+                Text(
+                    text = "再設定",
+                    color = Color.Black,
+                    fontSize = 14.sp
+                )
                 }
             }
         }
     }
 }
+
 
 

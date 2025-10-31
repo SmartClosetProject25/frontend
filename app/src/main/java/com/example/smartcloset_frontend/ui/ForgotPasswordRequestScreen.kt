@@ -47,7 +47,7 @@ fun ForgotPasswordRequestScreen(navController: NavHostController) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF4A4A4A))
+            .background(Color.White)
     ) {
         Column(
             modifier = Modifier
@@ -58,7 +58,7 @@ fun ForgotPasswordRequestScreen(navController: NavHostController) {
             Spacer(modifier = Modifier.height(80.dp))
             Text(
                 text = "パスワード再設定",
-                color = Color.White,
+                color = Color.Black,
                 fontSize = 32.sp,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center
@@ -71,11 +71,11 @@ fun ForgotPasswordRequestScreen(navController: NavHostController) {
                 placeholder = { Text("メールアドレス", color = Color.Gray) },
                 leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = Color.Gray) },
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color.White,
-                    unfocusedBorderColor = Color.White,
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White,
-                    cursorColor = Color.White
+                    focusedBorderColor = Color.Black,
+                    unfocusedBorderColor = Color.Gray,
+                    focusedTextColor = Color.Black,
+                    unfocusedTextColor = Color.Black,
+                    cursorColor = Color.Black
                 ),
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
@@ -91,7 +91,7 @@ fun ForgotPasswordRequestScreen(navController: NavHostController) {
             Button(
                 onClick = { onSend() },
                 enabled = !sending,
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2C2C2C)),
+                colors = ButtonDefaults.buttonColors(containerColor = Color.Black),
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp)
@@ -107,7 +107,7 @@ fun ForgotPasswordRequestScreen(navController: NavHostController) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
                 Text(text = "ログインに戻る ", color = Color.Gray, fontSize = 14.sp)
                 TextButton(onClick = { navController.popBackStack() }) {
-                    Text(text = "ログイン", color = Color(0xFF00BCD4), fontSize = 14.sp)
+                    Text(text = "ログイン", color = Color.Black, fontSize = 14.sp)
                 }
             }
         }
