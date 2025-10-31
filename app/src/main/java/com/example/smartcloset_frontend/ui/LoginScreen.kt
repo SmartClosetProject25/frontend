@@ -137,7 +137,7 @@ fun LoginScreen(
             // ログインボタン
             Button(
                 onClick = {
-                    if (email.isNotEmpty() && password.isNotEmpty()) {
+                    //if (email.isNotEmpty() && password.isNotEmpty()) {
                         // サンプル認証: sampleuser@mail.com / password のみ通す
                         // ↓
                         // 空白のみ通す
@@ -146,9 +146,9 @@ fun LoginScreen(
                         } else {
                             showError = true
                         }
-                    } else {
-                        showError = true
-                    }
+                    //} else {
+                    //    showError = true
+                    //}
                 },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color.Black
