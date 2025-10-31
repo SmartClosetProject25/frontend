@@ -13,7 +13,11 @@ fun BottomNavBar(navController: NavHostController) {
         items.forEach { route ->
             NavigationBarItem(
                 selected = false,
-                onClick = { navController.navigate(route) },
+                onClick = {
+                    navController.navigate(route) {
+                        launchSingleTop = true
+                    }
+                },
                 label = { Text(route.replaceFirstChar { it.uppercase() }) },
                 icon = { Icon(Icons.Default.Home, contentDescription = null) }
             )
