@@ -9,7 +9,7 @@ import androidx.navigation.NavHostController
 @Composable
 fun BottomNavBar(navController: NavHostController) {
     NavigationBar {
-        val items = listOf("home", "coordinate", "register", "favorite", "settings")
+        val items = listOf("home", "coordinate", "register", "favorite", "settings", "profile")
         items.forEach { route ->
             NavigationBarItem(
                 selected = false,
