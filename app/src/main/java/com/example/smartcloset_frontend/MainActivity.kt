@@ -9,6 +9,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.compose.currentBackStackEntryAsState
 import com.example.smartcloset_frontend.navigation.BottomNavBar
 import com.example.smartcloset_frontend.navigation.NavGraph
 import com.example.smartcloset_frontend.ui.theme.SmartClosetTheme
@@ -19,8 +20,16 @@ class MainActivity : ComponentActivity() {
         setContent {
             SmartClosetTheme {
                 val navController = rememberNavController()
+                val navBackStackEntry by navController.currentBackStackEntryAsState()
+                val currentRoute = navBackStackEntry?.destination?.route
+                val showBottomBar = currentRoute != null && currentRoute !in listOf("login", "register", "forgot", "signup", "signup_complete", "forgot_reset", "forgot_complete")
+
                 Scaffold(
-                    bottomBar = { BottomNavBar(navController) }
+                    bottomBar = {
+                        if (showBottomBar) {
+                            BottomNavBar(navController)
+                        }
+                    }
                 ) { innerPadding ->
                     Box(modifier = Modifier.padding(innerPadding)) {
                         NavGraph(navController)
