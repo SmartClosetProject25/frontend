@@ -139,7 +139,9 @@ fun LoginScreen(
                 onClick = {
                     if (email.isNotEmpty() && password.isNotEmpty()) {
                         // サンプル認証: sampleuser@mail.com / password のみ通す
-                        if (email == "sampleuser@mail.com" && password == "password") {
+                        // ↓
+                        // 空白のみ通す
+                        if (email == "" && password == "") {
                             onLoginClick(email, password)
                         } else {
                             showError = true
