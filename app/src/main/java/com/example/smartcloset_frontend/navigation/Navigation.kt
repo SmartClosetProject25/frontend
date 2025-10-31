@@ -4,7 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import com.example.smartcloset_frontend.ui.DialogTestScreen
+import com.example.smartcloset_frontend.ui.TestScreen
 import com.example.smartcloset_frontend.ui.ClothesDetailScreen
 import com.example.smartcloset_frontend.ui.HomeScreen
 import com.example.smartcloset_frontend.ui.LoginScreen
@@ -39,7 +39,7 @@ fun NavGraph(navController: NavHostController) {
             )
         }
         composable("home") { HomeScreen(navController) }
-        composable("dialogTest") { DialogTestScreen(navController) }
+        composable("test") { TestScreen(navController) }
         composable("coordinate") { SuggestionScreen(navController) }
         composable("clothes_detail") { 
             ClothesDetailScreen(navController, clothesId = null)
