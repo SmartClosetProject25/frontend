@@ -102,6 +102,14 @@ fun ForgotPasswordRequestScreen(navController: NavHostController) {
                     Text("メール送信", color = Color.White, fontSize = 16.sp)
                 }
             }
+
+            Spacer(modifier = Modifier.height(32.dp))
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+                Text(text = "ログインに戻る ", color = Color.Gray, fontSize = 14.sp)
+                TextButton(onClick = { navController.popBackStack() }) {
+                    Text(text = "ログイン", color = Color(0xFF00BCD4), fontSize = 14.sp)
+                }
+            }
         }
     }
 }
