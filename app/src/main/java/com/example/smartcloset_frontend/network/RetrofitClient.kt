@@ -4,11 +4,12 @@ import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFact
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import retrofit2.Retrofit
+import com.example.smartcloset_frontend.BuildConfig
 
 // Retrofitのインスタンスをシングルトン（アプリ内で唯一の存在）として生成するためのオブジェクト
 object RetrofitClient {
     // 接続先のベースURL。AndroidエミュレータからPCのローカルホストにアクセスする場合、'10.0.2.2' を使用する
-    private const val BASE_URL = "http://10.0.2.2:5000/" // ご自身のFlaskサーバーのアドレスに置き換えてください
+    private const val BASE_URL = BuildConfig.SERVER_URL // ご自身のFlaskサーバーのアドレスに置き換えてください
 
     // JSONのパーサー設定。サーバーからのレスポンスに未知のキーが含まれていてもエラーにしない
     private val json = Json {
