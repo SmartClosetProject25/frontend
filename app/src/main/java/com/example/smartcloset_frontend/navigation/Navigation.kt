@@ -4,7 +4,6 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import com.example.smartcloset_frontend.ui.DialogTestScreen
 import com.example.smartcloset_frontend.ui.HomeScreen
 import com.example.smartcloset_frontend.ui.LoginScreen
 import com.example.smartcloset_frontend.ui.SignupScreen
@@ -36,7 +35,8 @@ fun NavGraph(navController: NavHostController) {
             )
         }
         composable("home") { HomeScreen(navController) }
-        composable("dialogTest") { DialogTestScreen(navController) }
+        composable("profile") { ProfileScreen(navController) }
+        composable("profile_edit") { ProfileEditScreen(navController) }
 //        composable("register") { RegisterScreen(navController) }
 //        composable("coordinate") { CoordinateScreen(navController) }
 //        composable("favorite") { FavoriteScreen(navController) }
