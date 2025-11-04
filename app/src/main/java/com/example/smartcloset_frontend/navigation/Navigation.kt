@@ -4,8 +4,11 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import com.example.smartcloset_frontend.ui.DialogTestScreen
+
+import com.example.smartcloset_frontend.ui.TestScreen
+//import com.example.smartcloset_frontend.ui.ClothesDetailScreen
 import com.example.smartcloset_frontend.ui.HomeScreen
+import com.example.smartcloset_frontend.ui.SettingsScreen
 import com.example.smartcloset_frontend.ui.LoginScreen
 import com.example.smartcloset_frontend.ui.SignupScreen
 import com.example.smartcloset_frontend.ui.SignupCompleteScreen
@@ -14,6 +17,8 @@ import com.example.smartcloset_frontend.ui.ForgotPasswordResetScreen
 import com.example.smartcloset_frontend.ui.ForgotPasswordCompleteScreen
 import com.example.smartcloset_frontend.ui.ProfileEditScreen
 import com.example.smartcloset_frontend.ui.ProfileScreen
+import com.example.smartcloset_frontend.ui.SuggestionHistoryScreen
+import com.example.smartcloset_frontend.ui.SuggestionScreen
 
 @Composable
 fun NavGraph(navController: NavHostController) {
@@ -36,10 +41,22 @@ fun NavGraph(navController: NavHostController) {
             )
         }
         composable("home") { HomeScreen(navController) }
-        composable("dialogTest") { DialogTestScreen(navController) }
+        composable("settings") {
+            SettingsScreen(onBack = { navController.popBackStack() })
+        }
+        composable("test") { TestScreen(navController) }
+        composable("coordinate") { SuggestionScreen(navController) }
+//        composable("clothes_detail") {
+//            ClothesDetailScreen(navController, clothesId = null)
+//        }
+        composable("suggestion_history") { 
+            SuggestionHistoryScreen(navController)
+        }
+        composable("profile") { ProfileScreen(navController) }
+        composable("profile_edit") { ProfileEditScreen(navController) }
 //        composable("register") { RegisterScreen(navController) }
-//        composable("coordinate") { CoordinateScreen(navController) }
 //        composable("favorite") { FavoriteScreen(navController) }
+
 //        composable("settings") { SettingsScreen(navController) }
         // 既存ナビ用の register は別用途で使用する想定
         // composable("register") { RegisterScreen(navController) }

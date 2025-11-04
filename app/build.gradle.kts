@@ -17,10 +17,17 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // ローカルプロパティからサーバーURLを取得してBuildConfigに設定
+        val serverUrl = project.rootProject.file("local.properties").readLines()
+            .find { it.startsWith("SERVER_URL") }
+            ?.split("=")
+            ?.get(1)
+            ?.trim()
+        buildConfigField("String", "SERVER_URL", "\"$serverUrl\"")
     }
-
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     buildTypes {
@@ -52,6 +59,7 @@ dependencies {
     implementation(libs.material)
     implementation(libs.androidx.activity)
     implementation(libs.androidx.constraintlayout)
+//    implementation(libs.androidx.ui.graphics)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
