@@ -12,13 +12,26 @@ import androidx.navigation.NavController
 import com.example.smartcloset_frontend.ui.dialogs.*
 
 @Composable
-fun HomeScreen(navController: NavController) {
+fun DialogTestScreen(navController: NavController) {
     // ダイアログ表示用フラグ
     var showSuccess by remember { mutableStateOf(false) }
     var showError by remember { mutableStateOf(false) }
     var showDelete by remember { mutableStateOf(false) }
 
-
+    Column(
+        modifier = Modifier.padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Button(onClick = { showSuccess = true }) {
+            Text("Show Success Dialog")
+        }
+        Button(onClick = { showError = true }) {
+            Text("Show Error Dialog")
+        }
+        Button(onClick = { showDelete = true }) {
+            Text("Show Delete Dialog")
+        }
+    }
 
     // 成功ダイアログ
     if (showSuccess) {
