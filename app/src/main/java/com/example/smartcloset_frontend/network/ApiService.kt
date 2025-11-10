@@ -2,6 +2,7 @@ package com.example.smartcloset_frontend.network
 
 import com.example.smartcloset_frontend.data.LoginData
 import com.example.smartcloset_frontend.data.ProfileData
+import com.example.smartcloset_frontend.data.SignUpData
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.POST
@@ -24,7 +25,7 @@ interface ApiService {
     //signup処理
     @POST("/signup")
     suspend fun signup(
-        @Body loginData: LoginData
+        @Body signUpData: SignUpData
     ): Response<Unit>
 
 
