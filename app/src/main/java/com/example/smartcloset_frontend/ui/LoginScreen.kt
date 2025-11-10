@@ -17,13 +17,15 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.smartcloset_frontend.viewmodel.LoginViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
     onLoginClick: (String, String) -> Unit = { _, _ -> },
     onRegisterClick: () -> Unit = {},
-    onForgotPasswordClick: () -> Unit = {}
+    onForgotPasswordClick: () -> Unit = {} ,
+    LoginViewModel: LoginViewModel = viewModel()
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -137,6 +139,8 @@ fun LoginScreen(
             // ログインボタン
             Button(
                 onClick = {
+//   httpリクエスト用コード＞＞＞＞                 LoginViewModel.login(email, password)
+
                     //if (email.isNotEmpty() && password.isNotEmpty()) {
                         // サンプル認証: sampleuser@mail.com / password のみ通す
                         // ↓

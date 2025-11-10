@@ -1,5 +1,6 @@
 package com.example.smartcloset_frontend.network
 
+import com.example.smartcloset_frontend.data.LoginData
 import com.example.smartcloset_frontend.data.ProfileData
 import retrofit2.Response
 import retrofit2.http.Body
@@ -13,4 +14,12 @@ interface ApiService {
     suspend fun updateProfile(
         @Body profileData: ProfileData // リクエストのボディに含めるデータ
     ): Response<Unit> // サーバーからのレスポンス。今回はボディがないためUnitを指定
+
+    //login処理
+    @POST("/login")
+    suspend fun login(
+        @Body loginData: LoginData
+    ): Response<Unit>
+
+
 }
