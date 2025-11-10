@@ -22,10 +22,11 @@ import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.smartcloset_frontend.viewmodel.SignupViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SignupScreen(navController: NavHostController) {
+fun SignupScreen(navController: NavHostController, signupViewModel: SignupViewModel = viewModel()) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var imageUri by remember { mutableStateOf<Uri?>(null) }
@@ -157,7 +158,22 @@ fun SignupScreen(navController: NavHostController) {
             Spacer(modifier = Modifier.height(40.dp))
 
             Button(
-                onClick = { onSubmit() },
+                onClick = {
+                    if (!validate()) return@Button
+                        isSubmitting = true
+                        signupViewModel.signup(email, password){success,message ->
+                            isSubmitting = false
+                            if (success) {
+                                navController.navigate("signup_complete") {
+                                    popUpTo("signup") { inclusive = true }
+                                    launchSingleTop = true
+                                }
+                            } else {
+                                errorMessage = "登録に失敗しました。再度お試しください。"
+                            }
+
+                        }
+                    },
                 enabled = !isSubmitting,
                 colors = ButtonDefaults.buttonColors(containerColor = Color.Black),
                 modifier = Modifier
