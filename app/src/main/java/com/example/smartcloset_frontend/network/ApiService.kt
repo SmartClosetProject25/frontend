@@ -3,6 +3,7 @@ package com.example.smartcloset_frontend.network
 import com.example.smartcloset_frontend.data.LoginData
 import com.example.smartcloset_frontend.data.ProfileData
 import com.example.smartcloset_frontend.data.SignUpData
+import com.example.smartcloset_frontend.data.SearchData
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.POST
@@ -27,6 +28,11 @@ interface ApiService {
     suspend fun signup(
         @Body signUpData: SignUpData
     ): Response<Unit>
-
+//    検索処理
+    @POST("/search")
+    suspend fun search(
+        @Body searchData: SearchData
+    ): Response<Unit>
+//    ): Response<SearchResponse> レスポンスがある場合はこれにする　Dataの定義も必要
 
 }
