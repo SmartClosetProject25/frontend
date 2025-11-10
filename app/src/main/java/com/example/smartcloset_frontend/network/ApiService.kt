@@ -21,5 +21,11 @@ interface ApiService {
         @Body loginData: LoginData
     ): Response<Unit>
 
+    //signup処理
+    @POST("/signup")
+    suspend fun signup(
+        @Body loginData: LoginData
+    ): Response<Unit>
+
 
 }
