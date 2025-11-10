@@ -3,16 +3,16 @@ package com.example.smartcloset_frontend.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.smartcloset_frontend.data.repository.SignupRepository
-import com.example.smartcloset_frontend.data.LoginData
+import com.example.smartcloset_frontend.data.SignUpData
 import kotlinx.coroutines.launch
 
 class SignupViewModel : ViewModel() {
     private val repository = SignupRepository()
-    fun signup(email: String, password: String, onResult: (Boolean, String?) -> Unit) {
+    fun signup(email: String, password: String, imageUrl: String, onResult: (Boolean, String?) -> Unit) {
         viewModelScope.launch {
             try {
-                val loginData = LoginData(email = email, password = password)
-                val response = repository.signup(loginData)
+                val signupData = SignUpData(email = email, password = password, userImageUrl = imageUrl)
+                val response = repository.signup(signupData)
 
                 if (response.isSuccessful) {
                     onResult(true, null)

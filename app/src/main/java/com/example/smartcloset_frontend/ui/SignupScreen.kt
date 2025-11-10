@@ -161,7 +161,8 @@ fun SignupScreen(navController: NavHostController, signupViewModel: SignupViewMo
                 onClick = {
                     if (!validate()) return@Button
                         isSubmitting = true
-                        signupViewModel.signup(email, password){success,message ->
+                        val imagePath = imageUri!!.toString()
+                        signupViewModel.signup(email, password,imagePath){success,message ->
                             isSubmitting = false
                             if (success) {
                                 navController.navigate("signup_complete") {
