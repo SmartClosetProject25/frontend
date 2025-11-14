@@ -1,5 +1,6 @@
 package com.example.smartcloset_frontend.ui
 
+import android.graphics.Bitmap
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -20,19 +21,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import coil.compose.rememberAsyncImagePainter
-//import com.example.smartcloset_frontend.navigation.Screen
 import com.example.smartcloset_frontend.ui.theme.SmartClosetTheme
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
+import java.io.File // カメラからの画像保存のために必要となる可能性あり
 
 @Serializable //
 data class ItemFormState(
@@ -51,9 +54,13 @@ data class ItemFormState(
 fun ItemRegistrationScreen(
     navController: NavController
 ) {
+    val context = LocalContext.current
     // フォームの状態を保持 (ItemFormStateを参照)
     var itemState by remember { mutableStateOf(ItemFormState()) }
+    // 画像ソース選択ダイアログの表示状態
+    var showImageSourceDialog by remember { mutableStateOf(false) }
 
+    // 1. ギャラリー画像選択ランチャー
     val imagePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -61,6 +68,51 @@ fun ItemRegistrationScreen(
             itemState = itemState.copy(imageUri = it.toString())
         }
     }
+
+    // 2. カメラ撮影ランチャー (Bitmapを返す)
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicturePreview()
+    ) { bitmap: Bitmap? ->
+        bitmap?.let {
+            // BitmapをUriとして保存する処理は複雑なので、ここでは単純にComposable側でBitmapを扱うための
+            // 一時的なUri変換またはViewModelでのデータ保持が必要です。
+            // 簡易的にBitmapをそのまま表示できるように処理します。
+            // 実際のアプリでは、Bitmapをファイルに保存し、そのUriをitemStateに設定する必要があります。
+            // ここではデモとして、Bitmapが存在することを示すフラグ(または、後述の修正)を設定します。
+            // ItemFormStateがUriを受け取る設計なので、ここではUriを保存する実装は省略し、
+            // 成功したことだけを示すためにUri.EMPTY.toString()をセットします。（実際のアプリでは要修正）
+            // 🚨 注意: TakePicturePreviewはサムネイルを返すため、高解像度画像が必要な場合は
+            // FileProviderとTakePictureを使用する必要があります。
+            // ItemFormStateを Bitmap/Uri のいずれかを受け取れるように修正するのが最も簡単ですが、
+            // 今回は既存のItemFormStateに合わせて、Uriベースの画像を推奨します。
+
+            // 簡易対応として、Bitmapを保持する状態を追加します。
+            // この例では、高解像度を扱うため、TakePicture()とUriの使用を推奨します。
+
+            // 以下のコードは、高解像度画像が必要な場合の一般的な実装のヒントです。
+            // 現在のコードでは実行できないため、ここではシンプルなBitmap版を続行します。
+
+            // *** ItemFormStateに直接Bitmapを保持するための状態を一時的に追加します ***
+            // 実際のプロダクションコードでは、ファイルに保存し、そのURIを使用してください。
+            // val imageUriFromBitmap = saveBitmapAndGetUri(context, it) // 外部関数
+            // itemState = itemState.copy(imageUri = imageUriFromBitmap.toString())
+        }
+    }
+
+    // 3. カメラ撮影後のBitmapを保持する状態 (UriではなくBitmapを使う場合の応急処置)
+    // 実際のアプリでは、上記のようにUriを使う設計を維持すべきです。
+    var capturedBitmap by remember { mutableStateOf<Bitmap?>(null) }
+
+    val cameraLauncherBitmap = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicturePreview()
+    ) { bitmap: Bitmap? ->
+        bitmap?.let {
+            capturedBitmap = it
+            // UriではなくBitmapを保持していることを示すために、imageUriにはnullをセット (排他的に扱う)
+            itemState = itemState.copy(imageUri = null)
+        }
+    }
+
 
     Scaffold(
         topBar = {
@@ -92,9 +144,11 @@ fun ItemRegistrationScreen(
                 .padding(horizontal = 16.dp)
                 .verticalScroll(rememberScrollState()),
         ) {
+            // ImageUploadAreaのクリック時にダイアログを表示するように修正
             ImageUploadArea(
                 imageUri = itemState.imageUri,
-                onImageSelect = { imagePicker.launch("image/*") },
+                capturedBitmap = capturedBitmap, // Bitmapを渡す
+                onImageSelect = { showImageSourceDialog = true }, // ダイアログ表示
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(Modifier.height(24.dp))
@@ -113,10 +167,7 @@ fun ItemRegistrationScreen(
 
             Button(
                 onClick = {
-                    // データをJSONに変換し、ルートにエンコードして渡す
-                    val itemJson = Json.encodeToString(itemState)
-                    val encodedJson = URLEncoder.encode(itemJson, StandardCharsets.UTF_8.toString())
-                    navController.navigate("confirmation/$encodedJson")
+                    navController.navigate("item_confirm")
                 },
                 modifier = Modifier.fillMaxWidth().height(50.dp),
                 shape = RoundedCornerShape(8.dp),
@@ -128,13 +179,50 @@ fun ItemRegistrationScreen(
             Spacer(Modifier.height(16.dp))
         }
     }
+
+    // 4. 画像ソース選択ダイアログ
+    if (showImageSourceDialog) {
+        AlertDialog(
+            onDismissRequest = { showImageSourceDialog = false },
+            title = { Text("画像ソースを選択") },
+            text = { Text("ギャラリーから選択するか、カメラで撮影しますか？") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showImageSourceDialog = false
+                        // ギャラリーを開く
+                        imagePicker.launch("image/*")
+                        capturedBitmap = null // ギャラリー選択時はBitmapをクリア
+                    }
+                ) {
+                    Text("ギャラリー")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showImageSourceDialog = false
+                        // カメラを起動
+                        cameraLauncherBitmap.launch(null)
+                    }
+                ) {
+                    Text("カメラで撮影")
+                }
+            }
+        )
+    }
 }
 
 // ==========================================
-// 画像アップロードエリア (ImageUploadArea)
+// 画像アップロードエリア (ImageUploadArea) - Bitmap対応を追加
 // ==========================================
 @Composable
-fun ImageUploadArea(imageUri: String?, onImageSelect: () -> Unit, modifier: Modifier = Modifier) {
+fun ImageUploadArea(
+    imageUri: String?,
+    capturedBitmap: Bitmap?, // Bitmap引数を追加
+    onImageSelect: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     Box(
         modifier = modifier
             .aspectRatio(1f)
@@ -142,7 +230,18 @@ fun ImageUploadArea(imageUri: String?, onImageSelect: () -> Unit, modifier: Modi
             .clickable(onClick = onImageSelect),
         contentAlignment = Alignment.Center
     ) {
-        if (!imageUri.isNullOrBlank()) {
+        if (capturedBitmap != null) {
+            // 撮影したBitmapを表示
+            Image(
+                bitmap = capturedBitmap.asImageBitmap(),
+                contentDescription = "Captured Image",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(8.dp))
+            )
+        } else if (!imageUri.isNullOrBlank()) {
+            // ギャラリーから選択したUri画像を以前の通り表示
             Image(
                 painter = rememberAsyncImagePainter(model = Uri.parse(imageUri)),
                 contentDescription = "Selected Image",
@@ -152,6 +251,7 @@ fun ImageUploadArea(imageUri: String?, onImageSelect: () -> Unit, modifier: Modi
                     .clip(RoundedCornerShape(8.dp))
             )
         } else {
+            // 画像がない場合のデフォルトアイコン
             Icon(
                 Icons.Filled.Upload,
                 contentDescription = "Upload Image",
@@ -162,15 +262,15 @@ fun ImageUploadArea(imageUri: String?, onImageSelect: () -> Unit, modifier: Modi
     }
 }
 
-// ==========================================
-// 登録フォーム全体 (RegistrationForm)
-// ==========================================
+// --- RegistrationForm および補助 Composable (変更なし、省略) ---
+
 @Composable
 fun RegistrationForm(
     state: ItemFormState,
     onStateChange: (ItemFormState) -> Unit,
     onTagAdded: (String) -> Unit
 ) {
+    // ... (元のRegistrationFormのコードをそのまま配置)
     Column {
         RegistrationTextField(
             label = "名称",
@@ -217,7 +317,7 @@ fun RegistrationForm(
     }
 }
 
-// --- 補助 Composable (以降の関数は変更なし) ---
+// ... (RegistrationTextField, SelectableField, DateField, PriceField, TagFieldWithInput のコードをそのまま配置)
 
 @Composable
 fun RegistrationTextField(
@@ -391,6 +491,7 @@ fun TagFieldWithInput(tags: List<String>, onTagAdded: (String) -> Unit) {
         }
     }
 }
+
 
 // ==========================================
 // プレビュー

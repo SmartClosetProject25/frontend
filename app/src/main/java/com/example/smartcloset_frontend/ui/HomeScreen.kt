@@ -182,6 +182,32 @@ fun HomeScreen(navController: NavController) {
                                         modifier = Modifier.size(40.dp)
                                     )
                                 }
+                            IconButton(onClick = { }) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.star_empty_icon),
+                                    contentDescription = "お気に入り",
+                                    tint = Color(0xFFFFC107),
+                                    modifier = Modifier.size(32.dp)
+                                )
+                            }
+                            IconButton(onClick = {
+                                // ClothesDetailScreenへの遷移を実行
+                                // IDをルートに含めて渡します
+                                navController.navigate("clothes_detail")
+                            }) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.edit_icon),
+                                    contentDescription = "編集",
+                                    modifier = Modifier.size(32.dp)
+                                )
+                            }
+                            IconButton(onClick = { }) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.delete_icon),
+                                    contentDescription = "削除",
+                                    tint = Color.Red,
+                                    modifier = Modifier.size(32.dp)
+                                )
                             }
                         }
                     }

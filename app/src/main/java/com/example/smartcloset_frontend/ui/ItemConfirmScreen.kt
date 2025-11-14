@@ -27,13 +27,13 @@ import androidx.core.net.toUri
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import coil.compose.rememberAsyncImagePainter
-import com.example.smartcloset_frontend.ui.theme.SmartClosetTheme
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.decodeFromString
-import java.net.URLDecoder
-import java.nio.charset.StandardCharsets
+// ItemFormState が定義されているファイルはインポートを省略
 
-// [注] ItemFormStateはItemFormState.ktに定義されています。
+// [注] ItemFormStateはItemFormState.ktに定義されていると仮定し、
+// ここではItemFormStateがアクセス可能であることを前提とします。
+// 以前のファイルで定義されていた ItemFormState の定義を仮に利用します。
+// 実際にはItemFormState.ktファイルに定義されているはずです。
+import com.example.smartcloset_frontend.ui.ItemFormState
 
 // ==========================================
 // アイテム詳細確認画面
@@ -41,19 +41,24 @@ import java.nio.charset.StandardCharsets
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ItemConfirmationScreen(
-    navController: NavController,
-    itemJson: String // [修正] JSON文字列の引数を追加
+    navController: NavController
+    // itemJson: String の引数を削除
 ) {
-    // [重要] JSON文字列をItemFormStateにデシリアライズするロジック
+    // ----------------------------------------------------
+    // データの受け渡しをしないため、ダミーデータを使用
+    // ----------------------------------------------------
     val itemState = remember {
-        val decodedJson = URLDecoder.decode(itemJson, StandardCharsets.UTF_8.toString())
-
-        try {
-            Json.decodeFromString<ItemFormState>(decodedJson)
-        } catch (e: Exception) {
-            println("JSON Decoding Error: $e")
-            ItemFormState(itemName = "データエラー") // デシリアライズ失敗時のフォールバック
-        }
+        // ダミーデータまたは永続化された共有データを使用
+        ItemFormState(
+            itemName = "ダミーアイテム (確認用)",
+            brandName = "ブランド名",
+            size = "M",
+            purchaseDate = "2025/10/10",
+            price = 5990,
+            category = "アウター",
+            tags = listOf("ダミー", "確認"),
+            imageUri = null // Uri.toString()
+        )
     }
 
     Scaffold(
@@ -65,6 +70,7 @@ fun ItemConfirmationScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
+                        // 戻るボタンとスペースを揃えるためのダミーアイコン (必要に応じて削除)
                         IconButton(onClick = { /* no op for space */ }, enabled = false) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, tint = Color.Transparent)
                         }
@@ -100,7 +106,8 @@ fun ItemConfirmationScreen(
         ) {
             // アイテム画像
             Spacer(Modifier.height(8.dp))
-            val imageUri = itemState.imageUri?.toUri()
+            // itemState.imageUriがnullでない場合のみtoUriを呼び出す
+            val imageUri = itemState.imageUri?.let { Uri.parse(it) }
 
             Image(
                 painter = rememberAsyncImagePainter(model = imageUri),
@@ -169,7 +176,9 @@ fun ItemConfirmationScreen(
                 }
                 // 登録ボタン
                 Button(
-                    onClick = { /* 実際にアイテムを登録するロジック */ },
+                    onClick = { /* 実際にアイテムを登録するロジック */
+                        // 登録成功後、ホームなどへ遷移
+                    },
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(8.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6495ED))
@@ -203,16 +212,6 @@ fun DetailRow(label: String, value: String) {
 @Preview(showBackground = true)
 @Composable
 fun PreviewItemConfirmationScreen() {
-    val dummyItemState = ItemFormState(
-        itemName = "ウィンドプルーフスタンドカラージャケット",
-        brandName = "ユニクロ",
-        size = "M",
-        purchaseDate = "2025/10/10",
-        price = 5990,
-        category = "アウター",
-        tags = listOf("アウター", "グレー", "ブルゾン"),
-        imageUri = null
-    )
-    // プレビュー用にJSONをシミュレーション
-    ItemConfirmationScreen(navController = rememberNavController(), itemJson = "")
+    // プレビューは引数なしで呼び出します
+    ItemConfirmationScreen(navController = rememberNavController())
 }
