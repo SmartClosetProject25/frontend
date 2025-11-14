@@ -4,8 +4,11 @@ import com.example.smartcloset_frontend.data.LoginData
 import com.example.smartcloset_frontend.data.ProfileData
 import com.example.smartcloset_frontend.data.SignUpData
 import com.example.smartcloset_frontend.data.SearchData
+import com.example.smartcloset_frontend.data.ItemData
+
 import retrofit2.Response
 import retrofit2.http.Body
+import retrofit2.http.GET
 import retrofit2.http.POST
 
 // RetrofitでサーバーAPIと通信するためのインターフェース
@@ -34,5 +37,8 @@ interface ApiService {
         @Body searchData: SearchData
     ): Response<Unit>
 //    ): Response<SearchResponse> レスポンスがある場合はこれにする　Dataの定義も必要
+//    アイテム取得処理
+    @GET("/get-item")
+    suspend fun getItems(): List<ItemData>
 
 }
