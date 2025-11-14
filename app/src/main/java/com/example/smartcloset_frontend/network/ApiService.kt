@@ -32,13 +32,18 @@ interface ApiService {
         @Body signUpData: SignUpData
     ): Response<Unit>
 //    検索処理
-    @POST("/search")
+    @GET("/search")
     suspend fun search(
         @Body searchData: SearchData
     ): Response<Unit>
 //    ): Response<SearchResponse> レスポンスがある場合はこれにする　Dataの定義も必要
 //    アイテム取得処理
-    @GET("/get-item")
+    @POST("/get-item")
     suspend fun getItems(): List<ItemData>
+
+    @POST("/add-item")
+    suspend fun addItem(
+        @Body itemData: ItemData
+    ): Response<Unit>
 
 }
