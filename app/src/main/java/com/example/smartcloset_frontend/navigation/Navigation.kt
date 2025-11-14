@@ -19,7 +19,9 @@ import com.example.smartcloset_frontend.ui.ProfileEditScreen
 import com.example.smartcloset_frontend.ui.ProfileScreen
 import com.example.smartcloset_frontend.ui.SuggestionHistoryScreen
 import com.example.smartcloset_frontend.ui.SuggestionScreen
-
+import com.example.smartcloset_frontend.ui.ClothesDetailScreen
+import com.example.smartcloset_frontend.ui.ItemConfirmationScreen
+import com.example.smartcloset_frontend.ui.ItemRegistrationScreen
 @Composable
 fun NavGraph(navController: NavHostController) {
     NavHost(navController, startDestination = "login") {
@@ -54,6 +56,7 @@ fun NavGraph(navController: NavHostController) {
         }
         composable("profile") { ProfileScreen(navController) }
         composable("profile_edit") { ProfileEditScreen(navController) }
+        composable("clothes_detail") { ClothesDetailScreen(navController) }
 //        composable("register") { RegisterScreen(navController) }
 //        composable("favorite") { FavoriteScreen(navController) }
 
@@ -65,5 +68,7 @@ fun NavGraph(navController: NavHostController) {
         composable("forgot") { ForgotPasswordRequestScreen(navController) }
         composable("forgot_reset") { ForgotPasswordResetScreen(navController) }
         composable("forgot_complete") { ForgotPasswordCompleteScreen(navController) }
+        composable("register") { ItemRegistrationScreen(navController) }
+        composable("item_confirm") { ItemConfirmationScreen(navController) }
     }
 }
