@@ -28,7 +28,7 @@
 //import androidx.navigation.compose.rememberNavController
 //
 //// SmallTopAppBar の使用に必要
-////import androidx.compose.material3.SmallTopAppBar
+//import androidx.compose.material3.SmallTopAppBar
 //import androidx.compose.material3.ExperimentalMaterial3Api
 //// ----------------------------------------------------
 //

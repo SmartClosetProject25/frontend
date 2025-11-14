@@ -185,7 +185,11 @@ fun HomeScreen(navController: NavController) {
                                     modifier = Modifier.size(32.dp)
                                 )
                             }
-                            IconButton(onClick = { }) {
+                            IconButton(onClick = {
+                                // ClothesDetailScreenへの遷移を実行
+                                // IDをルートに含めて渡します
+                                navController.navigate("clothes_detail")
+                            }) {
                                 Icon(
                                     painter = painterResource(id = R.drawable.edit_icon),
                                     contentDescription = "編集",
