@@ -35,8 +35,7 @@ fun HomeScreen(navController: NavController) {
             .fillMaxSize()
             .padding(12.dp)
     ) {
-
-        // 検索バー（IMEアクション対応）
+        // 検索バー
         OutlinedTextField(
             value = searchText,
             onValueChange = { searchText = it },
@@ -54,8 +53,6 @@ fun HomeScreen(navController: NavController) {
             shape = RoundedCornerShape(12.dp),
             singleLine = true,
             textStyle = LocalTextStyle.current.copy(fontSize = 13.sp),
-
-            // 🔽 スマホの「確定」「検索」で動作させる！
             keyboardOptions = KeyboardOptions.Default.copy(
                 imeAction = ImeAction.Search
             ),
@@ -68,7 +65,7 @@ fun HomeScreen(navController: NavController) {
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // プルダウン
+        // カテゴリープルダウン
         var expanded by remember { mutableStateOf(false) }
 
         Box(modifier = Modifier.fillMaxWidth()) {
@@ -109,13 +106,14 @@ fun HomeScreen(navController: NavController) {
         LazyRow(
             state = listState,
             contentPadding = PaddingValues(horizontal = 32.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier.weight(1f) // ← 高さを圧迫しないように調整
         ) {
             items(extendedItems.size) { index ->
                 Card(
                     modifier = Modifier
-                        .width(360.dp)
-                        .height(520.dp)
+                        .width(320.dp) // ← サイズ調整
+                        .height(460.dp) // ← サイズ調整で下ボタンが見えるように
                         .clickable {
                             navController.navigate("detail/${extendedItems[index]}")
                         },
@@ -124,10 +122,11 @@ fun HomeScreen(navController: NavController) {
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
 
+                        // 画像領域
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(360.dp)
+                                .height(320.dp)
                                 .background(Color.LightGray)
                         )
 
@@ -146,6 +145,7 @@ fun HomeScreen(navController: NavController) {
                             color = Color.Gray
                         )
 
+                        // アイコン右下配置
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -153,15 +153,15 @@ fun HomeScreen(navController: NavController) {
                             contentAlignment = Alignment.BottomEnd
                         ) {
                             Row(
-                                horizontalArrangement = Arrangement.SpaceBetween,
+                                horizontalArrangement = Arrangement.End,
+                                verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Spacer(modifier = Modifier.weight(1f))
                                 IconButton(
                                     onClick = { },
                                     modifier = Modifier
                                         .size(40.dp)
-                                        .padding(horizontal = 4.dp)
+                                        .padding(horizontal = 8.dp)
                                 ) {
                                     Icon(
                                         painter = painterResource(id = R.drawable.star_empty_icon),
@@ -170,11 +170,14 @@ fun HomeScreen(navController: NavController) {
                                         modifier = Modifier.size(40.dp)
                                     )
                                 }
+
                                 IconButton(
-                                    onClick = { },
+                                    onClick = {
+                                        navController.navigate("clothes_detail")
+                                    },
                                     modifier = Modifier
                                         .size(40.dp)
-                                        .padding(horizontal = 4.dp)
+                                        .padding(horizontal = 8.dp)
                                 ) {
                                     Icon(
                                         painter = painterResource(id = R.drawable.edit_icon),
@@ -182,40 +185,12 @@ fun HomeScreen(navController: NavController) {
                                         modifier = Modifier.size(40.dp)
                                     )
                                 }
-                            IconButton(onClick = { }) {
-                                Icon(
-                                    painter = painterResource(id = R.drawable.star_empty_icon),
-                                    contentDescription = "お気に入り",
-                                    tint = Color(0xFFFFC107),
-                                    modifier = Modifier.size(32.dp)
-                                )
-                            }
-                            IconButton(onClick = {
-                                // ClothesDetailScreenへの遷移を実行
-                                // IDをルートに含めて渡します
-                                navController.navigate("clothes_detail")
-                            }) {
-                                Icon(
-                                    painter = painterResource(id = R.drawable.edit_icon),
-                                    contentDescription = "編集",
-                                    modifier = Modifier.size(32.dp)
-                                )
-                            }
-                            IconButton(onClick = { }) {
-                                Icon(
-                                    painter = painterResource(id = R.drawable.delete_icon),
-                                    contentDescription = "削除",
-                                    tint = Color.Red,
-                                    modifier = Modifier.size(32.dp)
-                                )
                             }
                         }
                     }
                 }
             }
         }
-
-        Spacer(modifier = Modifier.weight(1f))
 
         // 今日のコーデボタン
         Box(
