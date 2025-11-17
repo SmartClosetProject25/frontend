@@ -5,6 +5,7 @@ import com.example.smartcloset_frontend.data.ProfileData
 import com.example.smartcloset_frontend.data.SignUpData
 import com.example.smartcloset_frontend.data.SearchData
 import com.example.smartcloset_frontend.data.ItemData
+import com.example.smartcloset_frontend.data.AddItemData
 
 import retrofit2.Response
 import retrofit2.http.Body
@@ -41,9 +42,9 @@ interface ApiService {
     @POST("/get-item")
     suspend fun getItems(): List<ItemData>
 
-    @POST("/add-item")
+    @POST("/add_item")
     suspend fun addItem(
-        @Body itemData: ItemData
+        @Body addItemData: AddItemData
     ): Response<Unit>
 
 }
