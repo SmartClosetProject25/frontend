@@ -1,5 +1,6 @@
 package com.example.smartcloset_frontend.data
-
+import kotlinx.serialization.Serializable
+@Serializable
 data class AddItemData (
     val color: Int,
     val pattern: Int,
