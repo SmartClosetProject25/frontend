@@ -7,23 +7,24 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.*
 import androidx.navigation.NavController
 import com.example.smartcloset_frontend.R
 
 @Composable
 fun HomeScreen(navController: NavController) {
-    var selectedTab by remember { mutableIntStateOf(0) }
     var selectedCategory by remember { mutableStateOf("すべて") }
     var searchText by remember { mutableStateOf("") }
 
-    val tabTitles = listOf("全て", "新着", "お気に入り")
     val categories = listOf("すべて", "トップス", "ジャケット・アウター", "パンツ", "スカート")
     val dummyItems = List(5) { index -> "ウィンドブルーフス$index" }
     val extendedItems = remember { List(1000) { dummyItems[it % dummyItems.size] } }
@@ -34,46 +35,6 @@ fun HomeScreen(navController: NavController) {
             .fillMaxSize()
             .padding(12.dp)
     ) {
-
-        // 上部タブ
-        Surface(
-            shape = RoundedCornerShape(12.dp),
-            tonalElevation = 2.dp,
-            shadowElevation = 4.dp,
-            color = Color(0xFFEFEFEF),
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(48.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxSize(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                tabTitles.forEachIndexed { index, title ->
-                    val isSelected = selectedTab == index
-                    Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        shadowElevation = if (isSelected) 6.dp else 0.dp,
-                        color = if (isSelected) Color.White else Color.Transparent,
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
-                            .padding(4.dp)
-                            .clickable { selectedTab = index }
-                    ) {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(text = title, color = Color.Black, fontSize = 14.sp)
-                        }
-                    }
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
         // 検索バー
         OutlinedTextField(
             value = searchText,
@@ -83,8 +44,7 @@ fun HomeScreen(navController: NavController) {
                 Icon(
                     painter = painterResource(id = R.drawable.search_icon),
                     contentDescription = "検索",
-                    modifier = Modifier
-                        .size(18.dp)
+                    modifier = Modifier.size(18.dp)
                 )
             },
             modifier = Modifier
@@ -92,12 +52,20 @@ fun HomeScreen(navController: NavController) {
                 .height(55.dp),
             shape = RoundedCornerShape(12.dp),
             singleLine = true,
-            textStyle = LocalTextStyle.current.copy(fontSize = 13.sp)
+            textStyle = LocalTextStyle.current.copy(fontSize = 13.sp),
+            keyboardOptions = KeyboardOptions.Default.copy(
+                imeAction = ImeAction.Search
+            ),
+            keyboardActions = KeyboardActions(
+                onSearch = {
+                    println("検索実行：$searchText")
+                }
+            )
         )
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // プルダウン
+        // カテゴリープルダウン
         var expanded by remember { mutableStateOf(false) }
 
         Box(modifier = Modifier.fillMaxWidth()) {
@@ -138,21 +106,27 @@ fun HomeScreen(navController: NavController) {
         LazyRow(
             state = listState,
             contentPadding = PaddingValues(horizontal = 32.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier.weight(1f) // ← 高さを圧迫しないように調整
         ) {
             items(extendedItems.size) { index ->
                 Card(
                     modifier = Modifier
-                        .width(320.dp)
-                        .height(460.dp),
+                        .width(320.dp) // ← サイズ調整
+                        .height(460.dp) // ← サイズ調整で下ボタンが見えるように
+                        .clickable {
+                            navController.navigate("detail/${extendedItems[index]}")
+                        },
                     shape = RoundedCornerShape(16.dp),
                     elevation = CardDefaults.cardElevation(6.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
+
+                        // 画像領域
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(260.dp)
+                                .height(320.dp)
                                 .background(Color.LightGray)
                         )
 
@@ -161,44 +135,56 @@ fun HomeScreen(navController: NavController) {
                         Text(
                             text = extendedItems[index],
                             fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp,
+                            fontSize = 18.sp,
                             maxLines = 1
                         )
 
                         Text(
                             text = selectedCategory,
-                            fontSize = 12.sp,
+                            fontSize = 14.sp,
                             color = Color.Gray
                         )
 
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceEvenly
+                        // アイコン右下配置
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp, end = 4.dp),
+                            contentAlignment = Alignment.BottomEnd
                         ) {
-                            IconButton(onClick = { }) {
-                                Icon(
-                                    painter = painterResource(id = R.drawable.star_empty_icon),
-                                    contentDescription = "お気に入り",
-                                    tint = Color(0xFFFFC107),
-                                    modifier = Modifier.size(32.dp)
-                                )
-                            }
-                            IconButton(onClick = { }) {
-                                Icon(
-                                    painter = painterResource(id = R.drawable.edit_icon),
-                                    contentDescription = "編集",
-                                    modifier = Modifier.size(32.dp)
-                                )
-                            }
-                            IconButton(onClick = { }) {
-                                Icon(
-                                    painter = painterResource(id = R.drawable.delete_icon),
-                                    contentDescription = "削除",
-                                    tint = Color.Red,
-                                    modifier = Modifier.size(32.dp)
-                                )
+                            Row(
+                                horizontalArrangement = Arrangement.End,
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                IconButton(
+                                    onClick = { },
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .padding(horizontal = 8.dp)
+                                ) {
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.star_empty_icon),
+                                        contentDescription = "お気に入り",
+                                        tint = Color(0xFFFFC107),
+                                        modifier = Modifier.size(40.dp)
+                                    )
+                                }
+
+                                IconButton(
+                                    onClick = {
+                                        navController.navigate("clothes_detail")
+                                    },
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .padding(horizontal = 8.dp)
+                                ) {
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.edit_icon),
+                                        contentDescription = "編集",
+                                        modifier = Modifier.size(40.dp)
+                                    )
+                                }
                             }
                         }
                     }
@@ -206,9 +192,7 @@ fun HomeScreen(navController: NavController) {
             }
         }
 
-        Spacer(modifier = Modifier.weight(1f))
-
-        // 今日のコーデ
+        // 今日のコーデボタン
         Box(
             modifier = Modifier
                 .fillMaxWidth()
