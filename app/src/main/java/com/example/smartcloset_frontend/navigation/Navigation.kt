@@ -2,8 +2,10 @@ package com.example.smartcloset_frontend.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
 
 import com.example.smartcloset_frontend.ui.TestScreen
 //import com.example.smartcloset_frontend.ui.ClothesDetailScreen
@@ -13,6 +15,7 @@ import com.example.smartcloset_frontend.ui.LoginScreen
 import com.example.smartcloset_frontend.ui.SignupScreen
 import com.example.smartcloset_frontend.ui.SignupCompleteScreen
 import com.example.smartcloset_frontend.ui.ForgotPasswordRequestScreen
+import com.example.smartcloset_frontend.ui.ForgotPasswordEmailSentScreen
 import com.example.smartcloset_frontend.ui.ForgotPasswordResetScreen
 import com.example.smartcloset_frontend.ui.ForgotPasswordCompleteScreen
 import com.example.smartcloset_frontend.ui.ProfileEditScreen
@@ -63,7 +66,20 @@ fun NavGraph(navController: NavHostController) {
         composable("signup") { SignupScreen(navController) }
         composable("signup_complete") { SignupCompleteScreen(navController) }
         composable("forgot") { ForgotPasswordRequestScreen(navController) }
-        composable("forgot_reset") { ForgotPasswordResetScreen(navController) }
+        composable("forgot_email_sent") { ForgotPasswordEmailSentScreen(navController) }
+        composable(
+            route = "forgot_reset?token={token}",
+            arguments = listOf(
+                navArgument("token") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) { backStackEntry ->
+            val token = backStackEntry.arguments?.getString("token")
+            ForgotPasswordResetScreen(navController, token)
+        }
         composable("forgot_complete") { ForgotPasswordCompleteScreen(navController) }
     }
 }

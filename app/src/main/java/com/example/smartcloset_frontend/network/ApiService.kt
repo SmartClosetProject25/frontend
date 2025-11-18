@@ -1,6 +1,8 @@
 package com.example.smartcloset_frontend.network
 
 import com.example.smartcloset_frontend.data.LoginData
+import com.example.smartcloset_frontend.data.PasswordResetConfirmData
+import com.example.smartcloset_frontend.data.PasswordResetRequestData
 import com.example.smartcloset_frontend.data.ProfileData
 import com.example.smartcloset_frontend.data.SignUpData
 import com.example.smartcloset_frontend.data.SearchData
@@ -34,5 +36,17 @@ interface ApiService {
         @Body searchData: SearchData
     ): Response<Unit>
 //    ): Response<SearchResponse> レスポンスがある場合はこれにする　Dataの定義も必要
+
+    // パスワードリセットリクエスト
+    @POST("/auth/password-reset/request")
+    suspend fun requestPasswordReset(
+        @Body requestData: PasswordResetRequestData
+    ): Response<Unit>
+
+    // パスワードリセット確認
+    @POST("/auth/password-reset/confirm")
+    suspend fun confirmPasswordReset(
+        @Body confirmData: PasswordResetConfirmData
+    ): Response<Unit>
 
 }
