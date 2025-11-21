@@ -7,6 +7,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -14,12 +15,21 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material3.Icon
+import androidx.navigation.NavHostController
+import com.example.smartcloset_frontend.data.PreferencesManager
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(onBack: () -> Unit = {}) {
+fun SettingsScreen(
+    onBack: () -> Unit = {},
+    navController: NavHostController? = null
+) {
+    val context = LocalContext.current
+    val preferencesManager = remember { PreferencesManager(context) }
+    
     var pushNotifications by remember { mutableStateOf(false) }
     var codeSuggestions by remember { mutableStateOf(false) }
     var messages by remember { mutableStateOf(true) }
@@ -95,6 +105,21 @@ fun SettingsScreen(onBack: () -> Unit = {}) {
                 SettingArrowItem("よくある質問") { /* navigate */ }
             }
 
+            // ログアウト項目
+            item { Spacer(modifier = Modifier.height(32.dp)) }
+            
+            item {
+                LogoutItem(
+                    onClick = {
+                        preferencesManager.clearLoginInfo()
+                        navController?.navigate("login") {
+                            popUpTo(0) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    }
+                )
+            }
+            
             item { Spacer(modifier = Modifier.height(32.dp)) }
         }
     }
@@ -144,5 +169,24 @@ fun SettingArrowItem(title: String, onClick: () -> Unit) {
             fontSize = 16.sp
         )
         Icon(Icons.Default.ArrowForward, contentDescription = null)
+    }
+}
+
+@Composable
+fun LogoutItem(onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .padding(horizontal = 8.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = "ログアウト",
+            fontSize = 16.sp,
+            color = Color.Red,
+            fontWeight = FontWeight.Medium
+        )
     }
 }

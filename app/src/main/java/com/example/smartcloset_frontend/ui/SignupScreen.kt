@@ -70,7 +70,7 @@ fun SignupScreen(navController: NavHostController, signupViewModel: SignupViewMo
                 .padding(horizontal = 32.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(80.dp))
+            Spacer(modifier = Modifier.weight(0.5f, fill = false))
             Text(
                 text = "新規登録",
                 color = Color.Black,
@@ -78,7 +78,7 @@ fun SignupScreen(navController: NavHostController, signupViewModel: SignupViewMo
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center
             )
-            Spacer(modifier = Modifier.height(60.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
             OutlinedTextField(
                 value = email,
@@ -102,7 +102,7 @@ fun SignupScreen(navController: NavHostController, signupViewModel: SignupViewMo
                 singleLine = true
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             OutlinedTextField(
                 value = password,
@@ -127,7 +127,7 @@ fun SignupScreen(navController: NavHostController, signupViewModel: SignupViewMo
                 visualTransformation = PasswordVisualTransformation()
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             Button(
                 onClick = { pickImageLauncher.launch("image/*") },
@@ -140,14 +140,19 @@ fun SignupScreen(navController: NavHostController, signupViewModel: SignupViewMo
             }
 
             if (imageUri != null) {
-                Spacer(modifier = Modifier.height(16.dp))
-                AsyncImage(
-                    model = imageUri,
-                    contentDescription = "選択画像プレビュー",
+                Spacer(modifier = Modifier.height(12.dp))
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(200.dp)
-                )
+                        .weight(1f, fill = false)
+                        .heightIn(max = 180.dp)
+                ) {
+                    AsyncImage(
+                        model = imageUri,
+                        contentDescription = "選択画像プレビュー",
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
             }
 
             if (errorMessage != null) {
@@ -155,7 +160,7 @@ fun SignupScreen(navController: NavHostController, signupViewModel: SignupViewMo
                 Text(text = errorMessage!!, color = Color.Red, fontSize = 12.sp, modifier = Modifier.fillMaxWidth())
             }
 
-            Spacer(modifier = Modifier.height(40.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             Button(
                 onClick = {
@@ -188,13 +193,14 @@ fun SignupScreen(navController: NavHostController, signupViewModel: SignupViewMo
                 }
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(12.dp))
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
                 Text(text = "すでに登録がお済みの方 ", color = Color.Gray, fontSize = 14.sp)
                 TextButton(onClick = { navController.popBackStack() }) {
                     Text(text = "ログイン", color = Color.Black, fontSize = 14.sp)
                 }
             }
+            Spacer(modifier = Modifier.weight(0.5f, fill = false))
         }
     }
 }

@@ -23,8 +23,11 @@ import com.example.smartcloset_frontend.ui.ClothesDetailScreen
 import com.example.smartcloset_frontend.ui.ItemConfirmationScreen
 import com.example.smartcloset_frontend.ui.ItemRegistrationScreen
 @Composable
-fun NavGraph(navController: NavHostController) {
-    NavHost(navController, startDestination = "login") {
+fun NavGraph(
+    navController: NavHostController,
+    startDestination: String = "login"
+) {
+    NavHost(navController, startDestination = startDestination) {
         composable("login") { 
             LoginScreen(
                 onLoginClick = { email, password ->
@@ -44,7 +47,10 @@ fun NavGraph(navController: NavHostController) {
         }
         composable("home") { HomeScreen(navController) }
         composable("settings") {
-            SettingsScreen(onBack = { navController.popBackStack() })
+            SettingsScreen(
+                onBack = { navController.popBackStack() },
+                navController = navController
+            )
         }
         composable("test") { TestScreen(navController) }
         composable("coordinate") { SuggestionScreen(navController) }
