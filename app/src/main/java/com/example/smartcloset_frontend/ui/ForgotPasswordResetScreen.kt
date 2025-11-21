@@ -170,6 +170,24 @@ fun ForgotPasswordResetScreen(navController: NavHostController, token: String? =
                     Text("再設定", color = Color.White, fontSize = 16.sp)
                 }
             }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(text = "ログインに戻る ", color = Color.Gray, fontSize = 14.sp)
+                TextButton(onClick = { 
+                    navController.navigate("login") {
+                        popUpTo("forgot_reset") { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }) {
+                    Text(text = "ログイン", color = Color.Black, fontSize = 14.sp)
+                }
+            }
         }
     }
 }
