@@ -9,6 +9,8 @@ import com.example.smartcloset_frontend.data.AddItemData
 import com.example.smartcloset_frontend.data.GenerateOutfitData
 import com.example.smartcloset_frontend.data.LocationData
 import com.example.smartcloset_frontend.data.WeatherData
+import com.example.smartcloset_frontend.data.PasswordResetRequestData
+import com.example.smartcloset_frontend.data.PasswordResetConfirmData
 
 import retrofit2.Response
 import retrofit2.http.Body
@@ -60,6 +62,16 @@ interface ApiService {
         @Body locationData:LocationData
     ): Response<WeatherData>
 
+    // パスワードリセットリクエスト（メール送信）
+    @POST("/auth/password-reset/request")
+    suspend fun requestPasswordReset(
+        @Body requestData: PasswordResetRequestData
+    ): Response<Unit>
 
+    // パスワードリセット実行
+    @POST("/auth/password-reset/confirm")
+    suspend fun confirmPasswordReset(
+        @Body confirmData: PasswordResetConfirmData
+    ): Response<Unit>
 
 }

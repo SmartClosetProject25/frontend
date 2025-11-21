@@ -5,10 +5,52 @@ import androidx.lifecycle.viewModelScope
 import com.example.smartcloset_frontend.data.LoginData
 import com.example.smartcloset_frontend.data.repository.LoginRepository
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.decodeFromString
+
+@Serializable
+data class ErrorResponse(
+    val error: String? = null,
+    val message: String? = null
+)
 
 // LoginScreenのためのViewModel。UI関連のデータとロジックを管理する
 class LoginViewModel : ViewModel() {
     private val repository = LoginRepository()
+    private val json = Json { ignoreUnknownKeys = true }
+    
+    // エラーメッセージを日本語に変換
+    private fun parseErrorMessage(errorBody: String?): String {
+        if (errorBody == null) {
+            return "ログインに失敗しました。"
+        }
+        
+        return try {
+            val errorResponse = json.decodeFromString<ErrorResponse>(errorBody)
+            val errorText = errorResponse.error ?: errorResponse.message ?: errorBody
+            
+            // 英語のエラーメッセージを日本語に変換
+            when {
+                errorText.contains("email and password are required", ignoreCase = true) -> 
+                    "メールアドレスとパスワードを入力してください。"
+                errorText.contains("Invalid email or password", ignoreCase = true) -> 
+                    "メールアドレスまたはパスワードが正しくありません。"
+                errorText.contains("email is required", ignoreCase = true) -> 
+                    "メールアドレスを入力してください。"
+                errorText.contains("password is required", ignoreCase = true) -> 
+                    "パスワードを入力してください。"
+                else -> errorText
+            }
+        } catch (e: Exception) {
+            // JSONパースに失敗した場合は、そのまま返すかデフォルトメッセージ
+            if (errorBody.length < 200) {
+                errorBody
+            } else {
+                "ログインに失敗しました。"
+            }
+        }
+    }
     
     // フォームのデータをサーバーに送信する関数
     fun login(
@@ -32,12 +74,12 @@ class LoginViewModel : ViewModel() {
                 } else {
                     // サーバーがエラーレスポンスを返した場合の処理
                     val errorBody = response.errorBody()?.string()
-                    val errorMessage = errorBody ?: "ログインに失敗しました。"
+                    val errorMessage = parseErrorMessage(errorBody)
                     onResult(false, errorMessage)
                 }
             } catch (e: Exception) {
                 // 通信エラーやデータ変換エラーなど、例外が発生した場合の処理
-                onResult(false, "ネットワークエラー: ${e.message}")
+                onResult(false, "ネットワークエラー: ${e.message ?: "接続できませんでした"}")
             }
         }
     }

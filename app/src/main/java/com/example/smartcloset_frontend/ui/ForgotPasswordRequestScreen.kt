@@ -14,7 +14,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
-import kotlinx.coroutines.delay
+import com.example.smartcloset_frontend.data.repository.PasswordResetRepository
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -24,6 +24,7 @@ fun ForgotPasswordRequestScreen(navController: NavHostController) {
     var error by remember { mutableStateOf<String?>(null) }
     var sending by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    val repository = remember { PasswordResetRepository() }
 
     fun validate(): Boolean {
         if (!email.contains("@")) { error = "正しいメールアドレスを入力してください。"; return false }
@@ -34,12 +35,21 @@ fun ForgotPasswordRequestScreen(navController: NavHostController) {
         if (!validate()) return
         scope.launch {
             sending = true
-            // TODO: メール送信API呼び出しをここに実装
-            delay(1000)
-            sending = false
-            navController.navigate("forgot_reset") {
-                popUpTo("forgot") { inclusive = true }
-                launchSingleTop = true
+            error = null
+            try {
+                val response = repository.requestPasswordReset(email)
+                if (response.isSuccessful) {
+                    navController.navigate("forgot_email_sent") {
+                        popUpTo("forgot") { inclusive = false }
+                        launchSingleTop = true
+                    }
+                } else {
+                    error = "メール送信に失敗しました。再度お試しください。"
+                }
+            } catch (e: Exception) {
+                error = "ネットワークエラー: ${e.message}"
+            } finally {
+                sending = false
             }
         }
     }

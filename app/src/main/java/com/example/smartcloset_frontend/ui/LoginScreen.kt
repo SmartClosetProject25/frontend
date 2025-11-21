@@ -136,14 +136,17 @@ fun LoginScreen(
             
             // エラーメッセージ
             if (showError) {
-                Text(
-                    text = errorMessage ?: "認証情報が異なっています。",
-                    color = Color.Red,
-                    fontSize = 12.sp,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 8.dp)
-                )
+                errorMessage?.let { message ->
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = message,
+                        color = Color.Red,
+                        fontSize = 12.sp,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 4.dp)
+                    )
+                }
             }
             
             Spacer(modifier = Modifier.height(40.dp))
