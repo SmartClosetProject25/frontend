@@ -50,7 +50,9 @@ fun NavGraph(
                 },
                 onForgotPasswordClick = {
                     navController.navigate("forgot")
-                }
+                },
+                //debug用に直接homeへ飛ぶボタンを追加
+                navController = navController
             )
         }
         composable("home") { HomeScreen(navController) }

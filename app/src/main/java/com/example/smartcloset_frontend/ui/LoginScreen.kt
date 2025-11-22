@@ -23,7 +23,9 @@ import androidx.compose.runtime.LaunchedEffect
 import kotlinx.coroutines.launch
 import com.example.smartcloset_frontend.data.PreferencesManager
 import android.content.Context
+import android.widget.Toast
 import androidx.compose.ui.platform.LocalContext
+import androidx.navigation.NavHostController
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,7 +33,8 @@ fun LoginScreen(
     onLoginClick: (String, String) -> Unit = { _, _ -> },
     onRegisterClick: () -> Unit = {},
     onForgotPasswordClick: () -> Unit = {} ,
-    loginViewModel: LoginViewModel = viewModel()
+    loginViewModel: LoginViewModel = viewModel(),
+    navController: NavHostController
 ) {
     val context = LocalContext.current
     val preferencesManager = remember { PreferencesManager(context) }
@@ -66,6 +69,15 @@ fun LoginScreen(
             )
             
             Spacer(modifier = Modifier.height(60.dp))
+
+            Button(
+                onClick = {
+                    navController.navigate("home")
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("top")
+            }
             
             // メールアドレス入力フィールド
             OutlinedTextField(
@@ -150,7 +162,7 @@ fun LoginScreen(
             }
             
             Spacer(modifier = Modifier.height(40.dp))
-            
+
             // ログインボタン
             Button(
                 onClick = {
