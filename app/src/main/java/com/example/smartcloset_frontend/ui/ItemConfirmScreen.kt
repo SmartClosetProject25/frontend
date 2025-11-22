@@ -206,17 +206,7 @@ fun ItemConfirmationScreen(
                             Toast.makeText(context, "画像が設定されていません", Toast.LENGTH_SHORT).show()
                             return@Button
                         }
-
-                        val imagePath = saveImageToLocalItemFolder(
-                            context,
-                            uri.toUri()
-                        )
-
-                        if (imagePath == null) {
-                            Toast.makeText(context, "画像保存に失敗しました", Toast.LENGTH_SHORT).show()
-                            return@Button
-                        }
-                        viewModel.addItem(imagePath, userId = 1)
+                        viewModel.addItem(uri.toUri(), userId = 1)
                     },
                     enabled = !isLoading,
                     modifier = Modifier.weight(1f),
