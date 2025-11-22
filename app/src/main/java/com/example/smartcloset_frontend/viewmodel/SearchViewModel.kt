@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.smartcloset_frontend.data.SearchData
 import com.example.smartcloset_frontend.data.repository.SearchRepository
 import kotlinx.coroutines.launch
+
 class SearchViewModel: ViewModel() {
     private val repository = SearchRepository()
 

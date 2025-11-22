@@ -3,7 +3,6 @@ package com.example.smartcloset_frontend.viewmodel
 import android.app.Application
 import android.net.Uri
 import androidx.compose.runtime.mutableStateOf
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
 import com.example.smartcloset_frontend.data.repository.AddDataRepository
@@ -40,7 +39,6 @@ class AddItemViewModel(
     }
 
     /**
-     * 画像をローカルには保存せず、
      * 渡された imageUri からそのまま Multipart を作ってサーバに送る
      */
     fun addItem(imageUri: Uri, userId: Int) {

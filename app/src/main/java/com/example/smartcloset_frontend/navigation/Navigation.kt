@@ -9,7 +9,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 
 import com.example.smartcloset_frontend.ui.TestScreen
-//import com.example.smartcloset_frontend.ui.ClothesDetailScreen
 import com.example.smartcloset_frontend.ui.HomeScreen
 import com.example.smartcloset_frontend.ui.SettingsScreen
 import com.example.smartcloset_frontend.ui.LoginScreen
@@ -27,7 +26,6 @@ import com.example.smartcloset_frontend.ui.ClothesDetailScreen
 import com.example.smartcloset_frontend.ui.ItemConfirmationScreen
 import com.example.smartcloset_frontend.ui.ItemRegistrationScreen
 import com.example.smartcloset_frontend.viewmodel.AddItemViewModel
-
 
 @Composable
 fun NavGraph(
@@ -81,7 +79,9 @@ fun NavGraph(
         composable("profile") { ProfileScreen(navController) }
         composable("profile_edit") { ProfileEditScreen(navController) }
         composable("clothes_detail") { ClothesDetailScreen(navController) }
-//        // 詳細画面への遷移時に itemId を渡す
+        composable("register") { ItemRegistrationScreen(navController,sharedVM) }
+        composable("item_confirm") { ItemConfirmationScreen(navController,sharedVM) }
+        // 詳細画面への遷移時に itemId を渡す
         //TODO: いったんコメントアウト
 //        composable(
 //            "clothes_detail/{itemId}",
@@ -98,8 +98,8 @@ fun NavGraph(
 //        composable("favorite") { FavoriteScreen(navController) }
 
 //        composable("settings") { SettingsScreen(navController) }
-        // 既存ナビ用の register は別用途で使用する想定
-        // composable("register") { RegisterScreen(navController) }
+
+        // 認証関連画面
         composable("signup") { SignupScreen(navController) }
         composable("signup_complete") { SignupCompleteScreen(navController) }
         composable("forgot") { ForgotPasswordRequestScreen(navController) }
@@ -118,8 +118,5 @@ fun NavGraph(
             ForgotPasswordResetScreen(navController, token)
         }
         composable("forgot_complete") { ForgotPasswordCompleteScreen(navController) }
-        composable("register") { ItemRegistrationScreen(navController,sharedVM) }
-        composable("item_confirm") { ItemConfirmationScreen(navController,sharedVM) }
-
     }
 }

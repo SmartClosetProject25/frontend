@@ -59,10 +59,10 @@ class ItemViewModel(
     fun sendJudge(data: JudgeRequestData) {
         viewModelScope.launch {
             try {
-                repository.judge(data)   // ← Retrofit の suspend 関数想定
+                repository.judge(data)
                 judgeError = null        // 成功したらエラーを消す
             } catch (e: Exception) {
-                // ネットワーク系のエラーか判定（お好み）
+                // ネットワーク系のエラーか判定
                 val isNetwork = e is java.net.ConnectException ||
                         e is java.net.SocketTimeoutException ||
                         e is java.net.UnknownHostException
@@ -72,7 +72,6 @@ class ItemViewModel(
                 } else {
                     "評価送信中にエラーが発生しました"
                 }
-
                 // Log だけして落とさない
                 e.printStackTrace()
             }

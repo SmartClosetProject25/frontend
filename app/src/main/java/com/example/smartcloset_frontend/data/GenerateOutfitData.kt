@@ -1,5 +1,4 @@
 package com.example.smartcloset_frontend.data
-import android.graphics.Bitmap
 
 data class GenerateOutfitData(
     val userId: Int,
