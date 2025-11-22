@@ -1,5 +1,6 @@
 package com.example.smartcloset_frontend.ui
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -20,15 +21,39 @@ import androidx.compose.ui.unit.*
 import androidx.navigation.NavController
 import com.example.smartcloset_frontend.R
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
-
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import com.example.smartcloset_frontend.data.ItemData
+import com.example.smartcloset_frontend.viewmodel.ItemViewModel
 
 
 @Composable
-fun HomeScreen(navController: NavController) {
+fun HomeScreen(
+    navController: NavController,
+    viewModel: ItemViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+) {
+    // アイテム一覧の読み込み
+    LaunchedEffect(Unit) {
+        viewModel.loadItems(userId = 1) // TODO: 実ユーザーIDに
+    }
+    val items = viewModel.items
+    val isLoading = viewModel.isLoading
+    val errorMessage = viewModel.errorMessage
+
     var selectedCategory by remember { mutableStateOf("すべて") }
     var searchText by remember { mutableStateOf("") }
 
     val categories = listOf("すべて", "トップス", "ジャケット・アウター", "パンツ", "スカート")
+
+    //TODOデータ受け取り出来たら直す
+    // アイテム一覧の拡張とリスト状態の初期化　
+//    val extendedItems = remember(items) {
+//        if (items.isEmpty()) emptyList<ItemData>()
+//        else List(20) { index -> items[index % items.size] }
+//    }
+//    val listState = rememberLazyListState(initialFirstVisibleItemIndex = 500)
+
+
     val dummyItems = List(5) { index -> "ウィンドブルーフス$index" }
     val extendedItems = remember { List(1000) { dummyItems[it % dummyItems.size] } }
     val listState = rememberLazyListState(initialFirstVisibleItemIndex = 500)
@@ -36,6 +61,7 @@ fun HomeScreen(navController: NavController) {
     val favorites = remember {
         mutableStateMapOf<Int, Boolean>()
     }
+
 
 
     Column(
@@ -138,10 +164,34 @@ fun HomeScreen(navController: NavController) {
                                 .height(320.dp)
                                 .background(Color.LightGray)
                         )
+//TODO 画像表示できたら直す
+//                        val item = extendedItems[index]
+//
+//                        if (item.imageUrl != null) {
+//                            Image(
+//                                painter = coil.compose.rememberAsyncImagePainter(item.imageUrl),
+//                                contentDescription = item.itemName,
+//                                modifier = Modifier
+//                                    .fillMaxWidth()
+//                                    .height(320.dp)
+//                                    .clip(RoundedCornerShape(12.dp))
+//                                    .background(Color.LightGray),
+//                                contentScale = ContentScale.Crop
+//                            )
+//                        } else {
+//                            Box(
+//                                modifier = Modifier
+//                                    .fillMaxWidth()
+//                                    .height(320.dp)
+//                                    .background(Color.LightGray)
+//                            )
+//                        }
 
                         Spacer(modifier = Modifier.height(8.dp))
 
                         Text(
+//                            TODO 直す
+//                            text = item.itemName,
                             text = extendedItems[index],
                             fontWeight = FontWeight.Bold,
                             fontSize = 18.sp,
@@ -149,6 +199,8 @@ fun HomeScreen(navController: NavController) {
                         )
 
                         Text(
+                            //TODO 直す
+                            //text = "カテゴリ: ${categoryMap[item.category] ?: "不明"}",
                             text = selectedCategory,
                             fontSize = 14.sp,
                             color = Color.Gray
@@ -190,6 +242,9 @@ fun HomeScreen(navController: NavController) {
                                 IconButton(
                                     onClick = {
                                         navController.navigate("clothes_detail")
+//                                        TODO 直す
+//                                        val item = extendedItems[index]
+//                                        navController.navigate("detail/${item.id}")
                                     },
                                     modifier = Modifier
                                         .size(40.dp)

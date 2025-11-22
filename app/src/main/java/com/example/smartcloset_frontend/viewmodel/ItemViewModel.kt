@@ -1,35 +1,50 @@
 package com.example.smartcloset_frontend.viewmodel
-import androidx.lifecycle.ViewModel
-import com.example.smartcloset_frontend.data.ItemData
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
+import android.app.Application
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.lifecycle.AndroidViewModel
 import kotlinx.coroutines.launch
 import androidx.lifecycle.viewModelScope
+import com.example.smartcloset_frontend.data.ItemData
 import com.example.smartcloset_frontend.data.repository.ItemRepository
+import com.example.smartcloset_frontend.ui.networkErr.AsyncState
 
 
 class ItemViewModel(
-    private val repository: ItemRepository = ItemRepository()
-) : ViewModel() {
+    application: Application
+) : AndroidViewModel(application) {
 
-    private val _items = MutableStateFlow<List<ItemData>>(emptyList())
-    val items: StateFlow<List<ItemData>> = _items
+    private val repository = ItemRepository()
+    var items by mutableStateOf<List<ItemData>>(emptyList())
+        private set
 
-    private var loaded = false
+    var isLoading by mutableStateOf(false)
+        private set
 
-    fun loadIfNeeded() {
-        if (loaded) return
+    var errorMessage by mutableStateOf<String?>(null)
+        private set
+
+    var itemListState by mutableStateOf<AsyncState<List<ItemData>>>(AsyncState.Idle)
+        private set
+
+    fun loadItems(userId: Int, forceRefresh: Boolean = false) {
+        // すでに成功済みで、更新がいらないならAPIを叩かない
+        if (!forceRefresh && itemListState is AsyncState.Success) return
 
         viewModelScope.launch {
-            val result = repository.getItems()
-            _items.value = result
-            loaded = true
-        }
-    }
-
-    fun refresh() {
-        viewModelScope.launch {
-            _items.value = repository.getItems()
+            itemListState = AsyncState.Loading
+            try {
+                val items = repository.getItems(userId)
+                itemListState = AsyncState.Success(items)
+            } catch (e: Exception) {
+                itemListState = AsyncState.Error(
+                    isNetworkError = e is java.net.ConnectException ||
+                            e is java.net.SocketTimeoutException ||
+                            e is java.net.UnknownHostException,
+                    message = "一覧取得でエラーが発生しました"
+                )
+            }
         }
     }
 }

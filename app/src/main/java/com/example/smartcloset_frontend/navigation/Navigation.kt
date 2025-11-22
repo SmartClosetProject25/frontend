@@ -64,15 +64,37 @@ fun NavGraph(
         }
         composable("test") { TestScreen(navController) }
         composable("coordinate") { SuggestionScreen(navController) }
-        composable("clothes_detail") {
-            ClothesDetailScreen(navController, clothesId = null)
-        }
+        //TODO: いったんコメントアウト
+//        composable(
+//            "clothes_detail/{itemId}",
+//            arguments = listOf(
+//                navArgument("itemId") { type = NavType.IntType }
+//            )
+//        ) { backStackEntry ->
+//            val itemId = backStackEntry.arguments?.getString("itemId")!!
+//            ClothesDetailScreen(navController, itemId = itemId)
+//        }
+
         composable("suggestion_history") { 
             SuggestionHistoryScreen(navController)
         }
         composable("profile") { ProfileScreen(navController) }
         composable("profile_edit") { ProfileEditScreen(navController) }
         composable("clothes_detail") { ClothesDetailScreen(navController) }
+//        // 詳細画面への遷移時に itemId を渡す
+        //TODO: いったんコメントアウト
+//        composable(
+//            "clothes_detail/{itemId}",
+//            arguments = listOf(
+//                navArgument("itemId") {
+//                    type = NavType.IntType
+//                }
+//            )
+//        ) { backStackEntry ->
+//            val itemId = backStackEntry.arguments?.getInt("itemId")!!
+//            ClothesDetailScreen(navController, itemId = itemId)
+//        }
+
 //        composable("favorite") { FavoriteScreen(navController) }
 
 //        composable("settings") { SettingsScreen(navController) }

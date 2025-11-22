@@ -3,7 +3,23 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class ItemData (
     val id: Int,
-    val color: String,
-    val category: String,
+    val itemName: String,
+    val category: Int,
+    val imageUrl: String?=null
+)
+
+@Serializable
+data class ItemDetailData (
+    val id: Int,
+    val itemName: String,
+    val brandName: String?,
+    val size: Int,
+    val category: Int,
+    val color: Int,
+    val pattern: Int,
+    val material: Int,
+    val feature: Int,
+    val taste: Int,
+    val season: Int,
     val imageUrl: String
 )

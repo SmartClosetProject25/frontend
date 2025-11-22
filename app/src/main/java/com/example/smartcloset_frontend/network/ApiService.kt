@@ -6,6 +6,7 @@ import com.example.smartcloset_frontend.data.SignUpData
 import com.example.smartcloset_frontend.data.SearchData
 import com.example.smartcloset_frontend.data.ItemData
 import com.example.smartcloset_frontend.data.GenerateOutfitData
+import com.example.smartcloset_frontend.data.ItemDetailData
 import com.example.smartcloset_frontend.data.LocationData
 import com.example.smartcloset_frontend.data.WeatherData
 import com.example.smartcloset_frontend.data.PasswordResetRequestData
@@ -21,6 +22,7 @@ import retrofit2.http.GET
 import retrofit2.http.Multipart
 import retrofit2.http.POST
 import retrofit2.http.Part
+import retrofit2.http.Query
 
 // RetrofitでサーバーAPIと通信するためのインターフェース
 interface ApiService {
@@ -48,9 +50,18 @@ interface ApiService {
         @Body searchData: SearchData
     ): Response<Unit>
 //    ): Response<SearchResponse> レスポンスがある場合はこれにする　Dataの定義も必要
+
 //    アイテム取得処理
-    @POST("/get_item")
-    suspend fun getItems(): List<ItemData>
+    @GET("/get_item")
+    suspend fun getItems(
+        @Query("userId") userId: Int
+    ): List<ItemData>
+
+    // アイテム詳細取得処理
+    @GET("/get_item_detail")
+    suspend fun getItemDetail(
+        @Query("itemId") itemId: Int
+    ): ItemDetailData
 
     @Multipart
     @POST("/add_item")
@@ -85,11 +96,12 @@ interface ApiService {
         @Body requestData: PasswordResetRequestData
     ): Response<Unit>
 
-
     // パスワードリセット実行
     @POST("/auth/password-reset/confirm")
     suspend fun confirmPasswordReset(
         @Body confirmData: PasswordResetConfirmData
     ): Response<Unit>
+
+
 
 }
