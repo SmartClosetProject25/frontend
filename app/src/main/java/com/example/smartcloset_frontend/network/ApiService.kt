@@ -13,9 +13,9 @@ import com.example.smartcloset_frontend.data.LocationData
 import com.example.smartcloset_frontend.data.WeatherData
 import com.example.smartcloset_frontend.data.PasswordResetRequestData
 import com.example.smartcloset_frontend.data.PasswordResetConfirmData
+
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
-
 import okhttp3.ResponseBody
 
 import retrofit2.Response
@@ -28,11 +28,10 @@ import retrofit2.http.Query
 
 // RetrofitでサーバーAPIと通信するためのインターフェース
 interface ApiService {
-
-    // プロフィール情報をサーバーに送信（更新）するためのPOSTリクエストを定義
-    @POST("/update_profile") // サーバーのエンドポイント（URLのパス部分）を指定
+    // プロフィール更新
+    @POST("/update_profile")
     suspend fun updateProfile(
-        @Body profileData: ProfileData // リクエストのボディに含めるデータ
+        @Body profileData: ProfileData
     ): Response<Unit> // サーバーからのレスポンス。今回はボディがないためUnitを指定
 
     //login処理

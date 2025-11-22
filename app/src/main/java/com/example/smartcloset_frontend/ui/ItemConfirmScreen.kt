@@ -1,12 +1,5 @@
 package com.example.smartcloset_frontend.ui
 
-// ItemFormState が定義されているファイルはインポートを省略
-
-// [注] ItemFormStateはItemFormState.ktに定義されていると仮定し、
-// ここではItemFormStateがアクセス可能であることを前提とします。
-// 以前のファイルで定義されていた ItemFormState の定義を仮に利用します。
-// 実際にはItemFormState.ktファイルに定義されているはずです。
-import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -20,7 +13,6 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -29,11 +21,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
-import com.example.smartcloset_frontend.utils.saveImageToLocalItemFolder
 import com.example.smartcloset_frontend.viewmodel.AddItemViewModel
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.net.toUri
