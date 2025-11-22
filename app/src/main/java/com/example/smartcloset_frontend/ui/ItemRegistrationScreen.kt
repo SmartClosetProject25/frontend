@@ -2,6 +2,7 @@ package com.example.smartcloset_frontend.ui
 
 import android.graphics.Bitmap
 import android.net.Uri
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -26,9 +27,11 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import coil.compose.rememberAsyncImagePainter
+import com.example.smartcloset_frontend.utils.saveBitmapAndGetUri
 import com.example.smartcloset_frontend.viewmodel.AddItemViewModel
 import kotlinx.serialization.Serializable
 
@@ -67,7 +70,7 @@ val sizeMap = mapOf(
 @Composable
 fun ItemRegistrationScreen(
     navController: NavController,
-    viewModel: AddItemViewModel = AddItemViewModel()
+    viewModel: AddItemViewModel
 ) {
     val context = LocalContext.current
     // フォームの状態を保持 (ItemFormStateを参照)
@@ -83,39 +86,7 @@ fun ItemRegistrationScreen(
             itemState = itemState.copy(imageUri = it.toString())
         }
     }
-
-    // 2. カメラ撮影ランチャー (Bitmapを返す)
-    val cameraLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicturePreview()
-    ) { bitmap: Bitmap? ->
-        bitmap?.let {
-            // BitmapをUriとして保存する処理は複雑なので、ここでは単純にComposable側でBitmapを扱うための
-            // 一時的なUri変換またはViewModelでのデータ保持が必要です。
-            // 簡易的にBitmapをそのまま表示できるように処理します。
-            // 実際のアプリでは、Bitmapをファイルに保存し、そのUriをitemStateに設定する必要があります。
-            // ここではデモとして、Bitmapが存在することを示すフラグ(または、後述の修正)を設定します。
-            // ItemFormStateがUriを受け取る設計なので、ここではUriを保存する実装は省略し、
-            // 成功したことだけを示すためにUri.EMPTY.toString()をセットします。（実際のアプリでは要修正）
-            // 🚨 注意: TakePicturePreviewはサムネイルを返すため、高解像度画像が必要な場合は
-            // FileProviderとTakePictureを使用する必要があります。
-            // ItemFormStateを Bitmap/Uri のいずれかを受け取れるように修正するのが最も簡単ですが、
-            // 今回は既存のItemFormStateに合わせて、Uriベースの画像を推奨します。
-
-            // 簡易対応として、Bitmapを保持する状態を追加します。
-            // この例では、高解像度を扱うため、TakePicture()とUriの使用を推奨します。
-
-            // 以下のコードは、高解像度画像が必要な場合の一般的な実装のヒントです。
-            // 現在のコードでは実行できないため、ここではシンプルなBitmap版を続行します。
-
-            // *** ItemFormStateに直接Bitmapを保持するための状態を一時的に追加します ***
-            // 実際のプロダクションコードでは、ファイルに保存し、そのURIを使用してください。
-            // val imageUriFromBitmap = saveBitmapAndGetUri(context, it) // 外部関数
-            // itemState = itemState.copy(imageUri = imageUriFromBitmap.toString())
-        }
-    }
-
-    // 3. カメラ撮影後のBitmapを保持する状態 (UriではなくBitmapを使う場合の応急処置)
-    // 実際のアプリでは、上記のようにUriを使う設計を維持すべきです。
+    // Bitmapを保持するための状態を追加
     var capturedBitmap by remember { mutableStateOf<Bitmap?>(null) }
 
     val cameraLauncherBitmap = rememberLauncherForActivityResult(
@@ -123,8 +94,10 @@ fun ItemRegistrationScreen(
     ) { bitmap: Bitmap? ->
         bitmap?.let {
             capturedBitmap = it
+            // 画像を保存してUriを取得する場合
+            val uri = saveBitmapAndGetUri(context, it)
             // UriではなくBitmapを保持していることを示すために、imageUriにはnullをセット (排他的に扱う)
-            itemState = itemState.copy(imageUri = "")
+            itemState = itemState.copy(imageUri = uri.toString())
         }
     }
 
@@ -394,131 +367,123 @@ fun SelectableField(
         }
     }
 }
-
-@Composable
-fun DateField(
-    label: String,
-    value: String,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit
-) {
-    Column(modifier = modifier.clickable(onClick = onClick)) {
-        Text(label, style = MaterialTheme.typography.labelSmall, color = Color.Gray)
-        Spacer(Modifier.height(4.dp))
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp)
-                .background(Color(0xFFEEEEEE), RoundedCornerShape(8.dp))
-                .padding(horizontal = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(value, style = MaterialTheme.typography.bodyLarge)
-            Icon(
-                Icons.Filled.CalendarToday,
-                contentDescription = "Date Picker",
-                modifier = Modifier.size(20.dp),
-                tint = Color.Gray
-            )
-        }
-    }
-}
-
-@Composable
-fun PriceField(
-    label: String,
-    value: Int,
-    onValueChange: (Int) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Column(modifier = modifier) {
-        Text(label, style = MaterialTheme.typography.labelSmall, color = Color.Gray)
-        Spacer(Modifier.height(4.dp))
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp)
-                .background(Color(0xFFEEEEEE), RoundedCornerShape(8.dp))
-                .padding(horizontal = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(value.toString(), style = MaterialTheme.typography.bodyLarge)
-
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Icon(
-                    Icons.Filled.KeyboardArrowUp,
-                    contentDescription = "Increase Price",
-                    modifier = Modifier
-                        .size(18.dp)
-                        .clickable { onValueChange(value + 1) }
-                )
-                Icon(
-                    Icons.Filled.KeyboardArrowDown,
-                    contentDescription = "Decrease Price",
-                    modifier = Modifier
-                        .size(18.dp)
-                        .clickable { if (value > 0) onValueChange(value - 1) }
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun TagFieldWithInput(tags: List<String>, onTagAdded: (String) -> Unit) {
-    var tagInput by remember { mutableStateOf("") }
-
-    OutlinedTextField(
-        value = tagInput,
-        onValueChange = { tagInput = it },
-        placeholder = { Text("タグを追加 +") },
-        leadingIcon = { Icon(Icons.Filled.Label, contentDescription = "Tag") },
-        trailingIcon = {
-            if (tagInput.isNotBlank()) {
-                IconButton(onClick = {
-                    onTagAdded(tagInput)
-                    tagInput = ""
-                }) {
-                    Icon(Icons.Filled.AddCircle, contentDescription = "Add Tag")
-                }
-            }
-        },
-        singleLine = true,
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(56.dp),
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedContainerColor = Color(0xFFEEEEEE),
-            unfocusedContainerColor = Color(0xFFEEEEEE),
-            disabledContainerColor = Color(0xFFEEEEEE),
-            focusedBorderColor = Color.Transparent,
-            unfocusedBorderColor = Color.Transparent,
-        ),
-        shape = RoundedCornerShape(8.dp)
-    )
-
-    Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        tags.forEach { tag ->
-            AssistChip(
-                onClick = { /* 削除など */ },
-                label = { Text(tag) },
-                leadingIcon = { Icon(Icons.Filled.Close, contentDescription = "Remove", Modifier.size(16.dp)) }
-            )
-        }
-    }
-}
-
-
 // ==========================================
-// プレビュー
+// 補助 Composable: 日付フィールド、価格フィールド、タグフィールド<<使わないからコメントアウト
+//　いらなかったら消して
 // ==========================================
-@Preview(showBackground = true)
-@Composable
-fun PreviewItemRegistrationScreen() {
-    // SmartClosetTheme 内でプレビュー
-    // SmartClosetTheme {
-    ItemRegistrationScreen(navController = rememberNavController())
-    // }
-}
+
+
+//@Composable
+//fun DateField(
+//    label: String,
+//    value: String,
+//    modifier: Modifier = Modifier,
+//    onClick: () -> Unit
+//) {
+//    Column(modifier = modifier.clickable(onClick = onClick)) {
+//        Text(label, style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+//        Spacer(Modifier.height(4.dp))
+//        Row(
+//            modifier = Modifier
+//                .fillMaxWidth()
+//                .height(56.dp)
+//                .background(Color(0xFFEEEEEE), RoundedCornerShape(8.dp))
+//                .padding(horizontal = 12.dp),
+//            verticalAlignment = Alignment.CenterVertically,
+//            horizontalArrangement = Arrangement.SpaceBetween
+//        ) {
+//            Text(value, style = MaterialTheme.typography.bodyLarge)
+//            Icon(
+//                Icons.Filled.CalendarToday,
+//                contentDescription = "Date Picker",
+//                modifier = Modifier.size(20.dp),
+//                tint = Color.Gray
+//            )
+//        }
+//    }
+//}
+//
+//@Composable
+//fun PriceField(
+//    label: String,
+//    value: Int,
+//    onValueChange: (Int) -> Unit,
+//    modifier: Modifier = Modifier
+//) {
+//    Column(modifier = modifier) {
+//        Text(label, style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+//        Spacer(Modifier.height(4.dp))
+//        Row(
+//            modifier = Modifier
+//                .fillMaxWidth()
+//                .height(56.dp)
+//                .background(Color(0xFFEEEEEE), RoundedCornerShape(8.dp))
+//                .padding(horizontal = 12.dp),
+//            verticalAlignment = Alignment.CenterVertically,
+//            horizontalArrangement = Arrangement.SpaceBetween
+//        ) {
+//            Text(value.toString(), style = MaterialTheme.typography.bodyLarge)
+//
+//            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+//                Icon(
+//                    Icons.Filled.KeyboardArrowUp,
+//                    contentDescription = "Increase Price",
+//                    modifier = Modifier
+//                        .size(18.dp)
+//                        .clickable { onValueChange(value + 1) }
+//                )
+//                Icon(
+//                    Icons.Filled.KeyboardArrowDown,
+//                    contentDescription = "Decrease Price",
+//                    modifier = Modifier
+//                        .size(18.dp)
+//                        .clickable { if (value > 0) onValueChange(value - 1) }
+//                )
+//            }
+//        }
+//    }
+//}
+//
+//@Composable
+//fun TagFieldWithInput(tags: List<String>, onTagAdded: (String) -> Unit) {
+//    var tagInput by remember { mutableStateOf("") }
+//
+//    OutlinedTextField(
+//        value = tagInput,
+//        onValueChange = { tagInput = it },
+//        placeholder = { Text("タグを追加 +") },
+//        leadingIcon = { Icon(Icons.Filled.Label, contentDescription = "Tag") },
+//        trailingIcon = {
+//            if (tagInput.isNotBlank()) {
+//                IconButton(onClick = {
+//                    onTagAdded(tagInput)
+//                    tagInput = ""
+//                }) {
+//                    Icon(Icons.Filled.AddCircle, contentDescription = "Add Tag")
+//                }
+//            }
+//        },
+//        singleLine = true,
+//        modifier = Modifier
+//            .fillMaxWidth()
+//            .height(56.dp),
+//        colors = OutlinedTextFieldDefaults.colors(
+//            focusedContainerColor = Color(0xFFEEEEEE),
+//            unfocusedContainerColor = Color(0xFFEEEEEE),
+//            disabledContainerColor = Color(0xFFEEEEEE),
+//            focusedBorderColor = Color.Transparent,
+//            unfocusedBorderColor = Color.Transparent,
+//        ),
+//        shape = RoundedCornerShape(8.dp)
+//    )
+//
+//    Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+//        tags.forEach { tag ->
+//            AssistChip(
+//                onClick = { /* 削除など */ },
+//                label = { Text(tag) },
+//                leadingIcon = { Icon(Icons.Filled.Close, contentDescription = "Remove", Modifier.size(16.dp)) }
+//            )
+//        }
+//    }
+//}

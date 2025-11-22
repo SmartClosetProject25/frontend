@@ -7,6 +7,7 @@ package com.example.smartcloset_frontend.ui
 // 以前のファイルで定義されていた ItemFormState の定義を仮に利用します。
 // 実際にはItemFormState.ktファイルに定義されているはずです。
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -18,6 +19,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -29,13 +32,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.smartcloset_frontend.utils.saveImageToLocalItemFolder
 import com.example.smartcloset_frontend.viewmodel.AddItemViewModel
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.net.toUri
-import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.smartcloset_frontend.ui.networkErr.AsyncState
 
 // ==========================================
 // アイテム詳細確認画面
@@ -44,27 +46,44 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 @Composable
 fun ItemConfirmationScreen(
     navController: NavController,
-    viewModel: AddItemViewModel = viewModel()
-    // itemJson: String の引数を削除
+    viewModel: AddItemViewModel
 ) {
     val context = LocalContext.current
     val itemState = viewModel.itemState
-    // ----------------------------------------------------
-    // データの受け渡しをしないため、ダミーデータを使用
-//    // ----------------------------------------------------
-//    val itemState = remember {
-        // ダミーデータまたは永続化された共有データを使用
-//        ItemFormState(
-//            itemName = "ダミーアイテム (確認用)",
-//            brandName = "ブランド名",
-//            size = "M",
-//            purchaseDate = "2025/10/10",
-//            price = 5990,
-//            category = "アウター",
-//            tags = listOf("ダミー", "確認"),
-//            imageUri = null // Uri.toString()
-//        )
-//    }
+    val addItemState = viewModel.addItemState
+
+    // 成功・失敗を一度だけ処理したいので LaunchedEffect を使う
+    LaunchedEffect(addItemState) {
+        when (val state = addItemState) {
+            is AsyncState.Success<*> -> {
+                // ★ 本当に Success 状態になったときだけ成功トースト&遷移
+                Toast.makeText(context, "登録が完了しました", Toast.LENGTH_SHORT).show()
+                viewModel.resetAddItemState()
+                navController.navigate("home") {
+                    popUpTo("item_confirm") { inclusive = true }
+                }
+            }
+            is AsyncState.Error -> {
+                // ★ 失敗時はこっち。成功トーストは出ない
+                Toast.makeText(
+                    context,
+                    state.message ?: "エラーが発生しました",
+                    Toast.LENGTH_SHORT
+                ).show()
+
+                if (state.isNetworkError) {
+                    // 必要ならネットワークエラー用画面に飛ばす
+                    // navController.navigate("network_error") { ... }
+                }
+
+                viewModel.resetAddItemState()
+            }
+            else -> Unit
+        }
+    }
+
+    val isLoading = addItemState is AsyncState.Loading
+
 
     Scaffold(
         topBar = {
@@ -80,16 +99,14 @@ fun ItemConfirmationScreen(
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, tint = Color.Transparent)
                         }
 
-                        itemState.itemName?.let {
-                            Text(
-                                text = it,
-                                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Normal),
-                                modifier = Modifier.weight(1f),
-                                textAlign = TextAlign.Center,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
+                        Text(
+                            text = itemState.itemName,
+                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Normal),
+                            modifier = Modifier.weight(1f),
+                            textAlign = TextAlign.Center,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
 
                         IconButton(onClick = { /* お気に入り登録ロジック */ }) {
                             Icon(Icons.Filled.Star, contentDescription = "Favorite", tint = Color.LightGray)
@@ -151,7 +168,7 @@ fun ItemConfirmationScreen(
             // 詳細情報リスト
             Column(modifier = Modifier.fillMaxWidth(0.9f).padding(horizontal = 8.dp)) {
                 // ブランド
-                DetailRow(label = "ブランド", value = itemState.brand ?: "-")
+                DetailRow(label = "ブランド", value = itemState.brand)
                 HorizontalDivider(color = Color.LightGray, thickness = 0.5.dp, modifier = Modifier.padding(vertical = 8.dp))
                 // サイズ
                 DetailRow(label = "サイズ", value = itemState.size)
@@ -185,24 +202,38 @@ fun ItemConfirmationScreen(
                 Button(
                     onClick = {
                         val uri = itemState.imageUri
-                        if (uri == null) {
-                            Log.e("AddItem", "imageUri is null")
+                        if (uri.isBlank()) {
+                            Toast.makeText(context, "画像が設定されていません", Toast.LENGTH_SHORT).show()
                             return@Button
                         }
 
-                        val imagePath: String? = saveImageToLocalItemFolder(
+                        val imagePath = saveImageToLocalItemFolder(
                             context,
                             uri.toUri()
                         )
 
-                        val safePath = requireNotNull(imagePath) { "imagePath が null です。" }
-                        viewModel.addItem(safePath, userId = 1)
+                        if (imagePath == null) {
+                            Toast.makeText(context, "画像保存に失敗しました", Toast.LENGTH_SHORT).show()
+                            return@Button
+                        }
+                        viewModel.addItem(imagePath, userId = 1)
                     },
+                    enabled = !isLoading,
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(8.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6495ED))
                 ) {
-                    Text("登録", color = Color.White)
+//                    Text("登録", color = Color.White)
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            strokeWidth = 2.dp
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text("登録中…")
+                    } else {
+                        Text("この内容で登録")
+                    }
                 }
             }
             Spacer(Modifier.height(16.dp))
@@ -226,14 +257,4 @@ fun DetailRow(label: String, value: Any) {
             style = MaterialTheme.typography.bodyLarge
         )
     }
-}
-
-// ==========================================
-// プレビュー
-// ==========================================
-@Preview(showBackground = true)
-@Composable
-fun PreviewItemConfirmationScreen() {
-    // プレビューは引数なしで呼び出します
-    ItemConfirmationScreen(navController = rememberNavController())
 }
