@@ -16,34 +16,78 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
-import kotlinx.coroutines.delay
+import com.example.smartcloset_frontend.data.repository.PasswordResetRepository
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ForgotPasswordResetScreen(navController: NavHostController) {
+fun ForgotPasswordResetScreen(navController: NavHostController, token: String? = null) {
     var pass by remember { mutableStateOf("") }
     var confirm by remember { mutableStateOf("") }
     var error by remember { mutableStateOf<String?>(null) }
     var submitting by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    val repository = remember { PasswordResetRepository() }
+
+    // tokenの検証
+    LaunchedEffect(token) {
+        if (token == null || token.isEmpty()) {
+            android.util.Log.w("ForgotPasswordResetScreen", "Token is missing")
+            error = "無効なリンクです。"
+        } else {
+            android.util.Log.d("ForgotPasswordResetScreen", "Token received: $token")
+        }
+    }
 
     fun validate(): Boolean {
-        if (pass.length < 8) { error = "パスワードは8文字以上にしてください。"; return false }
-        if (pass != confirm) { error = "パスワードが一致していません。"; return false }
-        error = null; return true
+        if (token == null || token.isEmpty()) {
+            error = "無効なリンクです。"
+            return false
+        }
+        if (pass.length < 8) {
+            error = "パスワードは8文字以上にしてください。"
+            return false
+        }
+        if (pass != confirm) {
+            error = "パスワードが一致していません。"
+            return false
+        }
+        error = null
+        return true
     }
 
     fun onSubmit() {
         if (!validate()) return
+        
+        val resetToken = token ?: return
+        
         scope.launch {
             submitting = true
-            // TODO: バックエンドでの更新API呼び出し箇所
-            delay(1000)
-            submitting = false
-            navController.navigate("forgot_complete") {
-                popUpTo("forgot_reset") { inclusive = true }
-                launchSingleTop = true
+            error = null
+            
+            try {
+                android.util.Log.d("ForgotPasswordResetScreen", "Calling confirmPasswordReset API...")
+                val response = repository.confirmPasswordReset(resetToken, pass)
+                
+                if (response.isSuccessful) {
+                    android.util.Log.d("ForgotPasswordResetScreen", "Password reset successful")
+                    navController.navigate("forgot_complete") {
+                        popUpTo("forgot_reset") { inclusive = true }
+                        launchSingleTop = true
+                    }
+                } else {
+                    android.util.Log.e("ForgotPasswordResetScreen", "Password reset failed: ${response.code()}")
+                    error = when (response.code()) {
+                        400 -> "無効なトークンまたは期限切れです。"
+                        500 -> "サーバーエラーが発生しました。"
+                        else -> "パスワード再設定に失敗しました。"
+                    }
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("ForgotPasswordResetScreen", "Error: ${e.message}", e)
+                error = "ネットワークエラー: ${e.message}"
+            } finally {
+                submitting = false
             }
         }
     }
@@ -126,10 +170,24 @@ fun ForgotPasswordResetScreen(navController: NavHostController) {
                     Text("再設定", color = Color.White, fontSize = 16.sp)
                 }
             }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(text = "ログインに戻る ", color = Color.Gray, fontSize = 14.sp)
+                TextButton(onClick = { 
+                    navController.navigate("login") {
+                        popUpTo("forgot_reset") { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }) {
+                    Text(text = "ログイン", color = Color.Black, fontSize = 14.sp)
+                }
+            }
         }
     }
 }
-
-
-
-

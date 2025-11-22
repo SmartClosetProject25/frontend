@@ -19,17 +19,29 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.smartcloset_frontend.viewmodel.LoginViewModel
+import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.launch
+import com.example.smartcloset_frontend.data.PreferencesManager
+import android.content.Context
+import androidx.compose.ui.platform.LocalContext
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
     onLoginClick: (String, String) -> Unit = { _, _ -> },
     onRegisterClick: () -> Unit = {},
     onForgotPasswordClick: () -> Unit = {} ,
-    LoginViewModel: LoginViewModel = viewModel()
+    loginViewModel: LoginViewModel = viewModel()
 ) {
+    val context = LocalContext.current
+    val preferencesManager = remember { PreferencesManager(context) }
+    
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var showError by remember { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
 
     Box(
         modifier = Modifier
@@ -124,14 +136,17 @@ fun LoginScreen(
             
             // エラーメッセージ
             if (showError) {
-                Text(
-                    text = "認証情報が異なっています。",
-                    color = Color.Red,
-                    fontSize = 12.sp,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 8.dp)
-                )
+                errorMessage?.let { message ->
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = message,
+                        color = Color.Red,
+                        fontSize = 12.sp,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 4.dp)
+                    )
+                }
             }
             
             Spacer(modifier = Modifier.height(40.dp))
@@ -139,21 +154,30 @@ fun LoginScreen(
             // ログインボタン
             Button(
                 onClick = {
-//   httpリクエスト用コード＞＞＞＞                 LoginViewModel.login(email, password)
-
-                    //if (email.isNotEmpty() && password.isNotEmpty()) {
-                        // サンプル認証: sampleuser@mail.com / password のみ通す
-                        // ↓
-                        // 空白のみ通す
-                        if (email == "" && password == "") {
-                            onLoginClick(email, password)
-                        } else {
-                            showError = true
+                    if (email.isNotEmpty() && password.isNotEmpty()) {
+                        isLoading = true
+                        showError = false
+                        errorMessage = null
+                        
+                        scope.launch {
+                            loginViewModel.login(email, password) { success, message ->
+                                isLoading = false
+                                if (success) {
+                                    // ログイン情報を保存（日時も記録）
+                                    preferencesManager.saveLoginInfo(email, password)
+                                    onLoginClick(email, password)
+                                } else {
+                                    showError = true
+                                    errorMessage = message
+                                }
+                            }
                         }
-                    //} else {
-                    //    showError = true
-                    //}
+                    } else {
+                        showError = true
+                        errorMessage = "メールアドレスとパスワードを入力してください。"
+                    }
                 },
+                enabled = !isLoading,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color.Black
                 ),
@@ -161,11 +185,19 @@ fun LoginScreen(
                     .fillMaxWidth()
                     .height(48.dp)
             ) {
-                Text(
-                    text = "ログイン",
-                    color = Color.White,
-                    fontSize = 16.sp
-                )
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        strokeWidth = 2.dp,
+                        color = Color.White,
+                        modifier = Modifier.size(20.dp)
+                    )
+                } else {
+                    Text(
+                        text = "ログイン",
+                        color = Color.White,
+                        fontSize = 16.sp
+                    )
+                }
             }
             
             Spacer(modifier = Modifier.height(32.dp))

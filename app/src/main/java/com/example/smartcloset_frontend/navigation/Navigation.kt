@@ -3,8 +3,10 @@ package com.example.smartcloset_frontend.navigation
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
 
 import com.example.smartcloset_frontend.ui.TestScreen
 //import com.example.smartcloset_frontend.ui.ClothesDetailScreen
@@ -14,6 +16,7 @@ import com.example.smartcloset_frontend.ui.LoginScreen
 import com.example.smartcloset_frontend.ui.SignupScreen
 import com.example.smartcloset_frontend.ui.SignupCompleteScreen
 import com.example.smartcloset_frontend.ui.ForgotPasswordRequestScreen
+import com.example.smartcloset_frontend.ui.ForgotPasswordEmailSentScreen
 import com.example.smartcloset_frontend.ui.ForgotPasswordResetScreen
 import com.example.smartcloset_frontend.ui.ForgotPasswordCompleteScreen
 import com.example.smartcloset_frontend.ui.ProfileEditScreen
@@ -27,9 +30,11 @@ import com.example.smartcloset_frontend.viewmodel.AddItemViewModel
 
 
 @Composable
-fun NavGraph(navController: NavHostController) {
-    val sharedVM: AddItemViewModel = viewModel()
-    NavHost(navController, startDestination = "login") {
+fun NavGraph(
+    navController: NavHostController,
+    startDestination: String = "login"
+) {
+    NavHost(navController, startDestination = startDestination) {
         composable("login") { 
             LoginScreen(
                 onLoginClick = { email, password ->
@@ -49,7 +54,10 @@ fun NavGraph(navController: NavHostController) {
         }
         composable("home") { HomeScreen(navController) }
         composable("settings") {
-            SettingsScreen(onBack = { navController.popBackStack() })
+            SettingsScreen(
+                onBack = { navController.popBackStack() },
+                navController = navController
+            )
         }
         composable("test") { TestScreen(navController) }
         composable("coordinate") { SuggestionScreen(navController) }
@@ -70,7 +78,20 @@ fun NavGraph(navController: NavHostController) {
         composable("signup") { SignupScreen(navController) }
         composable("signup_complete") { SignupCompleteScreen(navController) }
         composable("forgot") { ForgotPasswordRequestScreen(navController) }
-        composable("forgot_reset") { ForgotPasswordResetScreen(navController) }
+        composable("forgot_email_sent") { ForgotPasswordEmailSentScreen(navController) }
+        composable(
+            route = "forgot_reset?token={token}",
+            arguments = listOf(
+                navArgument("token") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) { backStackEntry ->
+            val token = backStackEntry.arguments?.getString("token")
+            ForgotPasswordResetScreen(navController, token)
+        }
         composable("forgot_complete") { ForgotPasswordCompleteScreen(navController) }
         composable("register") { ItemRegistrationScreen(navController,sharedVM) }
         composable("item_confirm") { ItemConfirmationScreen(navController,sharedVM) }
