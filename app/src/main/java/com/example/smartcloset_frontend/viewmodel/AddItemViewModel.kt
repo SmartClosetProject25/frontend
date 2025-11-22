@@ -1,25 +1,33 @@
 package com.example.smartcloset_frontend.viewmodel
 
+import android.app.Application
+import android.net.Uri
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
 import com.example.smartcloset_frontend.data.repository.AddDataRepository
-import com.example.smartcloset_frontend.data.AddItemData
 import com.example.smartcloset_frontend.ui.ItemFormState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.AndroidViewModel
 import com.example.smartcloset_frontend.ui.networkErr.AsyncState
-import com.example.smartcloset_frontend.ui.networkErr.launchWithAsyncState
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.toRequestBody
+import java.io.IOException
 
+class AddItemViewModel(
+    application: Application
+) : AndroidViewModel(application) {
 
-class AddItemViewModel : ViewModel() {
     private val repository = AddDataRepository()
 
+    // 入力フォームの状態
     var itemState by mutableStateOf(ItemFormState())
         private set
 
-    // 登録処理の状態（Loading / Success / Error）
+    // 登録処理の状態（Idle / Loading / Success / Error）
     var addItemState by mutableStateOf<AsyncState<Unit>>(AsyncState.Idle)
         private set
 
@@ -31,33 +39,51 @@ class AddItemViewModel : ViewModel() {
         addItemState = AsyncState.Idle
     }
 
-    fun addItem(localPath: String, userId: Int) {
+    /**
+     * 画像をローカルには保存せず、
+     * 渡された imageUri からそのまま Multipart を作ってサーバに送る
+     */
+    fun addItem(imageUri: Uri, userId: Int) {
         viewModelScope.launch {
             addItemState = AsyncState.Loading
+
             try {
-                // ★★★ 実際のサーバ登録処理 ★★★
-                repository.addItem(
-                    AddItemData(
-                        color = itemState.color,
-                        pattern = itemState.pattern,
-                        size = itemState.size,
-                        brand = itemState.brand,
-                        category = itemState.category,
-                        userId = userId,
-                        imageUrl = localPath,
-                        material = itemState.material,
-                        feature = itemState.feature,
-                        season = itemState.season,
-                        taste = itemState.taste,
-                        itemName = itemState.itemName
-                    )
+                // Application コンテキスト取得
+                val context = getApplication<Application>()
+                val cr = context.contentResolver
+
+                // URI からバイト列を取得
+                val bytes = cr.openInputStream(imageUri)?.use { it.readBytes() }
+                    ?: throw IOException("画像を読み込めませんでした") as Throwable
+
+                // ContentResolver から MIME type を取得（取れなければ image/*）
+                val mediaType = cr.getType(imageUri)?.toMediaTypeOrNull()
+                    ?: "image/*".toMediaTypeOrNull()
+
+                val requestBody = bytes.toRequestBody(mediaType)
+
+                // サーバ側で保存するファイル名（お好みで変更可）
+                val fileName = "item_${System.currentTimeMillis()}.jpg"
+
+                // MultipartBody.Part 作成（"file" はサーバ側のフィールド名に合わせる）
+                val imagePart = MultipartBody.Part.createFormData(
+                    "file",
+                    fileName,
+                    requestBody
                 )
 
-                // ここまで来た＝例外は出てない → 成功
+                // Repository 経由でサーバへ登録
+                repository.addItem(
+                    itemState = itemState,
+                    imagePart = imagePart,
+                    userId = userId
+                )
+
+                // ここまで例外が出なければ成功
                 addItemState = AsyncState.Success(Unit)
 
             } catch (e: Exception) {
-                // ネットワーク系のエラーか判定
+                // ネットワーク系エラー判定
                 val isNetwork = e is java.net.ConnectException ||
                         e is java.net.SocketTimeoutException ||
                         e is java.net.UnknownHostException
@@ -68,7 +94,6 @@ class AddItemViewModel : ViewModel() {
                     "登録中にエラーが発生しました"
                 }
 
-                // 例外はここで「Error状態」に変換して UI に渡す
                 addItemState = AsyncState.Error(
                     isNetworkError = isNetwork,
                     message = msg

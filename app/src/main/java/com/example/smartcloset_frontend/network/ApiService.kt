@@ -5,19 +5,22 @@ import com.example.smartcloset_frontend.data.ProfileData
 import com.example.smartcloset_frontend.data.SignUpData
 import com.example.smartcloset_frontend.data.SearchData
 import com.example.smartcloset_frontend.data.ItemData
-import com.example.smartcloset_frontend.data.AddItemData
 import com.example.smartcloset_frontend.data.GenerateOutfitData
 import com.example.smartcloset_frontend.data.LocationData
 import com.example.smartcloset_frontend.data.WeatherData
 import com.example.smartcloset_frontend.data.PasswordResetRequestData
 import com.example.smartcloset_frontend.data.PasswordResetConfirmData
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
 
 import okhttp3.ResponseBody
 
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.Multipart
 import retrofit2.http.POST
+import retrofit2.http.Part
 
 // RetrofitでサーバーAPIと通信するためのインターフェース
 interface ApiService {
@@ -49,9 +52,21 @@ interface ApiService {
     @POST("/get_item")
     suspend fun getItems(): List<ItemData>
 
+    @Multipart
     @POST("/add_item")
     suspend fun addItem(
-        @Body addItemData: AddItemData
+        @Part("userId") userId: RequestBody,
+        @Part("itemName") itemName: RequestBody,
+        @Part("color") color: RequestBody,
+        @Part("pattern") pattern: RequestBody,
+        @Part("size") size: RequestBody,
+        @Part("brand") brand: RequestBody,
+        @Part("category") category: RequestBody,
+        @Part("material") material: RequestBody,
+        @Part("feature") feature: RequestBody,
+        @Part("season") season: RequestBody,
+        @Part("taste") taste: RequestBody,
+        @Part image: MultipartBody.Part,
     ): Response<Unit>
 
     @POST("/generate_outfit")
