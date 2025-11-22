@@ -8,5 +8,10 @@ data class AddItemData (
     val brand: String,
     val category: Int,
     val userId : Int,
-    val imageUrl: String
+    val imageUrl: String,
+    val material: String,
+    val feature: String,
+    val taste: String,
+    val season: String,
+    val itemName: String
 )
