@@ -1,10 +1,11 @@
 package com.example.smartcloset_frontend.data
-import kotlinx.serialization.Serializable
+import android.graphics.Bitmap
 
-@Serializable
 data class GenerateOutfitData(
-    val plan: String,
-    val temperature: Int,
-//    降水確率＞cor
-    val cor: Int,
+    val userId: Int,
+    val selfieId: Int,
+    val topsId: Int,
+    val bottomsId: Int,
+    val othersId: Int? = null,
+    val others2Id: Int? = null
 )

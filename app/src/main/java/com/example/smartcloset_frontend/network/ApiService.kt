@@ -12,6 +12,8 @@ import com.example.smartcloset_frontend.data.WeatherData
 import com.example.smartcloset_frontend.data.PasswordResetRequestData
 import com.example.smartcloset_frontend.data.PasswordResetConfirmData
 
+import okhttp3.ResponseBody
+
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -54,8 +56,8 @@ interface ApiService {
 
     @POST("/generate_outfit")
     suspend fun generateOutfit(
-        @Body generateOutfitData: GenerateOutfitData
-    ): Response<List<ItemData>>
+        @Body data: GenerateOutfitData
+    ): Response<ResponseBody>
 
     @POST("/get_weather")
     suspend fun getWeather(
