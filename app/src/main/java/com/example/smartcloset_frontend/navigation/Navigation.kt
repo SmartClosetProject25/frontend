@@ -34,6 +34,7 @@ fun NavGraph(
     navController: NavHostController,
     startDestination: String = "login"
 ) {
+    val sharedVM: AddItemViewModel = viewModel()
     NavHost(navController, startDestination = startDestination) {
         composable("login") { 
             LoginScreen(
