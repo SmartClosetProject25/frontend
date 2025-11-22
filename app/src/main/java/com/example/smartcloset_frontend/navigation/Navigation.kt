@@ -1,6 +1,7 @@
 package com.example.smartcloset_frontend.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -22,8 +23,12 @@ import com.example.smartcloset_frontend.ui.SuggestionScreen
 import com.example.smartcloset_frontend.ui.ClothesDetailScreen
 import com.example.smartcloset_frontend.ui.ItemConfirmationScreen
 import com.example.smartcloset_frontend.ui.ItemRegistrationScreen
+import com.example.smartcloset_frontend.viewmodel.AddItemViewModel
+
+
 @Composable
 fun NavGraph(navController: NavHostController) {
+    val sharedVM: AddItemViewModel = viewModel()
     NavHost(navController, startDestination = "login") {
         composable("login") { 
             LoginScreen(
@@ -48,16 +53,15 @@ fun NavGraph(navController: NavHostController) {
         }
         composable("test") { TestScreen(navController) }
         composable("coordinate") { SuggestionScreen(navController) }
-//        composable("clothes_detail") {
-//            ClothesDetailScreen(navController, clothesId = null)
-//        }
+        composable("clothes_detail") {
+            ClothesDetailScreen(navController, clothesId = null)
+        }
         composable("suggestion_history") { 
             SuggestionHistoryScreen(navController)
         }
         composable("profile") { ProfileScreen(navController) }
         composable("profile_edit") { ProfileEditScreen(navController) }
         composable("clothes_detail") { ClothesDetailScreen(navController) }
-//        composable("register") { RegisterScreen(navController) }
 //        composable("favorite") { FavoriteScreen(navController) }
 
 //        composable("settings") { SettingsScreen(navController) }
@@ -68,7 +72,8 @@ fun NavGraph(navController: NavHostController) {
         composable("forgot") { ForgotPasswordRequestScreen(navController) }
         composable("forgot_reset") { ForgotPasswordResetScreen(navController) }
         composable("forgot_complete") { ForgotPasswordCompleteScreen(navController) }
-        composable("register") { ItemRegistrationScreen(navController) }
-        composable("item_confirm") { ItemConfirmationScreen(navController) }
+        composable("register") { ItemRegistrationScreen(navController,sharedVM) }
+        composable("item_confirm") { ItemConfirmationScreen(navController,sharedVM) }
+
     }
 }
