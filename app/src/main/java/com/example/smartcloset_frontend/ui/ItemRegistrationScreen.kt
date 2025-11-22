@@ -29,30 +29,45 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import coil.compose.rememberAsyncImagePainter
-import com.example.smartcloset_frontend.ui.theme.SmartClosetTheme
+import com.example.smartcloset_frontend.viewmodel.AddItemViewModel
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
-import java.net.URLEncoder
-import java.nio.charset.StandardCharsets
-import java.io.File // カメラからの画像保存のために必要となる可能性あり
 
-@Serializable //
+@Serializable
 data class ItemFormState(
     val itemName: String = "",
-    val brandName: String? = null,
-    val size: String? = null,
-    val purchaseDate: String = "", // 例: "2025/10/10"
-    val price: Int = 0,
-    val category: String = "未選択",
-    val tags: List<String> = emptyList(),
-    val imageUri: String? = null // Uri.toString()
+    val color: Int = 0,
+    val pattern: Int = 0,
+    val brand: String = "",
+    val size: Int = 0,
+    val category: Int = 0,
+    val imageUri: String = "",
+    val material: String = "",
+    val feature: String = "",
+    val taste: String = "",
+    val season: String = "",
 )
+
+val categoryMap = mapOf(
+    0 to "未選択",
+    1 to "トップス",
+    2 to "ボトムス",
+    3 to "アウター",
+    4 to "アクセサリー"
+)
+val sizeMap = mapOf(
+    0 to "xs",
+    1 to "s",
+    2 to "m",
+    3 to "l",
+    4 to "ll"
+)
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ItemRegistrationScreen(
-    navController: NavController
+    navController: NavController,
+    viewModel: AddItemViewModel = AddItemViewModel()
 ) {
     val context = LocalContext.current
     // フォームの状態を保持 (ItemFormStateを参照)
@@ -109,7 +124,7 @@ fun ItemRegistrationScreen(
         bitmap?.let {
             capturedBitmap = it
             // UriではなくBitmapを保持していることを示すために、imageUriにはnullをセット (排他的に扱う)
-            itemState = itemState.copy(imageUri = null)
+            itemState = itemState.copy(imageUri = "")
         }
     }
 
@@ -153,20 +168,22 @@ fun ItemRegistrationScreen(
             )
             Spacer(Modifier.height(24.dp))
 
-            RegistrationForm(
-                state = itemState,
-                onStateChange = { itemState = it },
-                onTagAdded = { newTag ->
-                    if (newTag.isNotBlank() && !itemState.tags.contains(newTag)) {
-                        itemState = itemState.copy(tags = itemState.tags + newTag.trim())
-                    }
-                }
-            )
+            // 一時的にコメントアウト
+//            RegistrationForm(
+//                state = itemState,
+//                onStateChange = { itemState = it },
+//                onTagAdded = { newTag ->
+//                    if (newTag.isNotBlank() && !itemState.tags.contains(newTag)) {
+//                        itemState = itemState.copy(tags = itemState.tags + newTag.trim())
+//                    }
+//                }
+//            )
 
             Spacer(Modifier.height(32.dp))
 
             Button(
                 onClick = {
+                    viewModel.setFormState(itemState)
                     navController.navigate("item_confirm")
                 },
                 modifier = Modifier.fillMaxWidth().height(50.dp),
@@ -270,7 +287,6 @@ fun RegistrationForm(
     onStateChange: (ItemFormState) -> Unit,
     onTagAdded: (String) -> Unit
 ) {
-    // ... (元のRegistrationFormのコードをそのまま配置)
     Column {
         RegistrationTextField(
             label = "名称",
@@ -280,78 +296,80 @@ fun RegistrationForm(
         )
         Spacer(Modifier.height(16.dp))
 
-        SelectableField(label = "カテゴリー", value = state.category) { /* 選択ロジック */ }
+        SelectableField(
+            label = "カテゴリー",
+            value = categoryMap[state.category] ?: "未選択",
+        ) { /* 選択ロジック */ }
         Spacer(Modifier.height(16.dp))
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            RegistrationTextField(
-                label = "ブランド",
-                placeholder = "ブランド名",
-                value = state.brandName ?: "",
-                onValueChange = { onStateChange(state.copy(brandName = it)) },
-                modifier = Modifier.weight(1f)
-            )
+//            RegistrationTextField(
+//                label = "ブランド",
+//                placeholder = "ブランド名",
+//                value = state.brandName ?: "",
+//                onValueChange = { onStateChange(state.copy(brandName = it)) },
+//                modifier = Modifier.weight(1f)
+//            )
             Spacer(Modifier.width(16.dp))
             SelectableField(
-                label = "サイズ", value = state.size ?: "", modifier = Modifier.weight(1f)
+                label = "サイズ", value = sizeMap[state.size]?: "未選択", modifier = Modifier.weight(1f)
             ) { /* サイズ選択 */ }
         }
         Spacer(Modifier.height(16.dp))
 
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            DateField(
-                label = "購入日", value = state.purchaseDate, modifier = Modifier.weight(1f)
-            ) { /* DatePicker */ }
-            Spacer(Modifier.width(16.dp))
-            PriceField(
-                label = "価格", value = state.price, modifier = Modifier.weight(1f),
-                onValueChange = { if (it >= 0) onStateChange(state.copy(price = it)) }
-            )
-        }
+//        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+//            DateField(
+//                label = "購入日", value = state.purchaseDate, modifier = Modifier.weight(1f)
+//            ) { /* DatePicker */ }
+//            Spacer(Modifier.width(16.dp))
+//            PriceField(
+//                label = "価格", value = state.price, modifier = Modifier.weight(1f),
+//                onValueChange = { if (it >= 0) onStateChange(state.copy(price = it)) }
+//            )
+//        }
         Spacer(Modifier.height(16.dp))
 
-        TagFieldWithInput(
-            tags = state.tags,
-            onTagAdded = onTagAdded
-        )
+//        TagFieldWithInput(
+//            tags = state.tags,
+//            onTagAdded = onTagAdded
+//        )
     }
 }
-
-// ... (RegistrationTextField, SelectableField, DateField, PriceField, TagFieldWithInput のコードをそのまま配置)
-
 @Composable
 fun RegistrationTextField(
     label: String,
     placeholder: String,
-    value: String,
+    value: String?,
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier) {
         Text(label, style = MaterialTheme.typography.labelSmall, color = Color.Gray)
         Spacer(Modifier.height(4.dp))
-        OutlinedTextField(
-            value = value,
-            onValueChange = onValueChange,
-            placeholder = { Text(placeholder) },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth().height(56.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = Color(0xFFEEEEEE),
-                unfocusedContainerColor = Color(0xFFEEEEEE),
-                disabledContainerColor = Color(0xFFEEEEEE),
-                focusedBorderColor = Color.Transparent,
-                unfocusedBorderColor = Color.Transparent,
-            ),
-            shape = RoundedCornerShape(8.dp)
-        )
+        if (value != null) {
+            OutlinedTextField(
+                value = value,
+                onValueChange = onValueChange,
+                placeholder = { Text(placeholder) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = Color(0xFFEEEEEE),
+                    unfocusedContainerColor = Color(0xFFEEEEEE),
+                    disabledContainerColor = Color(0xFFEEEEEE),
+                    focusedBorderColor = Color.Transparent,
+                    unfocusedBorderColor = Color.Transparent,
+                ),
+                shape = RoundedCornerShape(8.dp)
+            )
+        }
     }
 }
 
 @Composable
 fun SelectableField(
     label: String,
-    value: String,
+    value: Any,
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
@@ -367,7 +385,7 @@ fun SelectableField(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text(value, style = MaterialTheme.typography.bodyLarge)
+            //Text(value, style = MaterialTheme.typography.bodyLarge)
             Icon(
                 Icons.AutoMirrored.Filled.ArrowForward,
                 contentDescription = "Select",
