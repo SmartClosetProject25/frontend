@@ -6,7 +6,9 @@ import com.example.smartcloset_frontend.data.SignUpData
 import com.example.smartcloset_frontend.data.SearchData
 import com.example.smartcloset_frontend.data.ItemData
 import com.example.smartcloset_frontend.data.GenerateOutfitData
+import com.example.smartcloset_frontend.data.GenerateOutfitWithWeather
 import com.example.smartcloset_frontend.data.ItemDetailData
+import com.example.smartcloset_frontend.data.JudgeRequestData
 import com.example.smartcloset_frontend.data.LocationData
 import com.example.smartcloset_frontend.data.WeatherData
 import com.example.smartcloset_frontend.data.PasswordResetRequestData
@@ -80,9 +82,19 @@ interface ApiService {
         @Part image: MultipartBody.Part,
     ): Response<Unit>
 
+    @POST("/judgement")
+    suspend fun judgement(
+        @Body body: JudgeRequestData
+    ): Response<Unit>
+
     @POST("/generate_outfit")
     suspend fun generateOutfit(
         @Body data: GenerateOutfitData
+    ): Response<ResponseBody>
+
+    @POST("/generate_outfit_with_weather")
+    suspend fun generateOutfitWithWeather(
+        @Body data: GenerateOutfitWithWeather
     ): Response<ResponseBody>
 
     @POST("/get_weather")
