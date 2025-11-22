@@ -1,6 +1,9 @@
 package com.example.smartcloset_frontend.ui
 
+import android.content.Context
+import android.widget.Toast
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.magnifier
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -9,14 +12,48 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.example.smartcloset_frontend.ui.dialogs.*
+import java.io.File
+
+// 保存されている画像枚数を数えるユーティリティ関数
+fun countItemImages(context: Context): Int {
+    val dir = File(context.filesDir, "ItemImgs")
+    if (!dir.exists()) return 0
+
+    // jpg / png などの画像だけを数える
+    val files = dir.listFiles { file ->
+        file.extension.lowercase() in listOf("jpg", "jpeg", "png", "webp")
+    }
+
+    return files?.size ?: 0
+}
+// 保存されている画像をすべて削除するユーティリティ関数
+fun deleteAllItemImages(context: Context): Int {
+    val dir = File(context.filesDir, "ItemImgs")
+    if (!dir.exists()) return 0
+
+    val files = dir.listFiles() ?: return 0
+
+    var deletedCount = 0
+    for (file in files) {
+        if (file.isFile && file.delete()) {
+            deletedCount++
+        }
+    }
+    return deletedCount
+}
+
 
 @Composable
 fun TestScreen(navController: NavHostController) {
+
+    val context = LocalContext.current
+
     // ダイアログ表示用フラグ
     var showSuccess by remember { mutableStateOf(false) }
     var showError by remember { mutableStateOf(false) }
@@ -29,6 +66,27 @@ fun TestScreen(navController: NavHostController) {
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        TestSection(title = "画像処理用") {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Button(
+                    onClick = {
+                        val deleted = deleteAllItemImages(context)
+                        Toast.makeText(
+                            context,
+                            "画像を${deleted}枚削除しました",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("全画像を削除")
+                }
+                Text(text = "保存されている画像枚数: ${countItemImages(context)}")
+            }
+        }
         // ナビゲーションセクション
         TestSection(
             title = "ナビゲーション",

@@ -19,6 +19,9 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.*
 import androidx.navigation.NavController
 import com.example.smartcloset_frontend.R
+import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
+
+
 
 @Composable
 fun HomeScreen(navController: NavController) {
@@ -29,6 +32,11 @@ fun HomeScreen(navController: NavController) {
     val dummyItems = List(5) { index -> "ウィンドブルーフス$index" }
     val extendedItems = remember { List(1000) { dummyItems[it % dummyItems.size] } }
     val listState = rememberLazyListState(initialFirstVisibleItemIndex = 500)
+    val flingBehavior = rememberSnapFlingBehavior(lazyListState = listState)
+    val favorites = remember {
+        mutableStateMapOf<Int, Boolean>()
+    }
+
 
     Column(
         modifier = Modifier
@@ -105,6 +113,7 @@ fun HomeScreen(navController: NavController) {
         // カード一覧
         LazyRow(
             state = listState,
+            flingBehavior = flingBehavior, // ← スナップ動作を追加
             contentPadding = PaddingValues(horizontal = 32.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier.weight(1f) // ← 高さを圧迫しないように調整
@@ -158,18 +167,25 @@ fun HomeScreen(navController: NavController) {
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 IconButton(
-                                    onClick = { },
+                                    onClick = {
+                                        val current = favorites[index] ?: false
+                                        favorites[index] = !current
+                                    },
                                     modifier = Modifier
                                         .size(40.dp)
                                         .padding(horizontal = 8.dp)
                                 ) {
+                                    val isFavorite = favorites[index] ?: false
                                     Icon(
-                                        painter = painterResource(id = R.drawable.star_empty_icon),
+                                        painter = painterResource(
+                                            id = if (isFavorite) R.drawable.star_filled_icon else R.drawable.star_empty_icon
+                                        ),
                                         contentDescription = "お気に入り",
                                         tint = Color(0xFFFFC107),
                                         modifier = Modifier.size(40.dp)
                                     )
                                 }
+
 
                                 IconButton(
                                     onClick = {

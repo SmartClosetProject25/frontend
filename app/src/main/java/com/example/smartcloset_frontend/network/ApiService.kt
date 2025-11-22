@@ -57,7 +57,7 @@ interface ApiService {
         @Body generateOutfitData: GenerateOutfitData
     ): Response<List<ItemData>>
 
-    @POST("get_weather")
+    @POST("/get_weather")
     suspend fun getWeather(
         @Body locationData:LocationData
     ): Response<WeatherData>
@@ -67,6 +67,7 @@ interface ApiService {
     suspend fun requestPasswordReset(
         @Body requestData: PasswordResetRequestData
     ): Response<Unit>
+
 
     // パスワードリセット実行
     @POST("/auth/password-reset/confirm")

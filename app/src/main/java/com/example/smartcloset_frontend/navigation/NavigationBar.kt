@@ -18,8 +18,8 @@ fun BottomNavBar(navController: NavHostController) {
         val items = listOf(
             "home" to R.drawable.wardrobe_line,
             "coordinate" to R.drawable.light_line,
-            // ItemCreateType?待ち。取り敢えずHOMEに飛ぶ
-            "home" to R.drawable.add_square_line,
+            // register=登録
+            "register" to R.drawable.add_square_line,
             "profile" to R.drawable.user_4_line,
             "settings" to R.drawable.settings_4_line,
             // 不要になったら消す(コメントアウトでも可)
