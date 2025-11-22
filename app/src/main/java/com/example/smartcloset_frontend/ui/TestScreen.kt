@@ -16,8 +16,23 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+
 import androidx.navigation.NavHostController
+import com.example.smartcloset_frontend.data.GenerateOutfitData
+import com.example.smartcloset_frontend.data.GenerateOutfitWithWeather
+import com.example.smartcloset_frontend.data.ItemData
+import com.example.smartcloset_frontend.data.JudgeRequestData
+import com.example.smartcloset_frontend.data.LocationData
 import com.example.smartcloset_frontend.ui.dialogs.*
+import com.example.smartcloset_frontend.viewmodel.AddItemViewModel
+import com.example.smartcloset_frontend.viewmodel.ClothesDetailViewModel
+import com.example.smartcloset_frontend.viewmodel.GenerateOutfitViewModel
+import com.example.smartcloset_frontend.viewmodel.GenerateOutfitWithWeatherViewModel
+import com.example.smartcloset_frontend.viewmodel.GetWeatherViewModel
+import com.example.smartcloset_frontend.viewmodel.ItemViewModel
+import com.example.smartcloset_frontend.viewmodel.ProfileEditViewModel
+import com.example.smartcloset_frontend.viewmodel.SearchViewModel
 import java.io.File
 
 // 保存されている画像枚数を数えるユーティリティ関数
@@ -51,6 +66,15 @@ fun deleteAllItemImages(context: Context): Int {
 
 @Composable
 fun TestScreen(navController: NavHostController) {
+    val getWeatherViewModel: GetWeatherViewModel = viewModel()
+    val weather by getWeatherViewModel.weatherData.collectAsState()
+    val ItemViewModel: ItemViewModel = viewModel()
+    val closeDetailViewModel: ClothesDetailViewModel = viewModel()
+    val generateOutfitViewModel: GenerateOutfitViewModel = viewModel()
+    val generateOutfitWithWeatherViewModel: GenerateOutfitWithWeatherViewModel = viewModel()
+    val profileEditViewModel: ProfileEditViewModel = viewModel()
+    val searchViewModel : SearchViewModel = viewModel()
+
 
     val context = LocalContext.current
 
@@ -66,25 +90,142 @@ fun TestScreen(navController: NavHostController) {
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        TestSection(title = "画像処理用") {
+        TestSection(title = "リクエストテスト用") {
             Column(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Button(
+                onClick = {
+                    val data = JudgeRequestData(
+                        planItemId = 1,
+                        vote = "good"
+                    )
+
+                    ItemViewModel.sendJudge(data)
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("good bad判定/judgement　planItemId = 1,vote = good")
+            }
+                Button(
+                        onClick = {
+                            val data = JudgeRequestData(
+                                planItemId = 2,
+                                vote = "bad"
+                            )
+
+                            ItemViewModel.sendJudge(data)
+                        },
+                modifier = Modifier.fillMaxWidth()
+                ) {
+                Text("good bad判定/judgement　planItemId = 2,vote = bad")
+            }
+                Button(
+                onClick = {
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("お気に入り登録リクエスト送信/favorite_item　まだできてない")
+            }
+                Button(
+                onClick = {
+                    searchViewModel.sendSearchData(
+                        query = "夏服",
+                    )
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("検索 query = \"夏服\" /search")
+            }
+                Button(
                     onClick = {
-                        val deleted = deleteAllItemImages(context)
+                        profileEditViewModel.updateProfile(
+                            name="テストユーザー",
+                            gender="女性",
+                            height="165",
+                            weight="45",
+                            personalColor = "サマー",
+                            skeleton = "小柄"
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("プロフ更新/update_profile")
+                }
+                Button(
+                    onClick = {
+                        generateOutfitWithWeatherViewModel.generateOutfitWithWeather(
+                            GenerateOutfitWithWeather(
+                                userId = 1,
+                                plan = "友達とカフェでおしゃべり",
+                                weather = "晴れ"
+                            )
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("コーデ作成/generate_outfit_with_weather ")
+                }
+                Button(
+                    onClick = {
+                        generateOutfitViewModel.generateOutfit(
+                            GenerateOutfitData(
+                                userId = 1,
+                                selfieId=1,
+                                topsId=1,
+                                bottomsId=1,
+                                othersId=null,
+                                others2Id=null
+
+                        ))
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("！！！！課金注意！！！！コーデ作成（人込み）/generate_outfit")
+                }
+                Button(
+                onClick = {
+                    ItemViewModel.loadItems(
+                        userId = 1
+                    )
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("アイテム一覧取得リクエスト送信/get_item")
+            }
+                Button(
+                        onClick = {
+                            closeDetailViewModel.loadDetail(
+                                itemId = 1
+                            )
+                        },
+                modifier = Modifier.fillMaxWidth()
+                ) {
+                Text("アイテム詳細取得リクエスト送信(id=1)/get_item_detail")
+            }
+                Button(
+                    onClick = {
+                        val location = LocationData(
+                            latitude = 35.681236,
+                            longitude = 139.767125
+                        )
+                        getWeatherViewModel.fetchWeather(
+                            location
+                        )
                         Toast.makeText(
                             context,
-                            "画像を${deleted}枚削除しました",
+                            "天気情報取得リクエストを送信しました(東京駅)",
                             Toast.LENGTH_SHORT
                         ).show()
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("全画像を削除")
+                    Text("天気情報取得リクエスト送信 (東京駅)/get_weather")
                 }
-                Text(text = "保存されている画像枚数: ${countItemImages(context)}")
+                weather?.let { data ->
+                    Text(text = "取得した天気情報: ${data}, 気温: ${data.temperature}°C")
+            }
             }
         }
         // ナビゲーションセクション

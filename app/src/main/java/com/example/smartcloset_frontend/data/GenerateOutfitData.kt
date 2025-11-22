@@ -9,3 +9,9 @@ data class GenerateOutfitData(
     val othersId: Int? = null,
     val others2Id: Int? = null
 )
+
+data class GenerateOutfitWithWeather(
+    val userId: Int,
+    val plan: String,
+    val weather: String,
+)

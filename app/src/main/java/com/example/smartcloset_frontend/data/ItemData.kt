@@ -23,3 +23,9 @@ data class ItemDetailData (
     val season: Int,
     val imageUrl: String
 )
+
+@Serializable
+data class JudgeRequestData(
+    val planItemId: Int,
+    val vote: String  // "GOOD" or "BAD"
+)

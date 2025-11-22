@@ -9,7 +9,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
-class GetWeatherViewModel(private val repository: GetWeatherRepository = GetWeatherRepository()) : ViewModel() {
+class GetWeatherViewModel(
+    private val repository: GetWeatherRepository = GetWeatherRepository()) : ViewModel() {
 
     private val _weatherData = MutableStateFlow<WeatherData?>(null)
     val weatherData: StateFlow<WeatherData?> = _weatherData

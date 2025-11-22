@@ -6,20 +6,20 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.smartcloset_frontend.data.GenerateOutfitData
+import com.example.smartcloset_frontend.data.GenerateOutfitWithWeather
 import com.example.smartcloset_frontend.data.repository.GenerateOutfitRepository
 import kotlinx.coroutines.launch
 
-class GenerateOutfitViewModel: ViewModel() {
+class GenerateOutfitWithWeatherViewModel:ViewModel(){
     private val repository = GenerateOutfitRepository()
 
     var generatedImageResult: Result<Bitmap>? by mutableStateOf(null)
     var isLoading by mutableStateOf(false)
 
-    fun generateOutfit(data: GenerateOutfitData) {
+    fun generateOutfitWithWeather(data: GenerateOutfitWithWeather) {
         viewModelScope.launch {
             isLoading = true
-            generatedImageResult = repository.generateOutfit(data)
+            generatedImageResult = repository.generateOutfitWithWeather(data)
             isLoading = false
         }
     }
