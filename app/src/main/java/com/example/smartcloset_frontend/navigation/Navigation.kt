@@ -25,6 +25,7 @@ import com.example.smartcloset_frontend.ui.SuggestionScreen
 import com.example.smartcloset_frontend.ui.ClothesDetailScreen
 import com.example.smartcloset_frontend.ui.ItemConfirmationScreen
 import com.example.smartcloset_frontend.ui.ItemRegistrationScreen
+import com.example.smartcloset_frontend.ui.GeneratedResultScreen
 import com.example.smartcloset_frontend.viewmodel.AddItemViewModel
 
 @Composable
@@ -76,6 +77,7 @@ fun NavGraph(
         composable("suggestion_history") { 
             SuggestionHistoryScreen(navController)
         }
+        composable("generate") { GeneratedResultScreen(navController) }
         composable("profile") { ProfileScreen(navController) }
         composable("profile_edit") { ProfileEditScreen(navController) }
         composable("clothes_detail") { ClothesDetailScreen(navController) }
