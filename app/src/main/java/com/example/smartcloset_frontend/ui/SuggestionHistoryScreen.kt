@@ -28,72 +28,39 @@ import coil.compose.AsyncImage
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SuggestionHistoryScreen(navController: NavHostController) {
-    // 検索フィールドの表示状態
+
     var isSearchVisible by remember { mutableStateOf(false) }
-    // 検索クエリ
     var searchQuery by remember { mutableStateOf("") }
-    
-    // 仮のデータ（後で実際のデータに置き換え）
+
+    // 履歴画面は「1枚画像＋タグ」の簡易モデルを使う
     val historyData = remember {
         listOf(
             HistoryDateGroup(
                 date = "2025/10/10",
                 suggestions = listOf(
-                    CoordinateSuggestion(
+                    HistoryCoordinate(
                         id = "1",
                         imageUrl = null,
-                        tags = listOf("アウター", "ブルゾン", "オリーウ", "スウェットパンツ", "グレイ")
+                        tags = listOf("アウター", "ブルゾン", "グレイ")
                     ),
-                    CoordinateSuggestion(
+                    HistoryCoordinate(
                         id = "2",
                         imageUrl = null,
-                        tags = listOf("アウター", "ブルゾン", "オリーウ", "ワイドハ", "オフホワイト")
+                        tags = listOf("オフホワイト", "ワイドパンツ")
                     ),
-                    CoordinateSuggestion(
+                    HistoryCoordinate(
                         id = "3",
                         imageUrl = null,
-                        tags = listOf("アウター", "ブルゾン", "オリーウ", "ワイドハ", "オフホワイト")
+                        tags = listOf("ジャケット", "カジュアル")
                     )
                 )
             ),
             HistoryDateGroup(
                 date = "2025/10/9",
                 suggestions = listOf(
-                    CoordinateSuggestion(
-                        id = "4",
-                        imageUrl = null,
-                        tags = listOf("アウター", "ブルゾン", "オリーウ", "スウェットパンツ", "グレイ")
-                    ),
-                    CoordinateSuggestion(
-                        id = "5",
-                        imageUrl = null,
-                        tags = listOf("アウター", "ブルゾン", "オリーウ", "ワイドハ", "オフホワイト")
-                    ),
-                    CoordinateSuggestion(
-                        id = "6",
-                        imageUrl = null,
-                        tags = listOf("アウター", "ブルゾン", "オリーウ", "ワイドハ", "オフホワイト")
-                    )
-                )
-            ),
-            HistoryDateGroup(
-                date = "2025/10/8",
-                suggestions = listOf(
-                    CoordinateSuggestion(
-                        id = "7",
-                        imageUrl = null,
-                        tags = listOf("アウター", "ブルゾン", "オリーウ", "スウェットパンツ", "グレイ")
-                    ),
-                    CoordinateSuggestion(
-                        id = "8",
-                        imageUrl = null,
-                        tags = listOf("アウター", "ブルゾン", "オリーウ", "ワイドハ", "オフホワイト")
-                    ),
-                    CoordinateSuggestion(
-                        id = "9",
-                        imageUrl = null,
-                        tags = listOf("アウター", "ブルゾン", "オリーウ", "ワイドハ", "オフホワイト")
-                    )
+                    HistoryCoordinate("4", null, listOf("ブルゾン", "カーキ")),
+                    HistoryCoordinate("5", null, listOf("シャツ", "白")),
+                    HistoryCoordinate("6", null, listOf("ジャケット", "ブラック"))
                 )
             )
         )
@@ -104,91 +71,65 @@ fun SuggestionHistoryScreen(navController: NavHostController) {
             .fillMaxSize()
             .background(Color.White)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-        ) {
-            // ヘッダー
+        Column {
+
+            // ──────────────────
+            //   ヘッダー
+            // ──────────────────
             TopAppBar(
                 title = {
                     Text(
                         text = "提案履歴",
                         fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.Black
+                        fontWeight = FontWeight.Bold
                     )
                 },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "戻る",
-                            tint = Color.Black
-                        )
+                        Icon(Icons.Default.ArrowBack, contentDescription = "戻る", tint = Color.Black)
                     }
                 },
                 actions = {
                     IconButton(onClick = {
                         isSearchVisible = !isSearchVisible
-                        if (!isSearchVisible) {
-                            searchQuery = ""
-                        }
+                        if (!isSearchVisible) searchQuery = ""
                     }) {
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = "検索",
-                            tint = Color.Black
-                        )
+                        Icon(Icons.Default.Search, contentDescription = "検索", tint = Color.Black)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.White
-                )
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
             )
 
-            // 検索フィールド
+            // ──────────────────
+            //   検索フィールド
+            // ──────────────────
             if (isSearchVisible) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                        .padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     OutlinedTextField(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
-                        placeholder = {
-                            Text(
-                                text = "検索",
-                                color = Color.Gray
-                            )
-                        },
+                        placeholder = { Text("検索", color = Color.Gray) },
                         modifier = Modifier.weight(1f),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color.Black,
-                            unfocusedBorderColor = Color.Gray,
-                            focusedTextColor = Color.Black,
-                            unfocusedTextColor = Color.Black,
-                            cursorColor = Color.Black
-                        ),
                         singleLine = true
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    IconButton(
-                        onClick = {
-                            isSearchVisible = false
-                            searchQuery = ""
-                        }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "閉じる",
-                            tint = Color.Black
-                        )
+                    Spacer(Modifier.width(8.dp))
+                    IconButton(onClick = {
+                        isSearchVisible = false
+                        searchQuery = ""
+                    }) {
+                        Icon(Icons.Default.Close, contentDescription = "閉じる", tint = Color.Black)
                     }
                 }
             }
 
+            // ──────────────────
+            //   日別一覧
+            // ──────────────────
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -196,8 +137,8 @@ fun SuggestionHistoryScreen(navController: NavHostController) {
                     .verticalScroll(rememberScrollState())
             ) {
                 historyData.forEach { dateGroup ->
-                    DateGroupSection(dateGroup = dateGroup)
-                    Spacer(modifier = Modifier.height(24.dp))
+                    DateGroupSection(dateGroup)
+                    Spacer(Modifier.height(24.dp))
                 }
             }
         }
@@ -207,7 +148,8 @@ fun SuggestionHistoryScreen(navController: NavHostController) {
 @Composable
 fun DateGroupSection(dateGroup: HistoryDateGroup) {
     Column {
-        // 日付と横線
+
+        // 日付ヘッダー
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
@@ -215,146 +157,115 @@ fun DateGroupSection(dateGroup: HistoryDateGroup) {
             Text(
                 text = dateGroup.date,
                 fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.Black
+                fontWeight = FontWeight.Bold
             )
-            
-            Spacer(modifier = Modifier.width(8.dp))
-            
-            // 横線
+
+            Spacer(Modifier.width(8.dp))
+
             HorizontalDivider(
                 modifier = Modifier.weight(1f),
                 color = Color(0xFFE0E0E0),
                 thickness = 1.dp
             )
-            
-            Spacer(modifier = Modifier.width(8.dp))
-            
-            // 矢印アイコン
+
+            Spacer(Modifier.width(8.dp))
+
             Icon(
-                imageVector = Icons.Default.ArrowForward,
+                Icons.Default.ArrowForward,
                 contentDescription = null,
                 tint = Color.Gray,
                 modifier = Modifier.size(20.dp)
             )
         }
-        
-        Spacer(modifier = Modifier.height(12.dp))
-        
-        // コーディネートカードの横スクロールリスト
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.fillMaxWidth()
-        ) {
+
+        Spacer(Modifier.height(12.dp))
+
+        // 横スクロールカード
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             items(dateGroup.suggestions) { suggestion ->
-                HistoryCoordinateCard(suggestion = suggestion)
+                HistoryCoordinateCard(suggestion)
             }
         }
     }
 }
 
 @Composable
-fun HistoryCoordinateCard(suggestion: CoordinateSuggestion) {
+fun HistoryCoordinateCard(suggestion: HistoryCoordinate) {
+
     var isLiked by remember { mutableStateOf(false) }
     var isDisliked by remember { mutableStateOf(false) }
 
     Card(
-        modifier = Modifier
-            .width(140.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        modifier = Modifier.width(140.dp),
         shape = RoundedCornerShape(8.dp),
         border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE0E0E0))
     ) {
         Box {
-            // コーディネート画像
+
+            // 画像
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(200.dp)
-                    .background(Color(0xFFE0E0E0), RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp)),
+                    .background(Color(0xFFE0E0E0)),
                 contentAlignment = Alignment.Center
             ) {
                 if (suggestion.imageUrl != null) {
                     AsyncImage(
                         model = suggestion.imageUrl,
-                        contentDescription = "コーディネート",
+                        contentDescription = "履歴コーデ",
                         modifier = Modifier.fillMaxSize()
                     )
                 } else {
-                    Text(
-                        text = "画像",
-                        color = Color.Gray,
-                        fontSize = 14.sp
-                    )
+                    Text("画像", color = Color.Gray, fontSize = 14.sp)
                 }
-                
-                // タグを左上にオーバーレイ
+
+                // タグ
                 Column(
                     modifier = Modifier
                         .align(Alignment.TopStart)
                         .padding(8.dp)
                 ) {
-                    suggestion.tags.take(3).forEach { tag ->
+                    suggestion.tags.take(3).forEach {
                         Box(
                             modifier = Modifier
                                 .padding(bottom = 4.dp)
-                                .background(
-                                    Color(0xFFE0F7FA),
-                                    RoundedCornerShape(4.dp)
-                                )
-                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                                .background(Color(0xFFE0F7FA), RoundedCornerShape(4.dp))
+                                .padding(6.dp, 2.dp)
                         ) {
-                            Text(
-                                text = tag,
-                                color = Color(0xFF2196F3),
-                                fontSize = 10.sp
-                            )
+                            Text(text = it, color = Color(0xFF2196F3), fontSize = 10.sp)
                         }
                     }
                 }
             }
-            
-            // フィードバックボタンを右下に配置
+
+            // いいね/よくない
             Row(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .padding(8.dp),
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                // いいねボタン
-                IconButton(
-                    onClick = {
-                        isLiked = !isLiked
-                        if (isLiked) isDisliked = false
-                    },
-                    modifier = Modifier.size(32.dp)
-                ) {
+                IconButton(onClick = {
+                    isLiked = !isLiked
+                    if (isLiked) isDisliked = false
+                }) {
                     Icon(
-                        imageVector = Icons.Default.ThumbUp,
+                        Icons.Default.ThumbUp,
                         contentDescription = "いいね",
-                        tint = if (isLiked) Color(0xFF2196F3) else Color.White,
-                        modifier = Modifier.size(18.dp)
+                        tint = if (isLiked) Color(0xFF2196F3) else Color.White
                     )
                 }
 
-                // よくないボタン
-                IconButton(
-                    onClick = {
-                        isDisliked = !isDisliked
-                        if (isDisliked) isLiked = false
-                    },
-                    modifier = Modifier.size(32.dp)
-                ) {
+                IconButton(onClick = {
+                    isDisliked = !isDisliked
+                    if (isDisliked) isLiked = false
+                }) {
                     Icon(
-                        imageVector = Icons.Default.ThumbUp,
+                        Icons.Default.ThumbUp,
                         contentDescription = "よくない",
                         tint = if (isDisliked) Color(0xFFE53935) else Color.White,
-                        modifier = Modifier
-                            .size(18.dp)
-                            .rotate(180f)
+                        modifier = Modifier.rotate(180f)
                     )
                 }
             }
@@ -362,10 +273,14 @@ fun HistoryCoordinateCard(suggestion: CoordinateSuggestion) {
     }
 }
 
-// 仮のデータクラス（後で実際のデータ構造に置き換え）
+///// データクラス（履歴専用）
 data class HistoryDateGroup(
     val date: String,
-    val suggestions: List<CoordinateSuggestion>
+    val suggestions: List<HistoryCoordinate>
 )
 
-
+data class HistoryCoordinate(
+    val id: String,
+    val imageUrl: String?,
+    val tags: List<String>
+)

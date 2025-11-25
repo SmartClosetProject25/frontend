@@ -3,10 +3,15 @@ package com.example.smartcloset_frontend.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material3.*
@@ -15,346 +20,328 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
+import kotlinx.coroutines.launch
 
+// ------------------- データ -------------------
+data class CoordinateSuggestion(
+    val id: String,
+    val outerImageUrl: String?,
+    val innerImageUrl: String?,
+    val bottomImageUrl: String?,
+    val tags: List<String>
+)
+
+
+// ------------------- メイン画面 -------------------
 @Composable
 fun SuggestionScreen(navController: NavHostController) {
-    // 仮のデータ（後で実際のデータに置き換え）
+
     val todayPlan = remember { mutableStateOf("") }
+
     val coordinateSuggestions = remember {
         listOf(
-            CoordinateSuggestion(
-                id = "1",
-                imageUrl = null,
-                tags = listOf("アウター", "ブルゾン", "オリーヴ", "スウェットパンツ", "グレイ")
-            ),
-            CoordinateSuggestion(
-                id = "2",
-                imageUrl = null,
-                tags = listOf("アウター", "ブルゾン", "オリーヴ", "ワイドパンツ", "オフホワイト")
-            ),
-            CoordinateSuggestion(
-                id = "3",
-                imageUrl = null,
-                tags = listOf("アウター", "ブルゾン", "オリーヴ", "ワイドパンツ")
-            )
+            CoordinateSuggestion("1", null, null, null, listOf("アウター", "ブルゾン", "グレイ")),
+            CoordinateSuggestion("2", null, null, null, listOf("アウター", "パーカー", "ブラック")),
+            CoordinateSuggestion("3", null, null, null, listOf("インナー", "スウェット", "ブラウン")),
+            CoordinateSuggestion("4", null, null, null, listOf("ボトムス", "ワイドパンツ", "オフホワイト")),
         )
     }
 
-    Box(
+    val lazyListState = rememberLazyListState()
+    val coroutine = rememberCoroutineScope()
+
+    val screenWidth = LocalConfiguration.current.screenWidthDp.dp
+    val cardWidth = 320.dp
+    val padding = (screenWidth - cardWidth) / 2
+
+    val cardPx = with(LocalDensity.current) { cardWidth.toPx() }
+
+    // -------- スナップ処理 --------
+    LaunchedEffect(lazyListState.isScrollInProgress) {
+        if (!lazyListState.isScrollInProgress) {
+            val first = lazyListState.firstVisibleItemIndex
+            val offset = lazyListState.firstVisibleItemScrollOffset
+
+            val target =
+                if (offset > cardPx / 2) first + 1 else first
+
+            coroutine.launch {
+                lazyListState.animateScrollToItem(target)
+            }
+        }
+    }
+
+    Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.White)
+            .verticalScroll(rememberScrollState())
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState())
-        ) {
-            Spacer(modifier = Modifier.height(16.dp))
 
-            // 天気・場所情報セクション
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = Color.White
-                ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                shape = RoundedCornerShape(8.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE0E0E0))
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // ------------------- 天気カード -------------------
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            shape = RoundedCornerShape(8.dp),
+            border = BorderStroke(1.dp, Color(0xFFE0E0E0))
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.LocationOn, contentDescription = null, tint = Color.Black)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("日本 - 愛知 - 名古屋", fontSize = 14.sp)
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    // 場所情報
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.LocationOn,
-                            contentDescription = "場所",
-                            tint = Color.Black,
-                            modifier = Modifier.size(20.dp)
-                        )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("🌧️", fontSize = 24.sp)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "日本 - 愛知 - 名古屋",
-                            fontSize = 14.sp,
-                            color = Color.Black
-                        )
+                        Text("22℃", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                     }
 
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // 天気情報
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "🌧️",
-                                fontSize = 24.sp,
-                                modifier = Modifier.size(24.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "22°c",
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.Black
-                            )
+                    Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+                        Column {
+                            Text("降水確率", fontSize = 12.sp, color = Color.Gray)
+                            Text("90%", fontSize = 14.sp)
                         }
-
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            Column {
-                                Text(
-                                    text = "降水確率",
-                                    fontSize = 12.sp,
-                                    color = Color.Gray
-                                )
-                                Text(
-                                    text = "90%",
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = Color.Black
-                                )
-                            }
-                            Column {
-                                Text(
-                                    text = "湿度",
-                                    fontSize = 12.sp,
-                                    color = Color.Gray
-                                )
-                                Text(
-                                    text = "65%",
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = Color.Black
-                                )
-                            }
+                        Column {
+                            Text("湿度", fontSize = 12.sp, color = Color.Gray)
+                            Text("65%", fontSize = 14.sp)
                         }
                     }
                 }
             }
+        }
 
-            Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
-            // 今日の予定入力セクション
-            Text(
-                text = "今日の予定",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.Black,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
+        // ------------------- 今日の予定 -------------------
+        Text(
+            "今日の予定",
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(start = 16.dp, bottom = 8.dp)
+        )
 
-            OutlinedTextField(
-                value = todayPlan.value,
-                onValueChange = { todayPlan.value = it },
-                placeholder = {
-                    Text(
-                        text = "ランチ",
-                        color = Color.Gray
-                    )
-                },
-                modifier = Modifier.fillMaxWidth(),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color.Black,
-                    unfocusedBorderColor = Color.Gray,
-                    focusedTextColor = Color.Black,
-                    unfocusedTextColor = Color.Black,
-                    cursorColor = Color.Black
-                ),
-                singleLine = true
-            )
+        OutlinedTextField(
+            value = todayPlan.value,
+            onValueChange = { todayPlan.value = it },
+            placeholder = { Text("ランチ", color = Color.Gray) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            singleLine = true
+        )
 
-            Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
-            Button(
-                onClick = {
-                    // TODO: 送信処理
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.Black
-                )
-            ) {
-                Text(
-                    text = "送信",
-                    color = Color.White,
-                    fontSize = 16.sp
-                )
-            }
+        Button(
+            onClick = {},
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .height(48.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color.Black)
+        ) {
+            Text("送信", color = Color.White)
+        }
 
-            Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(32.dp))
 
-            // コーディネートリスト
-            coordinateSuggestions.forEach { suggestion ->
-                CoordinateCard(suggestion = suggestion)
-                Spacer(modifier = Modifier.height(16.dp))
-            }
+        // ------------------- おすすめ一覧 -------------------
+        Text(
+            "おすすめのコーディネート",
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(start = 16.dp, bottom = 8.dp)
+        )
 
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // 履歴ボタン
-            Button(
-                onClick = {
-                    navController.navigate("suggestion_history")
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.Black
-                )
-            ) {
-                Text(
-                    text = "履歴を見る",
-                    color = Color.White,
-                    fontSize = 16.sp
+        LazyRow(
+            state = lazyListState,
+            contentPadding = PaddingValues(horizontal = padding),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            items(coordinateSuggestions) { suggestion ->
+                CoordinateCard(
+                    suggestion = suggestion,
+                    navController = navController,
+                    modifier = Modifier.width(cardWidth)
                 )
             }
+        }
 
-            Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(50.dp))
+
+        Button(
+            onClick = { navController.navigate("suggestion_history") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .height(48.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color.Black)
+        ) {
+            Text("履歴を見る", color = Color.White)
+        }
+
+        Spacer(modifier = Modifier.height(26.dp))
+    }
+}
+
+
+// ------------------- アイテム表示 -------------------
+@Composable
+fun ItemDisplay(imageUrl: String?, label: String, tags: List<String>) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(110.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+
+        // ----- 画像 -----
+        Box(
+            modifier = Modifier
+                .size(width = 85.dp, height = 110.dp)
+                .background(Color(0xFFE0E0E0), RoundedCornerShape(6.dp))
+                .border(1.dp, Color(0xFFC0C0C0), RoundedCornerShape(6.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            if (imageUrl != null) {
+                AsyncImage(model = imageUrl, contentDescription = label)
+            } else {
+                Text(label, color = Color.Gray, fontSize = 11.sp)
+            }
+        }
+
+        Spacer(modifier = Modifier.width(12.dp))
+
+        // ----- テキスト -----
+        Column(modifier = Modifier.weight(1f)) {
+            Text(label, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+
+                tags.take(2).forEach { tag ->
+                    Box(
+                        modifier = Modifier
+                            .background(Color(0xFFE0F7FA), RoundedCornerShape(6.dp))
+                            .padding(horizontal = 8.dp, vertical = 3.dp)
+                    ) {
+                        Text(
+                            text = tag,
+                            fontSize = 10.sp,
+                            color = Color(0xFF2196F3),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+            }
         }
     }
 }
 
+
+// ------------------- コーディネートカード -------------------
 @Composable
-fun CoordinateCard(suggestion: CoordinateSuggestion) {
+fun CoordinateCard(
+    suggestion: CoordinateSuggestion,
+    navController: NavHostController,
+    modifier: Modifier = Modifier
+) {
+
     var isLiked by remember { mutableStateOf(false) }
     var isDisliked by remember { mutableStateOf(false) }
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        shape = RoundedCornerShape(8.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE0E0E0))
+        modifier = modifier,
+        shape = RoundedCornerShape(12.dp),
+        border = BorderStroke(1.dp, Color(0xFFE0E0E0)),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFF6F6F6))
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            // 左側：コーディネート画像
-            Box(
-                modifier = Modifier
-                    .width(120.dp)
-                    .height(180.dp)
-                    .background(Color(0xFFE0E0E0), RoundedCornerShape(8.dp)),
-                contentAlignment = Alignment.Center
-            ) {
-                if (suggestion.imageUrl != null) {
-                    AsyncImage(
-                        model = suggestion.imageUrl,
-                        contentDescription = "コーディネート",
-                        modifier = Modifier.fillMaxSize()
-                    )
-                } else {
-                    // プレースホルダー
-                    Text(
-                        text = "画像",
-                        color = Color.Gray,
-                        fontSize = 14.sp
-                    )
-                }
+        Column(modifier = Modifier.padding(14.dp)) {
+
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                ItemDisplay(suggestion.outerImageUrl, "アウター", suggestion.tags)
+                ItemDisplay(suggestion.innerImageUrl, "インナー", suggestion.tags)
+                ItemDisplay(suggestion.bottomImageUrl, "ボトムス", suggestion.tags)
             }
 
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
-            // 右側：タグとフィードバックボタン
-            Column(
-                modifier = Modifier.weight(1f)
+            Divider(color = Color(0xFFE0E0E0))
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                // タグ
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Start,
-                    verticalAlignment = Alignment.Top
-                ) {
-                    Column(
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        suggestion.tags.forEach { tag ->
-                            Box(
-                                modifier = Modifier
-                                    .padding(bottom = 6.dp)
-                                    .background(
-                                        Color(0xFFE0F7FA),
-                                        RoundedCornerShape(4.dp)
-                                    )
-                                    .padding(horizontal = 10.dp, vertical = 4.dp)
-                            ) {
-                                Text(
-                                    text = tag,
-                                    color = Color(0xFF2196F3),
-                                    fontSize = 12.sp
-                                )
-                            }
-                        }
+
+                // 👍
+                IconButton(
+                    onClick = {
+                        isLiked = !isLiked
+                        if (isLiked) isDisliked = false
                     }
+                ) {
+                    Icon(
+                        Icons.Default.ThumbUp,
+                        contentDescription = null,
+                        tint = if (isLiked) Color(0xFF2196F3) else Color.Gray
+                    )
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // フィードバックボタン
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End,
-                    verticalAlignment = Alignment.Bottom
-                ) {
-                    // いいねボタン
-                    IconButton(
-                        onClick = {
-                            isLiked = !isLiked
-                            if (isLiked) isDisliked = false
-                        },
-                        modifier = Modifier.size(40.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.ThumbUp,
-                            contentDescription = "いいね",
-                            tint = if (isLiked) Color(0xFF2196F3) else Color.Gray,
-                            modifier = Modifier.size(24.dp)
-                        )
+                // 👎
+                IconButton(
+                    onClick = {
+                        isDisliked = !isDisliked
+                        if (isDisliked) isLiked = false
                     }
+                ) {
+                    Icon(
+                        Icons.Default.ThumbUp,
+                        contentDescription = null,
+                        modifier = Modifier.rotate(180f),
+                        tint = if (isDisliked) Color(0xFFE53935) else Color.Gray
+                    )
+                }
 
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    // よくないボタン
-                    IconButton(
-                        onClick = {
-                            isDisliked = !isDisliked
-                            if (isDisliked) isLiked = false
-                        },
-                        modifier = Modifier.size(40.dp)
+                // ✨生成ボタン → generate へ遷移
+                IconButton(
+                    onClick = {
+                        navController.navigate("generate")
+                    }
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(34.dp)
+                            .background(Color(0xFF00C853), RoundedCornerShape(50)),
+                        contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Default.ThumbUp,
-                            contentDescription = "よくない",
-                            tint = if (isDisliked) Color(0xFFE53935) else Color.Gray,
-                            modifier = Modifier
-                                .size(24.dp)
-                                .rotate(180f)
+                            Icons.Default.AutoAwesome,
+                            contentDescription = "生成",
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                 }
@@ -362,11 +349,3 @@ fun CoordinateCard(suggestion: CoordinateSuggestion) {
         }
     }
 }
-
-// 仮のデータクラス（後で実際のデータ構造に置き換え）
-data class CoordinateSuggestion(
-    val id: String,
-    val imageUrl: String?,
-    val tags: List<String>
-)
-
