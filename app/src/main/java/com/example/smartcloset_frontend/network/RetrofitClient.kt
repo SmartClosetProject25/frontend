@@ -1,10 +1,12 @@
 package com.example.smartcloset_frontend.network
 
+import com.example.smartcloset_frontend.BuildConfig
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
 import retrofit2.Retrofit
-import com.example.smartcloset_frontend.BuildConfig
+import java.util.concurrent.TimeUnit
 
 // Retrofitのインスタンスをシングルトン（アプリ内で唯一の存在）として生成するためのオブジェクト
 object RetrofitClient {
@@ -16,11 +18,19 @@ object RetrofitClient {
         ignoreUnknownKeys = true
     }
 
+    // タイムアウト設定を追加したOkHttpClientインスタンスを生成
+    private val okHttpClient = OkHttpClient.Builder()
+        .connectTimeout(60, TimeUnit.SECONDS)
+        .readTimeout(60, TimeUnit.SECONDS)
+        .writeTimeout(60, TimeUnit.SECONDS)
+        .build()
+
     // ApiServiceのインスタンスを遅延初期化で生成する
     // 'lazy' を使うことで、実際に 'instance' が初めて呼び出されたときに一度だけ初期化処理が走る
     val instance: ApiService by lazy {
         val retrofit = Retrofit.Builder()
             .baseUrl(BASE_URL) // どのサーバーに接続するか
+            .client(okHttpClient) // カスタムしたOkHttpClientを設定
             // Kotlinx SerializationをRetrofitのコンバーターとして使用するための設定
             .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
             .build()

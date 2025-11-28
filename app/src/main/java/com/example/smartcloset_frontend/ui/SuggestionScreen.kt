@@ -1,5 +1,6 @@
 package com.example.smartcloset_frontend.ui
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -21,14 +22,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
+import com.example.smartcloset_frontend.data.Proposal
+import com.example.smartcloset_frontend.data.TodayPlanData
+import com.example.smartcloset_frontend.viewmodel.SuggestionViewModel
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 // ------------------- データ -------------------
 data class CoordinateSuggestion(
@@ -42,17 +51,22 @@ data class CoordinateSuggestion(
 
 // ------------------- メイン画面 -------------------
 @Composable
-fun SuggestionScreen(navController: NavHostController) {
+fun SuggestionScreen(
+    navController: NavHostController,
+    suggestionViewModel: SuggestionViewModel = viewModel()
+) {
 
     val todayPlan = remember { mutableStateOf("") }
+    val context = LocalContext.current
+    val isSending by suggestionViewModel.isSendingPlan.collectAsState()
+    val proposals by suggestionViewModel.proposals.collectAsState()
+    val toastMessage by suggestionViewModel.toastMessage.collectAsState()
 
-    val coordinateSuggestions = remember {
-        listOf(
-            CoordinateSuggestion("1", null, null, null, listOf("アウター", "ブルゾン", "グレイ")),
-            CoordinateSuggestion("2", null, null, null, listOf("アウター", "パーカー", "ブラック")),
-            CoordinateSuggestion("3", null, null, null, listOf("インナー", "スウェット", "ブラウン")),
-            CoordinateSuggestion("4", null, null, null, listOf("ボトムス", "ワイドパンツ", "オフホワイト")),
-        )
+    LaunchedEffect(toastMessage) {
+        toastMessage?.let {
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            suggestionViewModel.onToastShown()
+        }
     }
 
     val lazyListState = rememberLazyListState()
@@ -146,20 +160,41 @@ fun SuggestionScreen(navController: NavHostController) {
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
-            singleLine = true
+            singleLine = true,
+            enabled = !isSending
         )
 
         Spacer(modifier = Modifier.height(12.dp))
 
         Button(
-            onClick = {},
+            onClick = {
+                if (todayPlan.value.isNotBlank()) {
+                    val currentDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+                    val todayPlanData = TodayPlanData(
+                        plan = todayPlan.value,
+                        date = currentDate,
+                        location = "日本 - 愛知 - 名古屋",
+                        weather = "22℃",
+                        precipitation = "90%",
+                        humidity = "65%"
+                    )
+                    suggestionViewModel.sendTodayPlan(todayPlanData)
+                } else {
+                    Toast.makeText(context, "予定を入力してください", Toast.LENGTH_SHORT).show()
+                }
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp)
                 .height(48.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color.Black)
+            colors = ButtonDefaults.buttonColors(containerColor = Color.Black),
+            enabled = !isSending
         ) {
-            Text("送信", color = Color.White)
+            if (isSending) {
+                CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
+            } else {
+                Text("送信", color = Color.White)
+            }
         }
 
         Spacer(modifier = Modifier.height(32.dp))
@@ -178,9 +213,9 @@ fun SuggestionScreen(navController: NavHostController) {
             horizontalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
-            items(coordinateSuggestions) { suggestion ->
+            items(proposals) { proposal ->
                 CoordinateCard(
-                    suggestion = suggestion,
+                    proposal = proposal,
                     navController = navController,
                     modifier = Modifier.width(cardWidth)
                 )
@@ -238,7 +273,7 @@ fun ItemDisplay(imageUrl: String?, label: String, tags: List<String>) {
 
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
 
-                tags.take(2).forEach { tag ->
+                tags.forEach { tag ->
                     Box(
                         modifier = Modifier
                             .background(Color(0xFFE0F7FA), RoundedCornerShape(6.dp))
@@ -262,7 +297,7 @@ fun ItemDisplay(imageUrl: String?, label: String, tags: List<String>) {
 // ------------------- コーディネートカード -------------------
 @Composable
 fun CoordinateCard(
-    suggestion: CoordinateSuggestion,
+    proposal: Proposal,
     navController: NavHostController,
     modifier: Modifier = Modifier
 ) {
@@ -279,10 +314,14 @@ fun CoordinateCard(
         Column(modifier = Modifier.padding(14.dp)) {
 
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                ItemDisplay(suggestion.outerImageUrl, "アウター", suggestion.tags)
-                ItemDisplay(suggestion.innerImageUrl, "インナー", suggestion.tags)
-                ItemDisplay(suggestion.bottomImageUrl, "ボトムス", suggestion.tags)
+                ItemDisplay(null, "アウター", listOf(proposal.items.outer ?: ""))
+                ItemDisplay(null, "インナー", listOf(proposal.items.tops ?: ""))
+                ItemDisplay(null, "ボトムス", listOf(proposal.items.bottoms ?: ""))
             }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            Text(proposal.item_ids.joinToString(), style = MaterialTheme.typography.bodySmall)
 
             Spacer(modifier = Modifier.height(14.dp))
 
@@ -327,9 +366,7 @@ fun CoordinateCard(
 
                 // ✨生成ボタン → generate へ遷移
                 IconButton(
-                    onClick = {
-                        navController.navigate("generate")
-                    }
+                    onClick = { navController.navigate("generate") }
                 ) {
                     Box(
                         modifier = Modifier

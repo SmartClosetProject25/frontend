@@ -10,6 +10,8 @@ import com.example.smartcloset_frontend.data.GenerateOutfitWithWeather
 import com.example.smartcloset_frontend.data.ItemDetailData
 import com.example.smartcloset_frontend.data.JudgeRequestData
 import com.example.smartcloset_frontend.data.LocationData
+import com.example.smartcloset_frontend.data.ProposalResponse
+import com.example.smartcloset_frontend.data.TodayPlanData
 import com.example.smartcloset_frontend.data.WeatherData
 import com.example.smartcloset_frontend.data.PasswordResetRequestData
 import com.example.smartcloset_frontend.data.PasswordResetConfirmData
@@ -112,6 +114,9 @@ interface ApiService {
     suspend fun confirmPasswordReset(
         @Body confirmData: PasswordResetConfirmData
     ): Response<Unit>
+
+    @POST("/send_today_plan")
+    suspend fun sendTodayPlan(@Body todayPlanData: TodayPlanData): Response<ProposalResponse>
 
 
 
