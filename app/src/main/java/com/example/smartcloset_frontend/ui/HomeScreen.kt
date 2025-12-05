@@ -168,8 +168,13 @@ fun HomeScreen(
                         val item = extendedItems[index]
 
                         if (item.imageUrl != null) {
+                            //val baseUrl = BuildConfig.SERVER_URL
+                            val baseUrl = "http://192.168.50.77:5000"
+                            val fullUrl = baseUrl + item.imageUrl
                             Image(
-                                painter = coil.compose.rememberAsyncImagePainter(item.imageUrl),
+                                //painter = coil.compose.rememberAsyncImagePainter(item.imageUrl),
+                                painter = coil.compose.rememberAsyncImagePainter(fullUrl),
+
                                 contentDescription = item.itemName,
                                 modifier = Modifier
                                     .fillMaxWidth()
