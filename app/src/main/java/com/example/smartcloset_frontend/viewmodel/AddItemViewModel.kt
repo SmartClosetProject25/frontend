@@ -61,7 +61,7 @@ class AddItemViewModel(
                 val requestBody = bytes.toRequestBody(mediaType)
 
                 // サーバ側で保存するファイル名（お好みで変更可）
-                val fileName = "item_${System.currentTimeMillis()}.jpg"
+                val fileName = "item_${System.currentTimeMillis()}.jpeg"
 
                 // MultipartBody.Part 作成（"file" はサーバ側のフィールド名に合わせる）
                 val imagePart = MultipartBody.Part.createFormData(

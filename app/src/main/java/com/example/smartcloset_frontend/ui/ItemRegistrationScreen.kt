@@ -1,5 +1,6 @@
 package com.example.smartcloset_frontend.ui
 
+import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
 import android.util.Log
@@ -27,6 +28,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.content.FileProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
@@ -34,6 +36,7 @@ import coil.compose.rememberAsyncImagePainter
 import com.example.smartcloset_frontend.utils.saveBitmapAndGetUri
 import com.example.smartcloset_frontend.viewmodel.AddItemViewModel
 import kotlinx.serialization.Serializable
+import java.io.File
 
 @Serializable
 data class ItemFormState(
@@ -65,9 +68,18 @@ val sizeMap = mapOf(
     4 to "ll"
 )
 
+fun createImageUri(context: Context): Uri {
+    val file = File(context.cacheDir, "photo_${System.currentTimeMillis()}.jpg")
+    return FileProvider.getUriForFile(
+        context,
+        "${context.packageName}.provider",
+        file
+    )
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+
 fun ItemRegistrationScreen(
     navController: NavController,
     viewModel: AddItemViewModel
@@ -88,18 +100,30 @@ fun ItemRegistrationScreen(
     }
     // Bitmapを保持するための状態を追加
     var capturedBitmap by remember { mutableStateOf<Bitmap?>(null) }
+//
+//    val cameraLauncherBitmap = rememberLauncherForActivityResult(
+//        contract = ActivityResultContracts.TakePicturePreview()
+//    ) { bitmap: Bitmap? ->
+//        bitmap?.let {
+//            capturedBitmap = it
+//            // 画像を保存してUriを取得する場合
+//            val uri = saveBitmapAndGetUri(context, it)
+//            // UriではなくBitmapを保持していることを示すために、imageUriにはnullをセット (排他的に扱う)
+//            itemState = itemState.copy(imageUri = uri.toString())
+//        }
+//    }
+    // 2. カメラ撮影ランチャー (Uri方式)
+    var photoUri by remember { mutableStateOf<Uri?>(null) }
 
-    val cameraLauncherBitmap = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicturePreview()
-    ) { bitmap: Bitmap? ->
-        bitmap?.let {
-            capturedBitmap = it
-            // 画像を保存してUriを取得する場合
-            val uri = saveBitmapAndGetUri(context, it)
-            // UriではなくBitmapを保持していることを示すために、imageUriにはnullをセット (排他的に扱う)
-            itemState = itemState.copy(imageUri = uri.toString())
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (success && photoUri != null) {
+            itemState = itemState.copy(imageUri = photoUri.toString())
+            capturedBitmap = null
         }
     }
+
 
 
     Scaffold(
@@ -192,8 +216,10 @@ fun ItemRegistrationScreen(
                 TextButton(
                     onClick = {
                         showImageSourceDialog = false
+                        val uri = createImageUri(context)
+                        photoUri = uri
                         // カメラを起動
-                        cameraLauncherBitmap.launch(null)
+                        cameraLauncher.launch(uri)
                     }
                 ) {
                     Text("カメラで撮影")
@@ -223,8 +249,8 @@ fun ImageUploadArea(
         if (capturedBitmap != null) {
             // 撮影したBitmapを表示
             Image(
-                bitmap = capturedBitmap.asImageBitmap(),
-                contentDescription = "Captured Image",
+                painter = rememberAsyncImagePainter(model = Uri.parse(imageUri)),
+                contentDescription = "Selected Image",
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .fillMaxSize()
