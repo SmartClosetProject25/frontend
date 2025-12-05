@@ -68,7 +68,6 @@ fun NavGraph(
         }
         composable("test") { TestScreen(navController) }
         composable("coordinate") { SuggestionScreen(navController) }
-        //TODO: いったんコメントアウト
 //        composable(
 //            "clothes_detail/{itemId}",
 //            arguments = listOf(
@@ -85,22 +84,22 @@ fun NavGraph(
         composable("generate") { GeneratedResultScreen(navController) }
         composable("profile") { ProfileScreen(navController) }
         composable("profile_edit") { ProfileEditScreen(navController) }
-        composable("clothes_detail") { ClothesDetailScreen(navController) }
+//        composable("clothes_detail") { ClothesDetailScreen(navController) }
         composable("register") { ItemRegistrationScreen(navController,sharedVM) }
         composable("item_confirm") { ItemConfirmationScreen(navController,sharedVM) }
         // 詳細画面への遷移時に itemId を渡す
         //TODO: いったんコメントアウト
-//        composable(
-//            "clothes_detail/{itemId}",
-//            arguments = listOf(
-//                navArgument("itemId") {
-//                    type = NavType.IntType
-//                }
-//            )
-//        ) { backStackEntry ->
-//            val itemId = backStackEntry.arguments?.getInt("itemId")!!
-//            ClothesDetailScreen(navController, itemId = itemId)
-//        }
+        composable(
+            "detail/{itemId}",
+            arguments = listOf(
+                navArgument("itemId") {
+                    type = NavType.IntType
+                }
+            )
+        ) { backStackEntry ->
+            val id = backStackEntry.arguments?.getInt("itemId")!!
+            ClothesDetailScreen(navController, itemId = id)
+        }
 
 //        composable("favorite") { FavoriteScreen(navController) }
 
