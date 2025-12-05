@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.example.smartcloset_frontend.R
@@ -31,7 +32,11 @@ fun BottomNavBar(navController: NavHostController) {
                 selected = currentRoute == route,
                 onClick = {
                     navController.navigate(route) {
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            saveState = true   // 画面と ViewModel の状態を保持
+                        }
                         launchSingleTop = true
+                        restoreState = true    // 保存された状態を復元
                     }
                 },
                 icon = {

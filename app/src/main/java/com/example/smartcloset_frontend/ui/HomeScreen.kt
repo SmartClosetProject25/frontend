@@ -5,7 +5,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -18,51 +17,53 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.*
-import androidx.navigation.NavController
-import com.example.smartcloset_frontend.R
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
-import com.example.smartcloset_frontend.data.ItemData
+
+import androidx.navigation.NavController
+
+import com.example.smartcloset_frontend.R
+import com.example.smartcloset_frontend.BuildConfig
 import com.example.smartcloset_frontend.viewmodel.ItemViewModel
 
 
+const val baseUrl = BuildConfig.SERVER_URL
 @Composable
 fun HomeScreen(
     navController: NavController,
-    viewModel: ItemViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    viewModel: ItemViewModel
 ) {
     // アイテム一覧の読み込み
     LaunchedEffect(Unit) {
         viewModel.loadItems(userId = 1) // TODO: 実ユーザーIDに
     }
+
     val items = viewModel.items
-    val isLoading = viewModel.isLoading
-    val errorMessage = viewModel.errorMessage
+
+    val extendedItems = remember(items) {
+        if (items.isEmpty()) emptyList()
+        else List(20) { index -> items[index % items.size] }
+    }
 
     var selectedCategory by remember { mutableStateOf("すべて") }
     var searchText by remember { mutableStateOf("") }
 
     val categories = listOf("すべて", "トップス", "ジャケット・アウター", "パンツ", "スカート")
 
-    //TODOデータ受け取り出来たら直す
-    // アイテム一覧の拡張とリスト状態の初期化　
-    val extendedItems = remember(items) {
-        if (items.isEmpty()) emptyList<ItemData>()
-        else List(20) { index -> items[index % items.size] }
-    }
+    val categoryMap = mapOf(
+        1 to "トップス",
+        2 to "ジャケット・アウター",
+        3 to "パンツ",
+        4 to "スカート"
+    )
     val listState = rememberLazyListState(initialFirstVisibleItemIndex = 500)
 
-
-//    val dummyItems = List(5) { index -> "ウィンドブルーフス$index" }
-//    val extendedItems = remember { List(1000) { dummyItems[it % dummyItems.size] } }
-//    val listState = rememberLazyListState(initialFirstVisibleItemIndex = 500)
     val flingBehavior = rememberSnapFlingBehavior(lazyListState = listState)
+// お気に入り状態を保持するマップ
     val favorites = remember {
         mutableStateMapOf<Int, Boolean>()
     }
-
-
 
     Column(
         modifier = Modifier
@@ -155,32 +156,20 @@ fun HomeScreen(
                     shape = RoundedCornerShape(16.dp),
                     elevation = CardDefaults.cardElevation(6.dp)
                 ) {
+                    // 画像領域
                     Column(modifier = Modifier.padding(16.dp)) {
 
-                        // 画像領域
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(320.dp)
-                                .background(Color.LightGray)
-                        )
-//TODO 画像表示できたら直す
                         val item = extendedItems[index]
-
                         if (item.imageUrl != null) {
-                            //val baseUrl = BuildConfig.SERVER_URL
-                            val baseUrl = "http://192.168.50.77:5000"
                             val fullUrl = baseUrl + item.imageUrl
                             Image(
-                                //painter = coil.compose.rememberAsyncImagePainter(item.imageUrl),
                                 painter = coil.compose.rememberAsyncImagePainter(fullUrl),
 
                                 contentDescription = item.itemName,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(320.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(Color.LightGray),
+                                    .clip(RoundedCornerShape(12.dp)),
                                 contentScale = ContentScale.Crop
                             )
                         } else {
@@ -195,18 +184,14 @@ fun HomeScreen(
                         Spacer(modifier = Modifier.height(8.dp))
 
                         Text(
-//                            TODO 直す
                             text = item.itemName,
-                            //text = extendedItems[index],
                             fontWeight = FontWeight.Bold,
                             fontSize = 18.sp,
                             maxLines = 1
                         )
 
                         Text(
-                            //TODO 直す
                             text = "カテゴリ: ${categoryMap[item.category] ?: "不明"}",
-                            //text = selectedCategory,
                             fontSize = 14.sp,
                             color = Color.Gray
                         )
