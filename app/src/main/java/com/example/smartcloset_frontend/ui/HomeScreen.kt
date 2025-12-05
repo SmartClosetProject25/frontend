@@ -151,7 +151,7 @@ fun HomeScreen(
                         .width(320.dp) // ← サイズ調整
                         .height(460.dp) // ← サイズ調整で下ボタンが見えるように
                         .clickable {
-                            navController.navigate("detail/${extendedItems[index]}")
+                            navController.navigate("detail/${extendedItems[index].id}" )
                         },
                     shape = RoundedCornerShape(16.dp),
                     elevation = CardDefaults.cardElevation(6.dp)
@@ -231,7 +231,6 @@ fun HomeScreen(
 
                                 IconButton(
                                     onClick = {
-                                        navController.navigate("clothes_detail")
 //                                        TODO 直す
                                         val item = extendedItems[index]
                                         navController.navigate("detail/${item.id}")

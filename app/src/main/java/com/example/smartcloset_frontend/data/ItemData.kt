@@ -22,11 +22,17 @@ data class ItemDetailData (
     val category: Int,
     val color: Int,
     val pattern: Int,
-    val material: Int,
-    val feature: Int,
-    val taste: Int,
-    val season: Int,
+    val material: String?,
+    val feature: String?,
+    val taste: String?,
+    val season: String?,
     val imageUrl: String
+)
+
+@Serializable
+data class GetItemDetailResponse(
+    val status: String,
+    val item: ItemDetailData
 )
 
 @Serializable
