@@ -25,9 +25,12 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.smartcloset_frontend.viewmodel.AddItemViewModel
+import com.example.smartcloset_frontend.viewmodel.MasterDataViewModel
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.net.toUri
 import com.example.smartcloset_frontend.ui.networkErr.AsyncState
+import kotlinx.coroutines.delay
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 // ==========================================
 // アイテム詳細確認画面
@@ -39,6 +42,7 @@ fun ItemConfirmationScreen(
     viewModel: AddItemViewModel
 ) {
     val context = LocalContext.current
+    val masterDataViewModel: MasterDataViewModel = viewModel()
     val itemState = viewModel.itemState
     val addItemState = viewModel.addItemState
 
@@ -49,6 +53,8 @@ fun ItemConfirmationScreen(
                 // ★ 本当に Success 状態になったときだけ成功トースト&遷移
                 Toast.makeText(context, "登録が完了しました", Toast.LENGTH_SHORT).show()
                 viewModel.resetAddItemState()
+                // 遷移前にフォーム状態をクリア（遷移アニメーション中にクリアされる）
+                viewModel.resetFormState()
                 navController.navigate("home") {
                     popUpTo("item_confirm") { inclusive = true }
                 }
@@ -136,38 +142,63 @@ fun ItemConfirmationScreen(
             Spacer(Modifier.height(16.dp))
 
             // タグエリア
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth(0.9f)
-                    .padding(horizontal = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-//                itemState.tags.forEach { tag ->
-//                    AssistChip(
-//                        onClick = { /* no op */ },
-//                        label = { Text(tag) },
-//                        colors = AssistChipDefaults.assistChipColors(
-//                            containerColor = Color(0xFFE0E0E0),
-//                            labelColor = Color.DarkGray
-//                        )
-//                    )
-//                }
+            if (itemState.tags.isNotEmpty()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth(0.9f)
+                        .padding(horizontal = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    itemState.tags.forEach { tag ->
+                        AssistChip(
+                            onClick = { /* no op */ },
+                            label = { Text(tag) },
+                            colors = AssistChipDefaults.assistChipColors(
+                                containerColor = Color(0xFFE0E0E0),
+                                labelColor = Color.DarkGray
+                            )
+                        )
+                    }
+                }
+                Spacer(Modifier.height(16.dp))
             }
-            Spacer(Modifier.height(24.dp))
 
             // 詳細情報リスト
             Column(modifier = Modifier.fillMaxWidth(0.9f).padding(horizontal = 8.dp)) {
+                // カテゴリー
+                DetailRow(label = "カテゴリー", value = masterDataViewModel.categoryMap[itemState.category] ?: "未選択")
+                HorizontalDivider(color = Color.LightGray, thickness = 0.5.dp, modifier = Modifier.padding(vertical = 8.dp))
+                
+                // カラー
+                DetailRow(label = "カラー", value = masterDataViewModel.colorMap[itemState.color] ?: "未選択")
+                HorizontalDivider(color = Color.LightGray, thickness = 0.5.dp, modifier = Modifier.padding(vertical = 8.dp))
+                
+                // パターン
+                DetailRow(label = "パターン", value = masterDataViewModel.patternMap[itemState.pattern] ?: "未選択")
+                HorizontalDivider(color = Color.LightGray, thickness = 0.5.dp, modifier = Modifier.padding(vertical = 8.dp))
+                
                 // ブランド
-                DetailRow(label = "ブランド", value = itemState.brand)
+                DetailRow(label = "ブランド", value = itemState.brand.ifEmpty { "未入力" })
                 HorizontalDivider(color = Color.LightGray, thickness = 0.5.dp, modifier = Modifier.padding(vertical = 8.dp))
+                
                 // サイズ
-                DetailRow(label = "サイズ", value = itemState.size)
+                DetailRow(label = "サイズ", value = masterDataViewModel.sizeMap[itemState.size] ?: "未選択")
                 HorizontalDivider(color = Color.LightGray, thickness = 0.5.dp, modifier = Modifier.padding(vertical = 8.dp))
-                // 購入日
-                //DetailRow(label = "購入日", value = itemState.purchaseDate)
+                
+                // 素材
+                DetailRowMultiLine(label = "素材", value = itemState.material.ifEmpty { "未入力" })
                 HorizontalDivider(color = Color.LightGray, thickness = 0.5.dp, modifier = Modifier.padding(vertical = 8.dp))
-                // 価格
-                //DetailRow(label = "価格", value = "¥${itemState.price}")
+                
+                // 特徴
+                DetailRowMultiLine(label = "特徴", value = itemState.feature.ifEmpty { "未入力" })
+                HorizontalDivider(color = Color.LightGray, thickness = 0.5.dp, modifier = Modifier.padding(vertical = 8.dp))
+                
+                // テイスト
+                DetailRowMultiLine(label = "テイスト", value = itemState.taste.ifEmpty { "未入力" })
+                HorizontalDivider(color = Color.LightGray, thickness = 0.5.dp, modifier = Modifier.padding(vertical = 8.dp))
+                
+                // シーズン
+                DetailRowMultiLine(label = "シーズン", value = itemState.season.ifEmpty { "未入力" })
             }
 
             Spacer(Modifier.height(32.dp))
@@ -225,16 +256,48 @@ fun ItemConfirmationScreen(
 // 補助 Composable: 詳細情報の行
 // ==========================================
 @Composable
-fun DetailRow(label: String, value: Any) {
+fun DetailRow(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier
+) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(label, style = MaterialTheme.typography.bodyLarge, color = Color.DarkGray)
         Text(
-            text = categoryMap[value] ?: "未選択",
-            style = MaterialTheme.typography.bodyLarge
+            text = value,
+            style = MaterialTheme.typography.bodyLarge,
+            color = if (value == "未選択" || value == "未入力") Color.Gray else Color.Black
+        )
+    }
+}
+
+@Composable
+fun DetailRowMultiLine(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.Top
+    ) {
+        Text(
+            label,
+            style = MaterialTheme.typography.bodyLarge,
+            color = Color.DarkGray,
+            modifier = Modifier.padding(end = 16.dp)
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyLarge,
+            color = if (value == "未選択" || value == "未入力") Color.Gray else Color.Black,
+            modifier = Modifier.weight(1f),
+            textAlign = TextAlign.End
         )
     }
 }

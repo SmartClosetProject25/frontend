@@ -38,6 +38,10 @@ class AddItemViewModel(
         addItemState = AsyncState.Idle
     }
 
+    fun resetFormState() {
+        itemState = ItemFormState()
+    }
+
     /**
      * 渡された imageUri からそのまま Multipart を作ってサーバに送る
      */

@@ -15,6 +15,7 @@ import com.example.smartcloset_frontend.data.TodayPlanData
 import com.example.smartcloset_frontend.data.WeatherData
 import com.example.smartcloset_frontend.data.PasswordResetRequestData
 import com.example.smartcloset_frontend.data.PasswordResetConfirmData
+import com.example.smartcloset_frontend.data.MasterDataResponse
 
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
@@ -118,6 +119,7 @@ interface ApiService {
     @POST("/send_today_plan")
     suspend fun sendTodayPlan(@Body todayPlanData: TodayPlanData): Response<ProposalResponse>
 
-
+    @GET("/get_master_data")
+    suspend fun getMasterData(): Response<MasterDataResponse>
 
 }
