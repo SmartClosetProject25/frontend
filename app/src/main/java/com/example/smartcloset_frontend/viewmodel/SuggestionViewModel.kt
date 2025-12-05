@@ -17,11 +17,20 @@ class SuggestionViewModel : ViewModel() {
     private val _isSendingPlan = MutableStateFlow(false)
     val isSendingPlan: StateFlow<Boolean> = _isSendingPlan
 
+    private val _isGeneratingImage = MutableStateFlow(false)
+    val isGeneratingImage: StateFlow<Boolean> = _isGeneratingImage
+
     private val _proposals = MutableStateFlow<List<Proposal>>(emptyList())
     val proposals: StateFlow<List<Proposal>> = _proposals
 
     private val _toastMessage = MutableStateFlow<String?>(null)
     val toastMessage: StateFlow<String?> = _toastMessage
+
+    private val _generatedImage = MutableStateFlow<ByteArray?>(null)
+    val generatedImage: StateFlow<ByteArray?> = _generatedImage
+
+    private val _navigateToGenerate = MutableStateFlow(false)
+    val navigateToGenerate: StateFlow<Boolean> = _navigateToGenerate
 
     fun sendTodayPlan(todayPlanData: TodayPlanData) {
         viewModelScope.launch {
@@ -52,7 +61,34 @@ class SuggestionViewModel : ViewModel() {
         }
     }
 
+    fun generateImage(itemIds: List<String>) {
+        viewModelScope.launch {
+            _isGeneratingImage.value = true
+            Log.d("SuggestionViewModel", "Sending item IDs to generate image: $itemIds") // Log the IDs
+            try {
+                val response = repository.generateImage(itemIds)
+                if (response.isSuccessful) {
+                    _generatedImage.value = response.body()?.bytes()
+                    _toastMessage.value = "画像を生成しました"
+                    _navigateToGenerate.value = true // 画面遷移をトリガー
+                } else {
+                    _toastMessage.value = "画像生成に失敗しました"
+                    Log.e("SuggestionViewModel", "generateImage failed: ${response.errorBody()?.string()}")
+                }
+            } catch (e: Exception) {
+                _toastMessage.value = "通信エラーが発生しました"
+                Log.e("SuggestionViewModel", "generateImage failed with exception", e)
+            } finally {
+                _isGeneratingImage.value = false
+            }
+        }
+    }
+
     fun onToastShown() {
         _toastMessage.value = null
+    }
+
+    fun onGenerateScreenNavigated() {
+        _navigateToGenerate.value = false
     }
 }

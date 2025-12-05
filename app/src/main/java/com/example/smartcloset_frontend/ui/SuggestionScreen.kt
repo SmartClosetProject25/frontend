@@ -59,13 +59,22 @@ fun SuggestionScreen(
     val todayPlan = remember { mutableStateOf("") }
     val context = LocalContext.current
     val isSending by suggestionViewModel.isSendingPlan.collectAsState()
+    val isGeneratingImage by suggestionViewModel.isGeneratingImage.collectAsState()
     val proposals by suggestionViewModel.proposals.collectAsState()
     val toastMessage by suggestionViewModel.toastMessage.collectAsState()
+    val navigateToGenerate by suggestionViewModel.navigateToGenerate.collectAsState()
 
     LaunchedEffect(toastMessage) {
         toastMessage?.let {
             Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
             suggestionViewModel.onToastShown()
+        }
+    }
+
+    LaunchedEffect(navigateToGenerate) {
+        if (navigateToGenerate) {
+            navController.navigate("generate")
+            suggestionViewModel.onGenerateScreenNavigated()
         }
     }
 
@@ -216,7 +225,8 @@ fun SuggestionScreen(
             items(proposals) { proposal ->
                 CoordinateCard(
                     proposal = proposal,
-                    navController = navController,
+                    suggestionViewModel = suggestionViewModel,
+                    isGeneratingImage = isGeneratingImage,
                     modifier = Modifier.width(cardWidth)
                 )
             }
@@ -298,7 +308,8 @@ fun ItemDisplay(imageUrl: String?, label: String, tags: List<String>) {
 @Composable
 fun CoordinateCard(
     proposal: Proposal,
-    navController: NavHostController,
+    suggestionViewModel: SuggestionViewModel,
+    isGeneratingImage: Boolean,
     modifier: Modifier = Modifier
 ) {
 
@@ -366,7 +377,8 @@ fun CoordinateCard(
 
                 // ✨生成ボタン → generate へ遷移
                 IconButton(
-                    onClick = { navController.navigate("generate") }
+                    onClick = { suggestionViewModel.generateImage(proposal.item_ids) },
+                    enabled = !isGeneratingImage
                 ) {
                     Box(
                         modifier = Modifier
@@ -374,12 +386,20 @@ fun CoordinateCard(
                             .background(Color(0xFF00C853), RoundedCornerShape(50)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            Icons.Default.AutoAwesome,
-                            contentDescription = "生成",
-                            tint = Color.White,
-                            modifier = Modifier.size(20.dp)
-                        )
+                        if (isGeneratingImage) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                color = Color.White,
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Icon(
+                                Icons.Default.AutoAwesome,
+                                contentDescription = "生成",
+                                tint = Color.White,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
                     }
                 }
             }

@@ -5,6 +5,7 @@ import com.example.smartcloset_frontend.data.ProfileData
 import com.example.smartcloset_frontend.data.SignUpData
 import com.example.smartcloset_frontend.data.SearchData
 import com.example.smartcloset_frontend.data.ItemData
+import com.example.smartcloset_frontend.data.GenerateImageRequest
 import com.example.smartcloset_frontend.data.GenerateOutfitData
 import com.example.smartcloset_frontend.data.GenerateOutfitWithWeather
 import com.example.smartcloset_frontend.data.ItemDetailData
@@ -118,6 +119,7 @@ interface ApiService {
     @POST("/send_today_plan")
     suspend fun sendTodayPlan(@Body todayPlanData: TodayPlanData): Response<ProposalResponse>
 
-
+    @POST("/generate_image")
+    suspend fun generateImage(@Body request: GenerateImageRequest): Response<ResponseBody>
 
 }
