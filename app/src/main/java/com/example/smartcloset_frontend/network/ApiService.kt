@@ -7,6 +7,7 @@ import com.example.smartcloset_frontend.data.SearchData
 import com.example.smartcloset_frontend.data.ItemData
 import com.example.smartcloset_frontend.data.GenerateOutfitData
 import com.example.smartcloset_frontend.data.GenerateOutfitWithWeather
+import com.example.smartcloset_frontend.data.GetItemsResponse
 import com.example.smartcloset_frontend.data.ItemDetailData
 import com.example.smartcloset_frontend.data.JudgeRequestData
 import com.example.smartcloset_frontend.data.LocationData
@@ -58,7 +59,7 @@ interface ApiService {
     @GET("/get_item")
     suspend fun getItems(
         @Query("userId") userId: Int
-    ): List<ItemData>
+    ): GetItemsResponse
 
     // アイテム詳細取得処理
     @GET("/get_item_detail")

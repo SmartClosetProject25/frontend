@@ -7,6 +7,11 @@ data class ItemData (
     val category: Int,
     val imageUrl: String?=null
 )
+@Serializable
+data class GetItemsResponse(
+    val status: String,
+    val items: List<ItemData>
+)
 
 @Serializable
 data class ItemDetailData (

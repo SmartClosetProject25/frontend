@@ -27,6 +27,7 @@ import com.example.smartcloset_frontend.ui.ItemConfirmationScreen
 import com.example.smartcloset_frontend.ui.ItemRegistrationScreen
 import com.example.smartcloset_frontend.ui.GeneratedResultScreen
 import com.example.smartcloset_frontend.viewmodel.AddItemViewModel
+import com.example.smartcloset_frontend.viewmodel.ItemViewModel
 
 @Composable
 fun NavGraph(
@@ -54,7 +55,11 @@ fun NavGraph(
                 navController = navController
             )
         }
-        composable("home") { HomeScreen(navController) }
+//        composable("home") { HomeScreen(navController) }
+        composable("home") { backStackEntry ->
+            val viewModel: ItemViewModel = viewModel(backStackEntry)
+            HomeScreen(navController, viewModel)
+        }
         composable("settings") {
             SettingsScreen(
                 onBack = { navController.popBackStack() },
