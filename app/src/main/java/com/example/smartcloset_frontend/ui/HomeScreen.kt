@@ -231,7 +231,6 @@ fun HomeScreen(
 
                                 IconButton(
                                     onClick = {
-//                                        TODO 直す
                                         val item = extendedItems[index]
                                         navController.navigate("detail/${item.id}")
                                     },

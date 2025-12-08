@@ -64,7 +64,7 @@ fun ClothesDetailScreen(
                     .background(Color.White),
                 contentAlignment = Alignment.Center
             ) {
-                Text("詳細の取得に失敗しました", color = Color.Red)
+                Text("詳細の取得に失敗しました。\n インターネット接続を確認してください。")
             }
         }
 

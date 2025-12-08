@@ -36,7 +36,7 @@ fun BottomNavBar(navController: NavHostController) {
                             saveState = true   // 画面と ViewModel の状態を保持
                         }
                         launchSingleTop = true
-                        restoreState = true    // 保存された状態を復元
+                        restoreState = false
                     }
                 },
                 icon = {

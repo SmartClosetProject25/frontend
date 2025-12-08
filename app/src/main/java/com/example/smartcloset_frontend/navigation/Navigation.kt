@@ -34,6 +34,7 @@ fun NavGraph(
     navController: NavHostController,
     startDestination: String = "login"
 ) {
+    val itemViewModel: ItemViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
     val sharedVM: AddItemViewModel = viewModel()
     NavHost(navController, startDestination = startDestination) {
         composable("login") { 
@@ -55,10 +56,9 @@ fun NavGraph(
                 navController = navController
             )
         }
-//        composable("home") { HomeScreen(navController) }
         composable("home") { backStackEntry ->
             val viewModel: ItemViewModel = viewModel(backStackEntry)
-            HomeScreen(navController, viewModel)
+            HomeScreen(navController, itemViewModel)
         }
         composable("settings") {
             SettingsScreen(
@@ -68,15 +68,6 @@ fun NavGraph(
         }
         composable("test") { TestScreen(navController) }
         composable("coordinate") { SuggestionScreen(navController) }
-//        composable(
-//            "clothes_detail/{itemId}",
-//            arguments = listOf(
-//                navArgument("itemId") { type = NavType.IntType }
-//            )
-//        ) { backStackEntry ->
-//            val itemId = backStackEntry.arguments?.getString("itemId")!!
-//            ClothesDetailScreen(navController, itemId = itemId)
-//        }
 
         composable("suggestion_history") { 
             SuggestionHistoryScreen(navController)
@@ -88,7 +79,6 @@ fun NavGraph(
         composable("register") { ItemRegistrationScreen(navController,sharedVM) }
         composable("item_confirm") { ItemConfirmationScreen(navController,sharedVM) }
         // 詳細画面への遷移時に itemId を渡す
-        //TODO: いったんコメントアウト
         composable(
             "detail/{itemId}",
             arguments = listOf(

@@ -13,16 +13,8 @@ class ItemRepository {
     }
     suspend fun getDetailItems(itemId: Int): ItemDetailData {
         val res = RetrofitClient.instance.getItemDetail(itemId)
-
-//        val isOkStatus = res.status == "success" || res.status == "ok"
-//
-//        if (!isOkStatus) {
-//            throw IllegalStateException("詳細取得APIが失敗しました: status=${res.status}")
-//        }
-
         return res.item
     }
-
     suspend fun judge(data: JudgeRequestData) =
         RetrofitClient.instance.judgement( data)
 }
