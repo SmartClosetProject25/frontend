@@ -26,6 +26,7 @@ import android.content.Context
 import android.widget.Toast
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
+import com.example.smartcloset_frontend.viewmodel.UserSessionViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,7 +35,9 @@ fun LoginScreen(
     onRegisterClick: () -> Unit = {},
     onForgotPasswordClick: () -> Unit = {} ,
     loginViewModel: LoginViewModel = viewModel(),
-    navController: NavHostController
+    navController: NavHostController,
+    //TODO test用
+    userSessionViewModel: UserSessionViewModel
 ) {
     val context = LocalContext.current
     val preferencesManager = remember { PreferencesManager(context) }
@@ -69,14 +72,18 @@ fun LoginScreen(
             )
             
             Spacer(modifier = Modifier.height(60.dp))
-
+//TODO ★ テスト用：userId = 1 を保存 本来はサーバーからの返答を挿入
             Button(
                 onClick = {
-                    navController.navigate("home")
+                    userSessionViewModel.setUserId(1)
+                    // Home画面へ遷移
+                    navController.navigate("home") {
+                        popUpTo("login") { inclusive = true }
+                    }
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("top")
+                Text("top (test login)")
             }
             
             // メールアドレス入力フィールド

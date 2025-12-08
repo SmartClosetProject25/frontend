@@ -87,5 +87,7 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended:1.7.3")
     //GPS取得用
     implementation("com.google.android.gms:play-services-location:21.0.1")
+    // DataStore
+    implementation("androidx.datastore:datastore-preferences:1.0.0")
 
 }
