@@ -44,7 +44,7 @@ fun NavGraph(
     val userSessionViewModel: UserSessionViewModel = viewModel(
         factory = UserSessionViewModelFactory(userSessionRepository)
     )
-    val itemViewModel: ItemViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    val itemViewModel: ItemViewModel = viewModel()
     val sharedVM: AddItemViewModel = viewModel()
     NavHost(navController, startDestination = startDestination) {
         composable("login") { 
@@ -74,7 +74,8 @@ fun NavGraph(
         composable("settings") {
             SettingsScreen(
                 onBack = { navController.popBackStack() },
-                navController = navController
+                navController = navController,
+                userSessionViewModel = userSessionViewModel
             )
         }
         composable("test") { TestScreen(navController) }

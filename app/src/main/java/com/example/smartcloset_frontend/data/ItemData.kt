@@ -40,3 +40,10 @@ data class JudgeRequestData(
     val planItemId: Int,
     val vote: String  // "GOOD" or "BAD"
 )
+
+@Serializable
+data class FavoriteRequest(
+    val userId: Int,
+    val itemId: Int,
+    val isFavorite: Boolean
+)

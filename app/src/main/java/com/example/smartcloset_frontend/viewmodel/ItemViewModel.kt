@@ -101,4 +101,15 @@ class ItemViewModel(
             }
         }
     }
+
+    fun toggleFavoriteOnServer(userId: Int, itemId: Int, isFavorite: Boolean) {
+        viewModelScope.launch {
+            try {
+                repository.setFavorite(userId, itemId, isFavorite)
+            } catch (e: Exception) {
+                // TODO: エラー時の処理（ログ出す・スナックバー出すなど）
+                e.printStackTrace()
+            }
+        }
+    }
 }

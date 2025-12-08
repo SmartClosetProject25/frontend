@@ -1,5 +1,6 @@
 package com.example.smartcloset_frontend.network
 
+import com.example.smartcloset_frontend.data.FavoriteRequest
 import com.example.smartcloset_frontend.data.LoginData
 import com.example.smartcloset_frontend.data.ProfileData
 import com.example.smartcloset_frontend.data.SignUpData
@@ -87,6 +88,11 @@ interface ApiService {
     suspend fun judgement(
         @Body body: JudgeRequestData
     ): Response<Unit>
+
+    @POST("/favorite")  // ← エンドポイント名はサーバー側に合わせて変更してOK
+    suspend fun setFavorite(
+        @Body request: FavoriteRequest
+    )
 
     @POST("/generate_outfit")
     suspend fun generateOutfit(

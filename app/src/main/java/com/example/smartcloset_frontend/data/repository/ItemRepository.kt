@@ -1,5 +1,6 @@
 package com.example.smartcloset_frontend.data.repository
 import android.util.Log
+import com.example.smartcloset_frontend.data.FavoriteRequest
 import com.example.smartcloset_frontend.data.GetItemsResponse
 import com.example.smartcloset_frontend.data.ItemData
 import com.example.smartcloset_frontend.data.ItemDetailData
@@ -17,4 +18,13 @@ class ItemRepository {
     }
     suspend fun judge(data: JudgeRequestData) =
         RetrofitClient.instance.judgement( data)
+
+    suspend fun setFavorite(userId: Int, itemId: Int, isFavorite: Boolean) {
+        val req = FavoriteRequest(
+            userId = userId,
+            itemId = itemId,
+            isFavorite = isFavorite
+        )
+        RetrofitClient.instance.setFavorite(req)
+    }
 }
