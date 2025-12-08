@@ -45,7 +45,7 @@ fun HomeScreen(
     }
 
     val items = viewModel.items
-
+//todo: お気に入りがバグる
     val extendedItems = remember(items) {
         if (items.isEmpty()) emptyList()
         else List(20) { index -> items[index % items.size] }
@@ -215,14 +215,26 @@ fun HomeScreen(
                             ) {
                                 IconButton(
                                     onClick = {
-                                        val current = favorites[index] ?: false
-                                        favorites[index] = !current
+                                        val current = favorites[item.id] ?: false
+                                        val newValue = !current
+
+                                        // ローカル状態を更新
+                                        favorites[item.id] = newValue
+
+                                        // サーバーへ送信
+                                        userId?.let { uid ->
+                                            viewModel.toggleFavoriteOnServer(
+                                                userId = uid,
+                                                itemId = item.id,
+                                                isFavorite = newValue
+                                            )
+                                        }
                                     },
                                     modifier = Modifier
                                         .size(40.dp)
                                         .padding(horizontal = 8.dp)
                                 ) {
-                                    val isFavorite = favorites[index] ?: false
+                                    val isFavorite = favorites[item.id] ?: false
                                     Icon(
                                         painter = painterResource(
                                             id = if (isFavorite) R.drawable.star_filled_icon else R.drawable.star_empty_icon
