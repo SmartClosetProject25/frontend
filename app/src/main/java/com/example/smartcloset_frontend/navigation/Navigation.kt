@@ -1,12 +1,15 @@
 package com.example.smartcloset_frontend.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.example.smartcloset_frontend.data.repository.UserSessionRepository
 
 import com.example.smartcloset_frontend.ui.TestScreen
 import com.example.smartcloset_frontend.ui.HomeScreen
@@ -28,12 +31,19 @@ import com.example.smartcloset_frontend.ui.ItemRegistrationScreen
 import com.example.smartcloset_frontend.ui.GeneratedResultScreen
 import com.example.smartcloset_frontend.viewmodel.AddItemViewModel
 import com.example.smartcloset_frontend.viewmodel.ItemViewModel
+import com.example.smartcloset_frontend.viewmodel.UserSessionViewModel
+import com.example.smartcloset_frontend.viewmodel.UserSessionViewModelFactory
 
 @Composable
 fun NavGraph(
     navController: NavHostController,
     startDestination: String = "login"
 ) {
+    val context = LocalContext.current.applicationContext
+    val userSessionRepository = remember { UserSessionRepository(context) }
+    val userSessionViewModel: UserSessionViewModel = viewModel(
+        factory = UserSessionViewModelFactory(userSessionRepository)
+    )
     val itemViewModel: ItemViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
     val sharedVM: AddItemViewModel = viewModel()
     NavHost(navController, startDestination = startDestination) {
@@ -53,12 +63,13 @@ fun NavGraph(
                     navController.navigate("forgot")
                 },
                 //debug用に直接homeへ飛ぶボタンを追加
-                navController = navController
+                navController = navController,
+                userSessionViewModel = userSessionViewModel
             )
         }
         composable("home") { backStackEntry ->
             val viewModel: ItemViewModel = viewModel(backStackEntry)
-            HomeScreen(navController, itemViewModel)
+            HomeScreen(navController, itemViewModel ,userSessionViewModel = userSessionViewModel)
         }
         composable("settings") {
             SettingsScreen(

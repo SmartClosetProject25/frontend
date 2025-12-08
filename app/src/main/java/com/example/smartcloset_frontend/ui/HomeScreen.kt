@@ -21,22 +21,27 @@ import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 
-import androidx.navigation.NavController
+import androidx.navigation.NavHostController
 
 import com.example.smartcloset_frontend.R
 import com.example.smartcloset_frontend.BuildConfig
 import com.example.smartcloset_frontend.viewmodel.ItemViewModel
+import com.example.smartcloset_frontend.viewmodel.UserSessionViewModel
 
 
 const val baseUrl = BuildConfig.SERVER_URL
 @Composable
 fun HomeScreen(
-    navController: NavController,
-    viewModel: ItemViewModel
+    navController: NavHostController,
+    viewModel: ItemViewModel,
+    userSessionViewModel : UserSessionViewModel
 ) {
+    val userId by userSessionViewModel.userId.collectAsState()
     // アイテム一覧の読み込み
     LaunchedEffect(Unit) {
-        viewModel.loadItems(userId = 1) // TODO: 実ユーザーIDに
+        userId?.let { id ->
+            viewModel.loadItems(id)
+        }
     }
 
     val items = viewModel.items
