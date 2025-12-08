@@ -45,7 +45,6 @@ fun HomeScreen(
     }
 
     val items = viewModel.items
-//todo: お気に入りがバグる
     val extendedItems = remember(items) {
         if (items.isEmpty()) emptyList()
         else List(20) { index -> items[index % items.size] }
@@ -141,125 +140,141 @@ fun HomeScreen(
         }
 
         Spacer(modifier = Modifier.height(16.dp))
-
+        if (items.isEmpty()) {
+            // 通信エラー or 本当にデータが0件
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text("アイテムを読み込めませんでした")
+                Spacer(Modifier.height(8.dp))
+                Button(onClick = {
+                    userId?.let { viewModel.loadItems(it) }
+                }) {
+                    Text("再読み込み")
+                }
+            }
+        } else {
         // カード一覧
-        LazyRow(
-            state = listState,
-            flingBehavior = flingBehavior, // ← スナップ動作を追加
-            contentPadding = PaddingValues(horizontal = 32.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            modifier = Modifier.weight(1f) // ← 高さを圧迫しないように調整
-        ) {
-            items(extendedItems.size) { index ->
-                Card(
-                    modifier = Modifier
-                        .width(320.dp) // ← サイズ調整
-                        .height(460.dp) // ← サイズ調整で下ボタンが見えるように
-                        .clickable {
-                            navController.navigate("detail/${extendedItems[index].id}" )
-                        },
-                    shape = RoundedCornerShape(16.dp),
-                    elevation = CardDefaults.cardElevation(6.dp)
-                ) {
-                    // 画像領域
-                    Column(modifier = Modifier.padding(16.dp)) {
+            LazyRow(
+                state = listState,
+                flingBehavior = flingBehavior, // ← スナップ動作を追加
+                contentPadding = PaddingValues(horizontal = 32.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.weight(1f) // ← 高さを圧迫しないように調整
+            ) {
+                items(extendedItems.size) { index ->
+                    Card(
+                        modifier = Modifier
+                            .width(320.dp) // ← サイズ調整
+                            .height(460.dp) // ← サイズ調整で下ボタンが見えるように
+                            .clickable {
+                                navController.navigate("detail/${extendedItems[index].id}" )
+                            },
+                        shape = RoundedCornerShape(16.dp),
+                        elevation = CardDefaults.cardElevation(6.dp)
+                    ) {
+                        // 画像領域
+                        Column(modifier = Modifier.padding(16.dp)) {
 
-                        val item = extendedItems[index]
-                        if (item.imageUrl != null) {
-                            val fullUrl = baseUrl + item.imageUrl
-                            Image(
-                                painter = coil.compose.rememberAsyncImagePainter(fullUrl),
+                            val item = extendedItems[index]
+                            if (item.imageUrl != null) {
+                                val fullUrl = baseUrl + item.imageUrl
+                                Image(
+                                    painter = coil.compose.rememberAsyncImagePainter(fullUrl),
 
-                                contentDescription = item.itemName,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(320.dp)
-                                    .clip(RoundedCornerShape(12.dp)),
-                                contentScale = ContentScale.Crop
+                                    contentDescription = item.itemName,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(320.dp)
+                                        .clip(RoundedCornerShape(12.dp)),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(320.dp)
+                                        .background(Color.LightGray)
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            Text(
+                                text = item.itemName,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 18.sp,
+                                maxLines = 1
                             )
-                        } else {
+
+                            Text(
+                                text = "カテゴリ: ${categoryMap[item.category] ?: "不明"}",
+                                fontSize = 14.sp,
+                                color = Color.Gray
+                            )
+
+                            // アイコン右下配置
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(320.dp)
-                                    .background(Color.LightGray)
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        Text(
-                            text = item.itemName,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp,
-                            maxLines = 1
-                        )
-
-                        Text(
-                            text = "カテゴリ: ${categoryMap[item.category] ?: "不明"}",
-                            fontSize = 14.sp,
-                            color = Color.Gray
-                        )
-
-                        // アイコン右下配置
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 8.dp, end = 4.dp),
-                            contentAlignment = Alignment.BottomEnd
-                        ) {
-                            Row(
-                                horizontalArrangement = Arrangement.End,
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.fillMaxWidth()
+                                    .padding(top = 8.dp, end = 4.dp),
+                                contentAlignment = Alignment.BottomEnd
                             ) {
-                                IconButton(
-                                    onClick = {
-                                        val current = favorites[item.id] ?: false
-                                        val newValue = !current
-
-                                        // ローカル状態を更新
-                                        favorites[item.id] = newValue
-
-                                        // サーバーへ送信
-                                        userId?.let { uid ->
-                                            viewModel.toggleFavoriteOnServer(
-                                                userId = uid,
-                                                itemId = item.id,
-                                                isFavorite = newValue
-                                            )
-                                        }
-                                    },
-                                    modifier = Modifier
-                                        .size(40.dp)
-                                        .padding(horizontal = 8.dp)
+                                Row(
+                                    horizontalArrangement = Arrangement.End,
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    val isFavorite = favorites[item.id] ?: false
-                                    Icon(
-                                        painter = painterResource(
-                                            id = if (isFavorite) R.drawable.star_filled_icon else R.drawable.star_empty_icon
-                                        ),
-                                        contentDescription = "お気に入り",
-                                        tint = Color(0xFFFFC107),
-                                        modifier = Modifier.size(40.dp)
-                                    )
-                                }
+                                    IconButton(
+                                        onClick = {
+                                            val current = favorites[item.id] ?: false
+                                            val newValue = !current
+
+                                            // ローカル状態を更新
+                                            favorites[item.id] = newValue
+
+                                            // サーバーへ送信
+                                            userId?.let { uid ->
+                                                viewModel.toggleFavoriteOnServer(
+                                                    userId = uid,
+                                                    itemId = item.id,
+                                                    isFavorite = newValue
+                                                )
+                                            }
+                                        },
+                                        modifier = Modifier
+                                            .size(40.dp)
+                                            .padding(horizontal = 8.dp)
+                                    ) {
+                                        val isFavorite = favorites[item.id] ?: false
+                                        Icon(
+                                            painter = painterResource(
+                                                id = if (isFavorite) R.drawable.star_filled_icon else R.drawable.star_empty_icon
+                                            ),
+                                            contentDescription = "お気に入り",
+                                            tint = Color(0xFFFFC107),
+                                            modifier = Modifier.size(40.dp)
+                                        )
+                                    }
 
 
-                                IconButton(
-                                    onClick = {
-                                        val item = extendedItems[index]
-                                        navController.navigate("detail/${item.id}")
-                                    },
-                                    modifier = Modifier
-                                        .size(40.dp)
-                                        .padding(horizontal = 8.dp)
-                                ) {
-                                    Icon(
-                                        painter = painterResource(id = R.drawable.edit_icon),
-                                        contentDescription = "編集",
-                                        modifier = Modifier.size(40.dp)
-                                    )
+                                    IconButton(
+                                        onClick = {
+                                            val item = extendedItems[index]
+                                            navController.navigate("detail/${item.id}")
+                                        },
+                                        modifier = Modifier
+                                            .size(40.dp)
+                                            .padding(horizontal = 8.dp)
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(id = R.drawable.edit_icon),
+                                            contentDescription = "編集",
+                                            modifier = Modifier.size(40.dp)
+                                        )
+                                    }
                                 }
                             }
                         }
