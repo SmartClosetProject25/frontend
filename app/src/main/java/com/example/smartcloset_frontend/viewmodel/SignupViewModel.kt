@@ -2,12 +2,12 @@ package com.example.smartcloset_frontend.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.smartcloset_frontend.data.repository.SignupRepository
+import com.example.smartcloset_frontend.data.repository.AuthRepository
 import com.example.smartcloset_frontend.data.SignUpData
 import kotlinx.coroutines.launch
 
 class SignupViewModel : ViewModel() {
-    private val repository = SignupRepository()
+    private val repository = AuthRepository()
     fun signup(email: String, password: String, imageUrl: String, onResult: (Boolean, String?) -> Unit) {
         viewModelScope.launch {
             try {
