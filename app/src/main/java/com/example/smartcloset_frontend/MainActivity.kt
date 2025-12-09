@@ -20,7 +20,10 @@ import com.example.smartcloset_frontend.navigation.BottomNavBar
 import com.example.smartcloset_frontend.navigation.NavGraph
 import com.example.smartcloset_frontend.ui.theme.SmartClosetTheme
 import com.example.smartcloset_frontend.data.PreferencesManager
+import com.example.smartcloset_frontend.data.repository.UserSessionRepository
 import com.example.smartcloset_frontend.viewmodel.LoginViewModel
+import com.example.smartcloset_frontend.viewmodel.UserSessionViewModel
+import com.example.smartcloset_frontend.viewmodel.UserSessionViewModelFactory
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.delay
 
@@ -32,6 +35,10 @@ class MainActivity : ComponentActivity() {
                 val context = LocalContext.current
                 val preferencesManager = remember { PreferencesManager(context) }
                 val loginViewModel: LoginViewModel = viewModel()
+                val userSessionRepository = remember { UserSessionRepository(context) }
+                val userSessionViewModel: UserSessionViewModel = viewModel(
+                    factory = UserSessionViewModelFactory(userSessionRepository)
+                )
                 val navController = rememberNavController()
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentRoute = navBackStackEntry?.destination?.route
@@ -126,8 +133,11 @@ class MainActivity : ComponentActivity() {
                         
                         if (!savedEmail.isNullOrEmpty() && !savedPassword.isNullOrEmpty()) {
                             // 自動ログインを試行
-                            val success = loginViewModel.autoLogin(savedEmail, savedPassword)
-                            if (!success) {
+                            val userId = loginViewModel.autoLogin(savedEmail, savedPassword)
+                            if (userId != null) {
+                                // 自動ログイン成功時はuserIdを保存
+                                userSessionViewModel.setUserId(userId)
+                            } else {
                                 // 自動ログイン失敗時は情報をクリアしてログイン画面に遷移
                                 preferencesManager.clearLoginInfo()
                                 navController.navigate("login") {

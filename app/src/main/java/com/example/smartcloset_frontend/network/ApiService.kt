@@ -2,6 +2,7 @@ package com.example.smartcloset_frontend.network
 
 import com.example.smartcloset_frontend.data.FavoriteRequest
 import com.example.smartcloset_frontend.data.LoginData
+import com.example.smartcloset_frontend.data.LoginResponse
 import com.example.smartcloset_frontend.data.ProfileData
 import com.example.smartcloset_frontend.data.SignUpData
 import com.example.smartcloset_frontend.data.SearchData
@@ -42,7 +43,7 @@ interface ApiService {
     @POST("/login")
     suspend fun login(
         @Body loginData: LoginData
-    ): Response<Unit>
+    ): Response<LoginResponse>
 
     //signup処理
     @POST("/signup")
@@ -83,6 +84,24 @@ interface ApiService {
         @Part("season") season: RequestBody,
         @Part("taste") taste: RequestBody,
         @Part image: MultipartBody.Part,
+    ): Response<Unit>
+
+    @Multipart
+    @POST("/update_item")
+    suspend fun updateItem(
+        @Part("itemId") itemId: RequestBody,
+        @Part("userId") userId: RequestBody,
+        @Part("itemName") itemName: RequestBody,
+        @Part("color") color: RequestBody,
+        @Part("pattern") pattern: RequestBody,
+        @Part("size") size: RequestBody,
+        @Part("brand") brand: RequestBody,
+        @Part("category") category: RequestBody,
+        @Part("material") material: RequestBody,
+        @Part("feature") feature: RequestBody,
+        @Part("season") season: RequestBody,
+        @Part("taste") taste: RequestBody,
+        @Part image: MultipartBody.Part?,
     ): Response<Unit>
 
     @POST("/judgement")

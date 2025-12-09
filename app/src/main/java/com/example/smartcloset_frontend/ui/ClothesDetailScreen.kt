@@ -1,5 +1,7 @@
 package com.example.smartcloset_frontend.ui
 
+import android.widget.Toast
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -14,20 +16,20 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
-import coil.compose.AsyncImage
-
-// 🚨 以下の行を追記してください 🚨
-// DetailRowが定義されているパッケージ名/ファイル名に応じて修正が必要です
-// 例: DetailRowが com.example.smartcloset_frontend.components パッケージにある場合
-// import com.example.smartcloset_frontend.components.DetailRow
-// あるいは、同じパッケージ内の別ファイルであればインポートは不要です
-// ただし、DetailRowがprivateやinternalでないことを確認してください。
+import coil.compose.rememberAsyncImagePainter
+import com.example.smartcloset_frontend.viewmodel.ClothesDetailViewModel
+import com.example.smartcloset_frontend.viewmodel.MasterDataViewModel
+import com.example.smartcloset_frontend.ui.networkErr.AsyncState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,20 +37,41 @@ fun ClothesDetailScreen(
     navController: NavHostController,
     clothesId: String? = null
 ) {
-    // TODO: 既存のRepository等からデータを取得
-    // 仮のデータ（後で実際のデータ取得に置き換え）
-    val clothesData = remember {
-        ClothesDetailData(
-            id = clothesId ?: "1",
-            name = "ウインドプルーフスタンドカラージャケット",
-            imageUrl = null, // 画像URLまたはnull
-            tags = listOf("アウター", "グレイ", "ブルゾン"),
-            brand = "ユニクロ",
-            size = "M",
-            purchaseDate = "2025/10/10",
-            price = "¥5,990"
-        )
+    val context = LocalContext.current
+    val detailViewModel: ClothesDetailViewModel = viewModel()
+    val masterDataViewModel: MasterDataViewModel = viewModel()
+    
+    // clothesIdをIntに変換
+    val itemId = clothesId?.toIntOrNull()
+    
+    // データの読み込み
+    LaunchedEffect(itemId) {
+        itemId?.let { id ->
+            detailViewModel.loadDetail(id)
+        }
     }
+    
+    val detailState = detailViewModel.detailState
+    val itemDetail = when (val state = detailState) {
+        is AsyncState.Success -> state.data
+        else -> null
+    }
+    
+    val isLoading = detailState is AsyncState.Loading
+    val isError = detailState is AsyncState.Error
+    
+    // エラー処理
+    LaunchedEffect(detailState) {
+        if (isError) {
+            val errorState = detailState as AsyncState.Error
+            Toast.makeText(
+                context,
+                errorState.message ?: "データの取得に失敗しました",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+    
     var isFavorite by remember { mutableStateOf(false) }
 
     Box(
@@ -60,12 +83,12 @@ fun ClothesDetailScreen(
             modifier = Modifier
                 .fillMaxSize()
         ) {
-            // ヘッダー (省略)
             TopAppBar(
                 title = {
                     Text(
-                        text = clothesData.name.takeIf { it.length <= 20 }
-                            ?: "${clothesData.name.take(17)}...",
+                        text = itemDetail?.itemName?.takeIf { it.length <= 20 }
+                            ?: itemDetail?.itemName?.take(17)?.plus("...")
+                            ?: "アイテム詳細",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.Black,
@@ -95,162 +118,218 @@ fun ClothesDetailScreen(
                 )
             )
 
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp)
-                    .verticalScroll(rememberScrollState()),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // 商品画像 (省略)
+            if (isLoading) {
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(300.dp)
-                        .background(Color(0xFFE0E0E0), RoundedCornerShape(8.dp)),
+                    modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    if (clothesData.imageUrl != null) {
-                        AsyncImage(
-                            model = clothesData.imageUrl,
-                            contentDescription = clothesData.name,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    } else {
-                        // プレースホルダー（グレーの背景）
-                        Text(
-                            text = "画像",
-                            color = Color.Gray,
-                            fontSize = 16.sp
-                        )
-                    }
+                    CircularProgressIndicator()
                 }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // タグ (省略)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Start
+            } else if (itemDetail == null) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
                 ) {
-                    clothesData.tags.forEach { tag ->
-                        Box(
-                            modifier = Modifier
-                                .padding(end = 8.dp)
-                                .background(
-                                    Color(0xFFE0F7FA),
-                                    RoundedCornerShape(4.dp)
-                                )
-                                .padding(horizontal = 12.dp, vertical = 6.dp)
-                        ) {
+                    Text("データが見つかりませんでした", color = Color.Gray)
+                }
+            } else {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp)
+                        .verticalScroll(rememberScrollState()),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // 商品画像
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(0.9f)
+                            .aspectRatio(1f)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color(0xFFE0E0E0)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (!itemDetail.imageUrl.isNullOrBlank()) {
+                            val fullUrl = baseUrl + itemDetail.imageUrl
+                            Image(
+                                painter = rememberAsyncImagePainter(fullUrl),
+                                contentDescription = itemDetail.itemName,
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
                             Text(
-                                text = tag,
-                                color = Color(0xFF2196F3),
-                                fontSize = 12.sp
+                                text = "画像",
+                                color = Color.Gray,
+                                fontSize = 16.sp
                             )
                         }
                     }
-                }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(24.dp))
 
-                // 詳細情報
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = Color.White
-                    ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-                ) {
-                    Column {
-                        // 外部のDetailRowを使用
-                        DetailRow("ブランド", clothesData.brand)
-                        HorizontalDivider(color = Color(0xFFE0E0E0), thickness = 1.dp)
-                        DetailRow("サイズ", clothesData.size)
-                        HorizontalDivider(color = Color(0xFFE0E0E0), thickness = 1.dp)
-                        DetailRow("購入日", clothesData.purchaseDate)
-                        HorizontalDivider(color = Color(0xFFE0E0E0), thickness = 1.dp)
-                        DetailRow("価格", clothesData.price)
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // アクションボタン (省略)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    // 削除ボタン
-                    Button(
-                        onClick = {
-                            // TODO: 削除処理
-                        },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(48.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFE53935)
+                    // 詳細情報リスト（ItemConfirmScreenと同じ項目）
+                    Column(modifier = Modifier.fillMaxWidth(0.9f).padding(horizontal = 8.dp)) {
+                        // カテゴリー
+                        DetailRow(
+                            label = "カテゴリー",
+                            value = masterDataViewModel.categoryMap[itemDetail.category] ?: "未選択"
                         )
+                        HorizontalDivider(
+                            color = Color.LightGray,
+                            thickness = 0.5.dp,
+                            modifier = Modifier.padding(vertical = 8.dp)
+                        )
+
+                        // カラー
+                        DetailRow(
+                            label = "カラー",
+                            value = masterDataViewModel.colorMap[itemDetail.color] ?: "未選択"
+                        )
+                        HorizontalDivider(
+                            color = Color.LightGray,
+                            thickness = 0.5.dp,
+                            modifier = Modifier.padding(vertical = 8.dp)
+                        )
+
+                        // パターン
+                        DetailRow(
+                            label = "パターン",
+                            value = masterDataViewModel.patternMap[itemDetail.pattern] ?: "未選択"
+                        )
+                        HorizontalDivider(
+                            color = Color.LightGray,
+                            thickness = 0.5.dp,
+                            modifier = Modifier.padding(vertical = 8.dp)
+                        )
+
+                        // ブランド
+                        DetailRow(
+                            label = "ブランド",
+                            value = itemDetail.brandName ?: "未入力"
+                        )
+                        HorizontalDivider(
+                            color = Color.LightGray,
+                            thickness = 0.5.dp,
+                            modifier = Modifier.padding(vertical = 8.dp)
+                        )
+
+                        // サイズ
+                        DetailRow(
+                            label = "サイズ",
+                            value = masterDataViewModel.sizeMap[itemDetail.size] ?: "未選択"
+                        )
+                        HorizontalDivider(
+                            color = Color.LightGray,
+                            thickness = 0.5.dp,
+                            modifier = Modifier.padding(vertical = 8.dp)
+                        )
+
+                        // 素材
+                        DetailRowMultiLine(
+                            label = "素材",
+                            value = itemDetail.material ?: "未入力"
+                        )
+                        HorizontalDivider(
+                            color = Color.LightGray,
+                            thickness = 0.5.dp,
+                            modifier = Modifier.padding(vertical = 8.dp)
+                        )
+
+                        // 特徴
+                        DetailRowMultiLine(
+                            label = "特徴",
+                            value = itemDetail.feature ?: "未入力"
+                        )
+                        HorizontalDivider(
+                            color = Color.LightGray,
+                            thickness = 0.5.dp,
+                            modifier = Modifier.padding(vertical = 8.dp)
+                        )
+
+                        // テイスト
+                        DetailRowMultiLine(
+                            label = "テイスト",
+                            value = itemDetail.taste ?: "未入力"
+                        )
+                        HorizontalDivider(
+                            color = Color.LightGray,
+                            thickness = 0.5.dp,
+                            modifier = Modifier.padding(vertical = 8.dp)
+                        )
+
+                        // シーズン
+                        DetailRowMultiLine(
+                            label = "シーズン",
+                            value = itemDetail.season ?: "未入力"
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(32.dp))
+
+                    // アクションボタン
+                    Row(
+                        modifier = Modifier.fillMaxWidth(0.9f),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Delete,
-                            contentDescription = "削除",
-                            tint = Color.White
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "削除",
-                            color = Color.White,
-                            fontSize = 14.sp
-                        )
+                        // 削除ボタン
+                        Button(
+                            onClick = {
+                                // TODO: 削除処理
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFFE53935)
+                            )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "削除",
+                                tint = Color.White
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "削除",
+                                color = Color.White,
+                                fontSize = 14.sp
+                            )
+                        }
+
+                        // 編集ボタン
+                        Button(
+                            onClick = {
+                                itemDetail?.id?.let { id ->
+                                    navController.navigate("item_edit/$id")
+                                }
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFF2AFF33)
+                            )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "編集",
+                                tint = Color.White
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "編集",
+                                color = Color.White,
+                                fontSize = 14.sp
+                            )
+                        }
                     }
 
-                    // 編集ボタン
-                    Button(
-                        onClick = {
-                            // TODO: 編集処理
-                        },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(48.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF2AFF33)
-                        )
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Edit,
-                            contentDescription = "編集",
-                            tint = Color.White
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "編集",
-                            color = Color.White,
-                            fontSize = 14.sp
-                        )
-                    }
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
-
-                Spacer(modifier = Modifier.height(16.dp))
             }
         }
     }
 }
-
-// ⚠️ DetailRow 関数の定義は、このファイルから削除しました。
-// ⚠️ このファイルをコンパイルするには、DetailRowが他のファイルから参照できる必要があります。
-
-// 仮のデータクラス（後で実際のClothesDataに置き換え）
-data class ClothesDetailData(
-    val id: String,
-    val name: String,
-    val imageUrl: String?,
-    val tags: List<String>,
-    val brand: String,
-    val size: String,
-    val purchaseDate: String,
-    val price: String
-)

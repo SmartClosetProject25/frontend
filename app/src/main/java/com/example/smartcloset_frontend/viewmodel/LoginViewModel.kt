@@ -3,6 +3,7 @@ package com.example.smartcloset_frontend.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.smartcloset_frontend.data.LoginData
+import com.example.smartcloset_frontend.data.LoginResponse
 import com.example.smartcloset_frontend.data.repository.AuthRepository
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
@@ -56,7 +57,7 @@ class LoginViewModel : ViewModel() {
     fun login(
         email: String,
         password: String,
-        onResult: (Boolean, String?) -> Unit  // コールバックを追加
+        onResult: (Boolean, String?, Int?) -> Unit  // コールバックにuser_idを追加
     ) {
         // viewModelScopeを使い、ViewModelのライフサイクルに連動したコルーチンを起動する
         viewModelScope.launch {
@@ -70,28 +71,35 @@ class LoginViewModel : ViewModel() {
                 val response = repository.login(loginData)
                 if (response.isSuccessful) {
                     // 通信が成功した場合の処理
-                    onResult(true, null)
+                    val loginResponse = response.body()
+                    val userId = loginResponse?.userId
+                    onResult(true, null, userId)
                 } else {
                     // サーバーがエラーレスポンスを返した場合の処理
                     val errorBody = response.errorBody()?.string()
                     val errorMessage = parseErrorMessage(errorBody)
-                    onResult(false, errorMessage)
+                    onResult(false, errorMessage, null)
                 }
             } catch (e: Exception) {
                 // 通信エラーやデータ変換エラーなど、例外が発生した場合の処理
-                onResult(false, "ネットワークエラー: ${e.message ?: "接続できませんでした"}")
+                onResult(false, "ネットワークエラー: ${e.message ?: "接続できませんでした"}", null)
             }
         }
     }
     
-    // 自動ログイン用の関数
-    suspend fun autoLogin(email: String, password: String): Boolean {
+    // 自動ログイン用の関数（成功時はuserIdを返す）
+    suspend fun autoLogin(email: String, password: String): Int? {
         return try {
             val loginData = LoginData(email = email, password = password)
             val response = repository.login(loginData)
-            response.isSuccessful
+            if (response.isSuccessful) {
+                val loginResponse = response.body()
+                loginResponse?.userId
+            } else {
+                null
+            }
         } catch (e: Exception) {
-            false
+            null
         }
     }
 }

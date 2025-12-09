@@ -63,12 +63,24 @@ data class ItemFormState(
 
 fun ItemRegistrationScreen(
     navController: NavController,
-    viewModel: AddItemViewModel
+    viewModel: AddItemViewModel,
+    isEditMode: Boolean = false,
+    itemId: Int? = null
 ) {
     val context = LocalContext.current
     val masterDataViewModel: MasterDataViewModel = viewModel()
-    // ViewModelの状態を初期値として使用（戻ってきた時に値が保持される）
-    var itemState by remember { mutableStateOf(viewModel.itemState) }
+    
+    // 編集モードの場合は、データが読み込まれるまで初期状態を空にしない
+    var itemState by remember { 
+        mutableStateOf(
+            if (isEditMode && viewModel.itemState.itemName.isBlank()) {
+                // 編集モードでデータがまだ読み込まれていない場合は空の状態
+                ItemFormState()
+            } else {
+                viewModel.itemState
+            }
+        )
+    }
     var showImageSourceDialog by remember { mutableStateOf(false) }
     var showCategoryDialog by remember { mutableStateOf(false) }
     var showSizeDialog by remember { mutableStateOf(false) }
@@ -76,24 +88,32 @@ fun ItemRegistrationScreen(
     var showPatternDialog by remember { mutableStateOf(false) }
     
     // ViewModelの状態が変更されたらローカル状態も更新
-    // ただし、ViewModelが空の状態（初期状態）の場合は更新しない（画面が一瞬見えるのを防ぐ）
-    LaunchedEffect(viewModel.itemState) {
+    LaunchedEffect(viewModel.itemState, isEditMode) {
         val vmState = viewModel.itemState
-        // 全てのフィールドが空の場合は更新しない（クリアされた状態）
-        val isEmpty = vmState.itemName.isBlank() && 
-                      vmState.imageUri.isBlank() && 
-                      vmState.category == 0 && 
-                      vmState.color == 0 && 
-                      vmState.pattern == 0 && 
-                      vmState.size == 0 && 
-                      vmState.brand.isBlank() && 
-                      vmState.material.isBlank() && 
-                      vmState.feature.isBlank() && 
-                      vmState.taste.isBlank() && 
-                      vmState.season.isBlank()
         
-        if (!isEmpty) {
-            itemState = vmState
+        if (isEditMode) {
+            // 編集モードの場合は、データが読み込まれたら必ず更新
+            // itemNameが設定されている = データが読み込まれた
+            if (vmState.itemName.isNotBlank()) {
+                itemState = vmState
+            }
+        } else {
+            // 新規登録モードの場合は、空の状態の場合は更新しない（クリアされた状態を防ぐ）
+            val isEmpty = vmState.itemName.isBlank() && 
+                          vmState.imageUri.isBlank() && 
+                          vmState.category == 0 && 
+                          vmState.color == 0 && 
+                          vmState.pattern == 0 && 
+                          vmState.size == 0 && 
+                          vmState.brand.isBlank() && 
+                          vmState.material.isBlank() && 
+                          vmState.feature.isBlank() && 
+                          vmState.taste.isBlank() && 
+                          vmState.season.isBlank()
+            
+            if (!isEmpty) {
+                itemState = vmState
+            }
         }
     }
 
@@ -134,7 +154,7 @@ fun ItemRegistrationScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.Center
                         ) {
-                            Text("登録")
+                            Text(if (isEditMode) "編集" else "登録")
                         }
                     },
                     navigationIcon = {
@@ -189,7 +209,11 @@ fun ItemRegistrationScreen(
                     }
                     
                     viewModel.setFormState(itemState)
-                    navController.navigate("item_confirm")
+                    if (isEditMode) {
+                        navController.navigate("item_confirm_edit")
+                    } else {
+                        navController.navigate("item_confirm")
+                    }
                 },
                 modifier = Modifier.fillMaxWidth().height(50.dp),
                 shape = RoundedCornerShape(8.dp),
@@ -224,10 +248,8 @@ fun ItemRegistrationScreen(
                 TextButton(
                     onClick = {
                         showImageSourceDialog = false
-                        val uri = createImageUri(context)
-                        photoUri = uri
-                        // カメラを起動
-                        cameraLauncher.launch(uri)
+                        // カメラを起動（TakePicturePreviewはURI不要）
+                        cameraLauncherBitmap.launch(null)
                     }
                 ) {
                     Text("カメラで撮影")
@@ -307,6 +329,19 @@ fun ImageUploadArea(
     onImageSelect: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // 画像URLを処理（サーバー上のURLの場合はbaseUrlを付ける）
+    val imageModel = remember(imageUri) {
+        when {
+            imageUri.isNullOrBlank() -> null
+            imageUri.startsWith("http://") || imageUri.startsWith("https://") -> imageUri
+            imageUri.startsWith("/static/") -> {
+                // HomeScreen.ktで定義されているbaseUrlを使用
+                com.example.smartcloset_frontend.ui.baseUrl + imageUri
+            }
+            else -> imageUri // ローカルのUri（content://など）
+        }
+    }
+    
     Box(
         modifier = modifier
             .aspectRatio(1f)
@@ -324,10 +359,16 @@ fun ImageUploadArea(
                     .fillMaxSize()
                     .clip(RoundedCornerShape(8.dp))
             )
-        } else if (!imageUri.isNullOrBlank()) {
-            // ギャラリーから選択したUri画像を以前の通り表示
+        } else if (imageModel != null) {
+            // 画像を表示（サーバー上のURLまたはローカルのUri）
             Image(
-                painter = rememberAsyncImagePainter(model = Uri.parse(imageUri)),
+                painter = rememberAsyncImagePainter(
+                    model = if (imageModel.startsWith("http://") || imageModel.startsWith("https://")) {
+                        imageModel // URL文字列として渡す
+                    } else {
+                        Uri.parse(imageModel) // Uriとして渡す
+                    }
+                ),
                 contentDescription = "Selected Image",
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
@@ -458,21 +499,21 @@ fun RegistrationTextField(
     Column(modifier = modifier) {
         Text(label, style = MaterialTheme.typography.labelSmall, color = Color.Gray)
         Spacer(Modifier.height(4.dp))
-        OutlinedTextField(
-            value = value,
-            onValueChange = onValueChange,
-            placeholder = { Text(placeholder) },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth().height(56.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = Color(0xFFEEEEEE),
-                unfocusedContainerColor = Color(0xFFEEEEEE),
-                disabledContainerColor = Color(0xFFEEEEEE),
-                focusedBorderColor = Color.Transparent,
-                unfocusedBorderColor = Color.Transparent,
-            ),
-            shape = RoundedCornerShape(8.dp)
-        )
+            OutlinedTextField(
+                value = value,
+                onValueChange = onValueChange,
+                placeholder = { Text(placeholder) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = Color(0xFFEEEEEE),
+                    unfocusedContainerColor = Color(0xFFEEEEEE),
+                    disabledContainerColor = Color(0xFFEEEEEE),
+                    focusedBorderColor = Color.Transparent,
+                    unfocusedBorderColor = Color.Transparent,
+                ),
+                shape = RoundedCornerShape(8.dp)
+            )
     }
 }
 
@@ -755,7 +796,7 @@ fun ColorSelectionDialog(
                     ) {
                         Text(name, modifier = Modifier.weight(1f))
                         if (selectedColorId == id) {
-                            Icon(
+            Icon(
                                 Icons.Filled.Check,
                                 contentDescription = "選択中",
                                 tint = Color(0xFF6495ED)

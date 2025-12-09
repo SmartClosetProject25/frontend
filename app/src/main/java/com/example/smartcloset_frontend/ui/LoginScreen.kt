@@ -179,11 +179,15 @@ fun LoginScreen(
                         errorMessage = null
                         
                         scope.launch {
-                            loginViewModel.login(email, password) { success, message ->
+                            loginViewModel.login(email, password) { success, message, userId ->
                                 isLoading = false
                                 if (success) {
                                     // ログイン情報を保存（日時も記録）
                                     preferencesManager.saveLoginInfo(email, password)
+                                    // user_idをUserSessionViewModelに保存
+                                    userId?.let { id ->
+                                        userSessionViewModel.setUserId(id)
+                                    }
                                     onLoginClick(email, password)
                                 } else {
                                     showError = true

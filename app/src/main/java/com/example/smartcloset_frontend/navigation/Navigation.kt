@@ -1,6 +1,7 @@
 package com.example.smartcloset_frontend.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -89,7 +90,38 @@ fun NavGraph(
         composable("profile_edit") { ProfileEditScreen(navController) }
 //        composable("clothes_detail") { ClothesDetailScreen(navController) }
         composable("register") { ItemRegistrationScreen(navController,sharedVM) }
-        composable("item_confirm") { ItemConfirmationScreen(navController,sharedVM) }
+        composable("item_confirm") { ItemConfirmationScreen(navController, sharedVM, userSessionViewModel) }
+        
+        // 編集画面のルート
+        composable(
+            "item_edit/{itemId}",
+            arguments = listOf(
+                navArgument("itemId") { type = NavType.IntType }
+            )
+        ) { backStackEntry ->
+            val itemId = backStackEntry.arguments?.getInt("itemId")!!
+            
+            LaunchedEffect(itemId) {
+                sharedVM.loadItemForEdit(itemId)
+            }
+            
+            ItemRegistrationScreen(
+                navController = navController,
+                viewModel = sharedVM,
+                isEditMode = true,
+                itemId = itemId
+            )
+        }
+        
+        composable("item_confirm_edit") { 
+            ItemConfirmationScreen(
+                navController = navController, 
+                viewModel = sharedVM, 
+                userSessionViewModel = userSessionViewModel,
+                isEditMode = true
+            ) 
+        }
+        
         // 詳細画面への遷移時に itemId を渡す
         composable(
             "detail/{itemId}",
@@ -100,7 +132,7 @@ fun NavGraph(
             )
         ) { backStackEntry ->
             val id = backStackEntry.arguments?.getInt("itemId")!!
-            ClothesDetailScreen(navController, itemId = id)
+            ClothesDetailScreen(navController, clothesId = id.toString())
         }
 
 //        composable("favorite") { FavoriteScreen(navController) }
