@@ -7,6 +7,11 @@ data class ItemData (
     val category: Int,
     val imageUrl: String?=null
 )
+@Serializable
+data class GetItemsResponse(
+    val status: String,
+    val items: List<ItemData>
+)
 
 @Serializable
 data class ItemDetailData (
@@ -17,15 +22,28 @@ data class ItemDetailData (
     val category: Int,
     val color: Int,
     val pattern: Int,
-    val material: Int,
-    val feature: Int,
-    val taste: Int,
-    val season: Int,
+    val material: String?,
+    val feature: String?,
+    val taste: String?,
+    val season: String?,
     val imageUrl: String
+)
+
+@Serializable
+data class GetItemDetailResponse(
+    val status: String,
+    val item: ItemDetailData
 )
 
 @Serializable
 data class JudgeRequestData(
     val planItemId: Int,
     val vote: String  // "GOOD" or "BAD"
+)
+
+@Serializable
+data class FavoriteRequest(
+    val userId: Int,
+    val itemId: Int,
+    val isFavorite: Boolean
 )

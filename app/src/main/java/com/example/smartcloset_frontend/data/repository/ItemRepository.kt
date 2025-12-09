@@ -1,14 +1,30 @@
 package com.example.smartcloset_frontend.data.repository
+import android.util.Log
+import com.example.smartcloset_frontend.data.FavoriteRequest
+import com.example.smartcloset_frontend.data.GetItemsResponse
+import com.example.smartcloset_frontend.data.ItemData
+import com.example.smartcloset_frontend.data.ItemDetailData
 import com.example.smartcloset_frontend.data.JudgeRequestData
 import com.example.smartcloset_frontend.network.RetrofitClient
 
 class ItemRepository {
-    suspend fun getItems(userId: Int) =
-        RetrofitClient.instance.getItems(1)
-
-    suspend fun getDetailItems(userId: Int) =
-        RetrofitClient.instance.getItemDetail(1)
-
+    suspend fun getItems(userId: Int): List<ItemData> {
+        val response = RetrofitClient.instance.getItems(userId)
+        return response.items
+    }
+    suspend fun getDetailItems(itemId: Int): ItemDetailData {
+        val res = RetrofitClient.instance.getItemDetail(itemId)
+        return res.item
+    }
     suspend fun judge(data: JudgeRequestData) =
         RetrofitClient.instance.judgement( data)
+
+    suspend fun setFavorite(userId: Int, itemId: Int, isFavorite: Boolean) {
+        val req = FavoriteRequest(
+            userId = userId,
+            itemId = itemId,
+            isFavorite = isFavorite
+        )
+        RetrofitClient.instance.setFavorite(req)
+    }
 }

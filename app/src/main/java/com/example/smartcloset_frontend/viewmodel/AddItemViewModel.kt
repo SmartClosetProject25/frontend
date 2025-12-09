@@ -69,7 +69,7 @@ class AddItemViewModel(
 
                 // MultipartBody.Part 作成（"file" はサーバ側のフィールド名に合わせる）
                 val imagePart = MultipartBody.Part.createFormData(
-                    "file",
+                    "image",
                     fileName,
                     requestBody
                 )

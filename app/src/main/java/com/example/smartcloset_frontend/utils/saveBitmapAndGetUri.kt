@@ -10,10 +10,10 @@ import java.io.FileOutputStream
 fun saveBitmapAndGetUri(context: Context, bitmap: Bitmap): Uri {
     val file = File(
         context.cacheDir,
-        "item_${System.currentTimeMillis()}.png"
+        "item_${System.currentTimeMillis()}.jpeg"
     )
     FileOutputStream(file).use { out ->
-        bitmap.compress(Bitmap.CompressFormat.PNG, 90, out)
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, out)
     }
     return file.toUri()
 }

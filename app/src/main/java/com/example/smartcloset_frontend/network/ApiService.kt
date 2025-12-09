@@ -1,13 +1,14 @@
 package com.example.smartcloset_frontend.network
 
+import com.example.smartcloset_frontend.data.FavoriteRequest
 import com.example.smartcloset_frontend.data.LoginData
 import com.example.smartcloset_frontend.data.ProfileData
 import com.example.smartcloset_frontend.data.SignUpData
 import com.example.smartcloset_frontend.data.SearchData
-import com.example.smartcloset_frontend.data.ItemData
 import com.example.smartcloset_frontend.data.GenerateOutfitData
 import com.example.smartcloset_frontend.data.GenerateOutfitWithWeather
-import com.example.smartcloset_frontend.data.ItemDetailData
+import com.example.smartcloset_frontend.data.GetItemDetailResponse
+import com.example.smartcloset_frontend.data.GetItemsResponse
 import com.example.smartcloset_frontend.data.JudgeRequestData
 import com.example.smartcloset_frontend.data.LocationData
 import com.example.smartcloset_frontend.data.ProposalResponse
@@ -59,13 +60,13 @@ interface ApiService {
     @GET("/get_item")
     suspend fun getItems(
         @Query("userId") userId: Int
-    ): List<ItemData>
+    ): GetItemsResponse
 
     // アイテム詳細取得処理
     @GET("/get_item_detail")
     suspend fun getItemDetail(
         @Query("itemId") itemId: Int
-    ): ItemDetailData
+    ): GetItemDetailResponse
 
     @Multipart
     @POST("/add_item")
@@ -88,6 +89,11 @@ interface ApiService {
     suspend fun judgement(
         @Body body: JudgeRequestData
     ): Response<Unit>
+
+    @POST("/favorite")  // ← エンドポイント名はサーバー側に合わせて変更してOK
+    suspend fun setFavorite(
+        @Body request: FavoriteRequest
+    )
 
     @POST("/generate_outfit")
     suspend fun generateOutfit(

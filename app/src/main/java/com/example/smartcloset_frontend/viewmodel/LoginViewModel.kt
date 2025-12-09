@@ -3,7 +3,7 @@ package com.example.smartcloset_frontend.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.smartcloset_frontend.data.LoginData
-import com.example.smartcloset_frontend.data.repository.LoginRepository
+import com.example.smartcloset_frontend.data.repository.AuthRepository
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -17,7 +17,7 @@ data class ErrorResponse(
 
 // LoginScreenのためのViewModel。UI関連のデータとロジックを管理する
 class LoginViewModel : ViewModel() {
-    private val repository = LoginRepository()
+    private val repository = AuthRepository()
     private val json = Json { ignoreUnknownKeys = true }
     
     // エラーメッセージを日本語に変換

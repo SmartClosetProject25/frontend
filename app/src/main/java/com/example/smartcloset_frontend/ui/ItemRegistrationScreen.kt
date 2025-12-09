@@ -1,5 +1,6 @@
 package com.example.smartcloset_frontend.ui
 
+import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
 import android.util.Log
@@ -28,6 +29,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.content.FileProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
@@ -36,6 +38,7 @@ import com.example.smartcloset_frontend.utils.saveBitmapAndGetUri
 import com.example.smartcloset_frontend.viewmodel.AddItemViewModel
 import com.example.smartcloset_frontend.viewmodel.MasterDataViewModel
 import kotlinx.serialization.Serializable
+import java.io.File
 
 @Serializable
 data class ItemFormState(
@@ -57,6 +60,7 @@ data class ItemFormState(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+
 fun ItemRegistrationScreen(
     navController: NavController,
     viewModel: AddItemViewModel
@@ -220,8 +224,10 @@ fun ItemRegistrationScreen(
                 TextButton(
                     onClick = {
                         showImageSourceDialog = false
+                        val uri = createImageUri(context)
+                        photoUri = uri
                         // カメラを起動
-                        cameraLauncherBitmap.launch(null)
+                        cameraLauncher.launch(uri)
                     }
                 ) {
                     Text("カメラで撮影")
@@ -311,8 +317,8 @@ fun ImageUploadArea(
         if (capturedBitmap != null) {
             // 撮影したBitmapを表示
             Image(
-                bitmap = capturedBitmap.asImageBitmap(),
-                contentDescription = "Captured Image",
+                painter = rememberAsyncImagePainter(model = Uri.parse(imageUri)),
+                contentDescription = "Selected Image",
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .fillMaxSize()
