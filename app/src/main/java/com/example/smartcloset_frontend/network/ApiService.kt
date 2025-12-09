@@ -45,10 +45,13 @@ interface ApiService {
         @Body loginData: LoginData
     ): Response<LoginResponse>
 
-    //signup処理
+    //signup処理（multipart対応）
+    @Multipart
     @POST("/signup")
     suspend fun signup(
-        @Body signUpData: SignUpData
+        @Part("email") email: RequestBody,
+        @Part("password") password: RequestBody,
+        @Part image: MultipartBody.Part
     ): Response<Unit>
 //    検索処理
     @GET("/search")

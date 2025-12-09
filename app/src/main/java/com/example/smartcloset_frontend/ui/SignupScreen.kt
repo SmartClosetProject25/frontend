@@ -165,9 +165,9 @@ fun SignupScreen(navController: NavHostController, signupViewModel: SignupViewMo
             Button(
                 onClick = {
                     if (!validate()) return@Button
-                        isSubmitting = true
-                        val imagePath = imageUri!!.toString()
-                        signupViewModel.signup(email, password,imagePath){success,message ->
+                    isSubmitting = true
+                    imageUri?.let { uri ->
+                        signupViewModel.signup(email, password, uri) { success, message ->
                             isSubmitting = false
                             if (success) {
                                 navController.navigate("signup_complete") {
@@ -175,11 +175,14 @@ fun SignupScreen(navController: NavHostController, signupViewModel: SignupViewMo
                                     launchSingleTop = true
                                 }
                             } else {
-                                errorMessage = "登録に失敗しました。再度お試しください。"
+                                errorMessage = message ?: "登録に失敗しました。再度お試しください。"
                             }
-
                         }
-                    },
+                    } ?: run {
+                        isSubmitting = false
+                        errorMessage = "画像を選択してください"
+                    }
+                },
                 enabled = !isSubmitting,
                 colors = ButtonDefaults.buttonColors(containerColor = Color.Black),
                 modifier = Modifier
