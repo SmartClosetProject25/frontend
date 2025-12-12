@@ -2,6 +2,7 @@ package com.example.smartcloset_frontend.network
 
 import com.example.smartcloset_frontend.data.FavoriteRequest
 import com.example.smartcloset_frontend.data.LoginData
+import com.example.smartcloset_frontend.data.LoginResponse
 import com.example.smartcloset_frontend.data.ProfileData
 import com.example.smartcloset_frontend.data.SignUpData
 import com.example.smartcloset_frontend.data.SearchData
@@ -16,6 +17,7 @@ import com.example.smartcloset_frontend.data.TodayPlanData
 import com.example.smartcloset_frontend.data.WeatherData
 import com.example.smartcloset_frontend.data.PasswordResetRequestData
 import com.example.smartcloset_frontend.data.PasswordResetConfirmData
+import com.example.smartcloset_frontend.data.MasterDataResponse
 
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
@@ -41,12 +43,15 @@ interface ApiService {
     @POST("/login")
     suspend fun login(
         @Body loginData: LoginData
-    ): Response<Unit>
+    ): Response<LoginResponse>
 
-    //signup処理
+    //signup処理（multipart対応）
+    @Multipart
     @POST("/signup")
     suspend fun signup(
-        @Body signUpData: SignUpData
+        @Part("email") email: RequestBody,
+        @Part("password") password: RequestBody,
+        @Part image: MultipartBody.Part
     ): Response<Unit>
 //    検索処理
     @GET("/search")
@@ -82,6 +87,24 @@ interface ApiService {
         @Part("season") season: RequestBody,
         @Part("taste") taste: RequestBody,
         @Part image: MultipartBody.Part,
+    ): Response<Unit>
+
+    @Multipart
+    @POST("/update_item")
+    suspend fun updateItem(
+        @Part("itemId") itemId: RequestBody,
+        @Part("userId") userId: RequestBody,
+        @Part("itemName") itemName: RequestBody,
+        @Part("color") color: RequestBody,
+        @Part("pattern") pattern: RequestBody,
+        @Part("size") size: RequestBody,
+        @Part("brand") brand: RequestBody,
+        @Part("category") category: RequestBody,
+        @Part("material") material: RequestBody,
+        @Part("feature") feature: RequestBody,
+        @Part("season") season: RequestBody,
+        @Part("taste") taste: RequestBody,
+        @Part image: MultipartBody.Part?,
     ): Response<Unit>
 
     @POST("/judgement")
@@ -124,6 +147,7 @@ interface ApiService {
     @POST("/send_today_plan")
     suspend fun sendTodayPlan(@Body todayPlanData: TodayPlanData): Response<ProposalResponse>
 
-
+    @GET("/get_master_data")
+    suspend fun getMasterData(): Response<MasterDataResponse>
 
 }

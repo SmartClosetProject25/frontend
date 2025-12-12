@@ -179,12 +179,24 @@ fun LoginScreen(
                         errorMessage = null
                         
                         scope.launch {
-                            loginViewModel.login(email, password) { success, message ->
+                            loginViewModel.login(email, password) { success, message, userId ->
                                 isLoading = false
                                 if (success) {
                                     // ログイン情報を保存（日時も記録）
                                     preferencesManager.saveLoginInfo(email, password)
-                                    onLoginClick(email, password)
+                                    // user_idをUserSessionViewModelに保存（完了を待つ）
+                                    userId?.let { id ->
+                                        userSessionViewModel.setUserId(id)
+                                        // userId保存後にHome画面へ遷移
+                                        navController.navigate("home") {
+                                            popUpTo("login") { inclusive = true }
+                                            launchSingleTop = true
+                                        }
+                                    } ?: run {
+                                        // userIdが取得できなかった場合
+                                        showError = true
+                                        errorMessage = "ユーザー情報の取得に失敗しました。"
+                                    }
                                 } else {
                                     showError = true
                                     errorMessage = message

@@ -11,7 +11,12 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.*
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -27,6 +32,7 @@ import com.example.smartcloset_frontend.R
 import com.example.smartcloset_frontend.BuildConfig
 import com.example.smartcloset_frontend.viewmodel.ItemViewModel
 import com.example.smartcloset_frontend.viewmodel.UserSessionViewModel
+import com.example.smartcloset_frontend.ui.networkErr.AsyncState
 
 
 const val baseUrl = BuildConfig.SERVER_URL
@@ -37,14 +43,36 @@ fun HomeScreen(
     userSessionViewModel : UserSessionViewModel
 ) {
     val userId by userSessionViewModel.userId.collectAsState()
-    // アイテム一覧の読み込み
-    LaunchedEffect(Unit) {
-        userId?.let { id ->
-            viewModel.loadItems(id)
+    
+    // userIdが変更されたときにアイテムをクリアして再読み込み
+    LaunchedEffect(userId) {
+        val currentUserId = userId
+        if (currentUserId == null) {
+            // userIdがnullになった場合（ログアウト時など）はアイテムをクリア
+            viewModel.clearItems()
+        } else {
+            // userIdが設定されたときは強制的に再読み込み（ユーザー切り替えを考慮）
+            viewModel.loadItems(currentUserId, forceRefresh = true)
         }
+    }
+    
+    // 画面が表示されたときにアイテム一覧を再読み込み（更新後の反映のため）
+    // ただし、userIdが変更されたときはLaunchedEffectで処理されるので、ここではスキップ
+    DisposableEffect(userId) {
+        userId?.let { id ->
+            // 少し遅延させて、初回読み込みが完了してから再読み込み
+            kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main).launch {
+                delay(300)
+                viewModel.loadItems(id, forceRefresh = true)
+            }
+        }
+        onDispose { }
     }
 
     val items = viewModel.items
+    val isLoading = viewModel.isLoading
+    val itemListState = viewModel.itemListState
+    
     val extendedItems = remember(items) {
         if (items.isEmpty()) emptyList()
         else List(20) { index -> items[index % items.size] }
@@ -140,8 +168,17 @@ fun HomeScreen(
         }
 
         Spacer(modifier = Modifier.height(16.dp))
-        if (items.isEmpty()) {
-            // 通信エラー or 本当にデータが0件
+        
+        // 読み込み中またはuserIdが設定される前はローディング表示
+        if (isLoading || userId == null) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+        } else if (items.isEmpty() && itemListState is AsyncState.Error) {
+            // 読み込み完了後、エラー状態で、かつアイテムが空の場合のみエラー表示
             Column(
                 modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.Center,
@@ -150,10 +187,18 @@ fun HomeScreen(
                 Text("アイテムを読み込めませんでした")
                 Spacer(Modifier.height(8.dp))
                 Button(onClick = {
-                    userId?.let { viewModel.loadItems(it) }
+                    userId?.let { viewModel.loadItems(it, forceRefresh = true) }
                 }) {
                     Text("再読み込み")
                 }
+            }
+        } else if (items.isEmpty()) {
+            // データが0件の場合（エラーではない）
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("アイテムがありません")
             }
         } else {
         // カード一覧

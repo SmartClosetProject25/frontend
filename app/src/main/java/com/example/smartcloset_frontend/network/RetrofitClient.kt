@@ -18,11 +18,15 @@ object RetrofitClient {
         ignoreUnknownKeys = true
     }
 
-    // タイムアウト設定を追加したOkHttpClientインスタンスを生成
+    // CookieJarインスタンス
+    private val cookieJar = SimpleCookieJar()
+
+    // タイムアウト設定とCookieJarを追加したOkHttpClientインスタンスを生成
     private val okHttpClient = OkHttpClient.Builder()
         .connectTimeout(60, TimeUnit.SECONDS)
         .readTimeout(60, TimeUnit.SECONDS)
         .writeTimeout(60, TimeUnit.SECONDS)
+        .cookieJar(cookieJar) // Cookie管理を追加
         .build()
 
     // ApiServiceのインスタンスを遅延初期化で生成する
@@ -37,5 +41,10 @@ object RetrofitClient {
 
         // 上記設定を基に、ApiServiceインターフェースの実装を生成
         retrofit.create(ApiService::class.java)
+    }
+
+    // Cookieをクリアする関数（ログアウト時などに使用）
+    fun clearCookies() {
+        cookieJar.clearCookies()
     }
 }
