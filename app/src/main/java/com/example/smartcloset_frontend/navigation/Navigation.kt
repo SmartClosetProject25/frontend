@@ -27,6 +27,7 @@ import com.example.smartcloset_frontend.ui.ItemConfirmationScreen
 import com.example.smartcloset_frontend.ui.ItemRegistrationScreen
 import com.example.smartcloset_frontend.ui.GeneratedResultScreen
 import com.example.smartcloset_frontend.viewmodel.AddItemViewModel
+import com.example.smartcloset_frontend.viewmodel.SuggestionViewModel
 
 @Composable
 fun NavGraph(
@@ -34,6 +35,7 @@ fun NavGraph(
     startDestination: String = "login"
 ) {
     val sharedVM: AddItemViewModel = viewModel()
+    val suggestionViewModel: SuggestionViewModel = viewModel()
     NavHost(navController, startDestination = startDestination) {
         composable("login") { 
             LoginScreen(
@@ -62,7 +64,7 @@ fun NavGraph(
             )
         }
         composable("test") { TestScreen(navController) }
-        composable("coordinate") { SuggestionScreen(navController) }
+        composable("coordinate") { SuggestionScreen(navController, suggestionViewModel) }
         //TODO: いったんコメントアウト
 //        composable(
 //            "clothes_detail/{itemId}",
@@ -77,7 +79,7 @@ fun NavGraph(
         composable("suggestion_history") { 
             SuggestionHistoryScreen(navController)
         }
-        composable("generate") { GeneratedResultScreen(navController) }
+        composable("generate") { GeneratedResultScreen(navController, suggestionViewModel) }
         composable("profile") { ProfileScreen(navController) }
         composable("profile_edit") { ProfileEditScreen(navController) }
         composable("clothes_detail") { ClothesDetailScreen(navController) }

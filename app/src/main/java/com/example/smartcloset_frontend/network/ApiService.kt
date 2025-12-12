@@ -1,26 +1,25 @@
 package com.example.smartcloset_frontend.network
 
-import com.example.smartcloset_frontend.data.LoginData
-import com.example.smartcloset_frontend.data.ProfileData
-import com.example.smartcloset_frontend.data.SignUpData
-import com.example.smartcloset_frontend.data.SearchData
-import com.example.smartcloset_frontend.data.ItemData
 import com.example.smartcloset_frontend.data.GenerateImageRequest
 import com.example.smartcloset_frontend.data.GenerateOutfitData
 import com.example.smartcloset_frontend.data.GenerateOutfitWithWeather
+import com.example.smartcloset_frontend.data.ImageResponse
+import com.example.smartcloset_frontend.data.ItemData
 import com.example.smartcloset_frontend.data.ItemDetailData
 import com.example.smartcloset_frontend.data.JudgeRequestData
 import com.example.smartcloset_frontend.data.LocationData
+import com.example.smartcloset_frontend.data.LoginData
+import com.example.smartcloset_frontend.data.PasswordResetConfirmData
+import com.example.smartcloset_frontend.data.PasswordResetRequestData
+import com.example.smartcloset_frontend.data.ProfileData
 import com.example.smartcloset_frontend.data.ProposalResponse
+import com.example.smartcloset_frontend.data.SearchData
+import com.example.smartcloset_frontend.data.SignUpData
 import com.example.smartcloset_frontend.data.TodayPlanData
 import com.example.smartcloset_frontend.data.WeatherData
-import com.example.smartcloset_frontend.data.PasswordResetRequestData
-import com.example.smartcloset_frontend.data.PasswordResetConfirmData
-
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import okhttp3.ResponseBody
-
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -120,6 +119,6 @@ interface ApiService {
     suspend fun sendTodayPlan(@Body todayPlanData: TodayPlanData): Response<ProposalResponse>
 
     @POST("/generate_image")
-    suspend fun generateImage(@Body request: GenerateImageRequest): Response<ResponseBody>
+    suspend fun generateImage(@Body request: GenerateImageRequest): Response<ImageResponse>
 
 }

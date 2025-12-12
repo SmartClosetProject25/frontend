@@ -53,7 +53,7 @@ data class CoordinateSuggestion(
 @Composable
 fun SuggestionScreen(
     navController: NavHostController,
-    suggestionViewModel: SuggestionViewModel = viewModel()
+    suggestionViewModel: SuggestionViewModel
 ) {
 
     val todayPlan = remember { mutableStateOf("") }

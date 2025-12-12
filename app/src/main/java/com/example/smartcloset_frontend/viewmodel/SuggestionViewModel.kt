@@ -26,8 +26,8 @@ class SuggestionViewModel : ViewModel() {
     private val _toastMessage = MutableStateFlow<String?>(null)
     val toastMessage: StateFlow<String?> = _toastMessage
 
-    private val _generatedImage = MutableStateFlow<ByteArray?>(null)
-    val generatedImage: StateFlow<ByteArray?> = _generatedImage
+    private val _generatedImage = MutableStateFlow<String?>(null)
+    val generatedImage: StateFlow<String?> = _generatedImage
 
     private val _navigateToGenerate = MutableStateFlow(false)
     val navigateToGenerate: StateFlow<Boolean> = _navigateToGenerate
@@ -64,16 +64,36 @@ class SuggestionViewModel : ViewModel() {
     fun generateImage(itemIds: List<String>) {
         viewModelScope.launch {
             _isGeneratingImage.value = true
-            Log.d("SuggestionViewModel", "Sending item IDs to generate image: $itemIds") // Log the IDs
+            Log.d("SuggestionViewModel", "Sending item IDs to generate image: $itemIds")
             try {
                 val response = repository.generateImage(itemIds)
                 if (response.isSuccessful) {
-                    _generatedImage.value = response.body()?.bytes()
-                    _toastMessage.value = "画像を生成しました"
-                    _navigateToGenerate.value = true // 画面遷移をトリガー
+                    val imageResponse = response.body()
+                    if (imageResponse?.status == "success") {
+                        // image_url_fullを優先的に使用、なければimage_urlを使用
+                        val imageUrl = imageResponse.image_url_full 
+                            ?: imageResponse.image_url 
+                            ?: imageResponse.image  // 後方互換性のため
+                        
+                        if (imageUrl != null) {
+                            _generatedImage.value = imageUrl
+                            _toastMessage.value = "画像を生成しました"
+                            _navigateToGenerate.value = true // 画面遷移をトリガー
+                            Log.d("SuggestionViewModel", "Image URL received: $imageUrl")
+                        } else {
+                            val errorMessage = imageResponse.message ?: "画像URLが取得できませんでした"
+                            _toastMessage.value = errorMessage
+                            Log.e("SuggestionViewModel", "generateImage failed: $errorMessage")
+                        }
+                    } else {
+                        val errorMessage = imageResponse?.message ?: "画像生成に失敗しました"
+                        _toastMessage.value = errorMessage
+                        Log.e("SuggestionViewModel", "generateImage failed: $errorMessage")
+                    }
                 } else {
-                    _toastMessage.value = "画像生成に失敗しました"
-                    Log.e("SuggestionViewModel", "generateImage failed: ${response.errorBody()?.string()}")
+                    val errorBody = response.errorBody()?.string()
+                    _toastMessage.value = "画像生成に失敗しました: $errorBody"
+                    Log.e("SuggestionViewModel", "generateImage failed with error: $errorBody")
                 }
             } catch (e: Exception) {
                 _toastMessage.value = "通信エラーが発生しました"
