@@ -31,11 +31,29 @@ class ItemViewModel(
     var itemListState by mutableStateOf<AsyncState<List<ItemData>>>(AsyncState.Idle)
         private set
 
+    // 現在読み込み中のuserIdを保持（ユーザー切り替えを検知するため）
+    private var currentUserId: Int? = null
+
+    fun clearItems() {
+        items = emptyList()
+        itemListState = AsyncState.Idle
+        errorMessage = null
+        currentUserId = null
+    }
+
     fun loadItems(userId: Int, forceRefresh: Boolean = false) {
-        // すでに成功済み & items も入っているなら再取得しない（キャッシュ利用）
-        if (!forceRefresh && itemListState is AsyncState.Success && items.isNotEmpty()) {
+        // userIdが変わった場合は強制的に再読み込み
+        val userIdChanged = currentUserId != null && currentUserId != userId
+        if (userIdChanged) {
+            clearItems()
+        }
+        
+        // すでに成功済み & items も入っている & userIdが同じなら再取得しない（キャッシュ利用）
+        if (!forceRefresh && !userIdChanged && itemListState is AsyncState.Success && items.isNotEmpty() && currentUserId == userId) {
             return
         }
+        
+        currentUserId = userId
 
         viewModelScope.launch {
             isLoading = true

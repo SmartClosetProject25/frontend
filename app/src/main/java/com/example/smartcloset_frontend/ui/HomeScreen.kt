@@ -44,16 +44,21 @@ fun HomeScreen(
 ) {
     val userId by userSessionViewModel.userId.collectAsState()
     
-    // 初回読み込み（userIdが設定されたときに実行）
+    // userIdが変更されたときにアイテムをクリアして再読み込み
     LaunchedEffect(userId) {
-        userId?.let { id ->
-            viewModel.loadItems(id)
+        val currentUserId = userId
+        if (currentUserId == null) {
+            // userIdがnullになった場合（ログアウト時など）はアイテムをクリア
+            viewModel.clearItems()
+        } else {
+            // userIdが設定されたときは強制的に再読み込み（ユーザー切り替えを考慮）
+            viewModel.loadItems(currentUserId, forceRefresh = true)
         }
     }
     
     // 画面が表示されたときにアイテム一覧を再読み込み（更新後の反映のため）
-    // DisposableEffectを使って、画面が表示されるたびに実行されるようにする
-    DisposableEffect(Unit) {
+    // ただし、userIdが変更されたときはLaunchedEffectで処理されるので、ここではスキップ
+    DisposableEffect(userId) {
         userId?.let { id ->
             // 少し遅延させて、初回読み込みが完了してから再読み込み
             kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main).launch {
