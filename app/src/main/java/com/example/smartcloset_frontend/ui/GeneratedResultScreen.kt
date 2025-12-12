@@ -4,14 +4,21 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ThumbDown
-import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -20,15 +27,24 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavHostController // ⭐ NavHostController を使用
+import androidx.navigation.NavHostController
+import coil.compose.AsyncImage
+import com.example.smartcloset_frontend.BuildConfig
+import com.example.smartcloset_frontend.utils.QrCodeGenerator
+import com.example.smartcloset_frontend.viewmodel.SuggestionViewModel
 
-// GeneratedResultScreen の画面本体 (元の CoordinateScreen に NavController を追加)
 @Composable
-fun GeneratedResultScreen(navController: NavHostController) { // ⭐ NavHostController を引数に追加
+fun GeneratedResultScreen(
+    navController: NavHostController,
+    suggestionViewModel: SuggestionViewModel
+) {
+    val generatedImageUrl by suggestionViewModel.generatedImage.collectAsState()
+    var showQrCodeDialog by remember { mutableStateOf(false) }
+    var qrCodeBitmap by remember { mutableStateOf<ImageBitmap?>(null) }
+
     Scaffold(
         topBar = {
             CoordinateTopBar(title = "生成結果") {
-                // ⭐ 戻るボタンの処理: ナビゲーションバックを実行
                 navController.popBackStack()
             }
         },
@@ -38,15 +54,25 @@ fun GeneratedResultScreen(navController: NavHostController) { // ⭐ NavHostCont
                     .fillMaxSize()
                     .padding(paddingValues)
                     .background(Color.White)
+                    .verticalScroll(rememberScrollState())
             ) {
-                // 1. コーディネート画像とアクションボタン
                 CoordinateImageSection(
-                    onShareClicked = { /* 共有処理 */ },
-                    onLikeClicked = { /* いいね処理 */ },
-                    onDislikeClicked = { /* いまいち処理 */ }
+                    imageUrlOrPath = generatedImageUrl,
+                    onShareClicked = {
+                        generatedImageUrl?.let {
+                            qrCodeBitmap = QrCodeGenerator.generateQrCode(it).asImageBitmap()
+                            showQrCodeDialog = true
+                        }
+                    }
                 )
+                
+                if (showQrCodeDialog) {
+                    QrCodeDialog(
+                        qrCodeBitmap = qrCodeBitmap,
+                        onDismiss = { showQrCodeDialog = false }
+                    )
+                }
 
-                // 2. コーディネート概要
                 CoordinateSummarySection(
                     title = "今日のコーデ",
                     description = "友達とごはん"
@@ -54,7 +80,6 @@ fun GeneratedResultScreen(navController: NavHostController) { // ⭐ NavHostCont
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // 3. アイテム詳細
                 ItemDetailSection(
                     category = "アウター",
                     name = "ウィンドプルーフスタンドブルゾン"
@@ -72,7 +97,6 @@ fun GeneratedResultScreen(navController: NavHostController) { // ⭐ NavHostCont
     )
 }
 
-// 1. トップバー
 @Composable
 fun CoordinateTopBar(title: String, onBackClicked: () -> Unit) {
     Column {
@@ -100,77 +124,52 @@ fun CoordinateTopBar(title: String, onBackClicked: () -> Unit) {
     }
 }
 
-// 2. 画像セクション
 @Composable
 fun CoordinateImageSection(
-    onShareClicked: () -> Unit,
-    onLikeClicked: () -> Unit,
-    onDislikeClicked: () -> Unit
+    imageUrlOrPath: String?,
+    onShareClicked: () -> Unit
 ) {
-    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
-        Box(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            // 画像コンポーネントのプレースホルダー
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 300.dp)
-                    .clip(MaterialTheme.shapes.medium)
-                    .background(Color.LightGray)
-            ) {
-                Text("コーディネート画像", modifier = Modifier.align(Alignment.Center))
-            }
+    val imageUrl: String? = imageUrlOrPath?.let { path ->
+        if (path.startsWith("http://") || path.startsWith("https://")) {
+            path
+        } else {
+            val baseUrl = BuildConfig.SERVER_URL.trimEnd('/')
+            val imagePath = if (path.startsWith("/")) path else "/$path"
+            "$baseUrl$imagePath"
+        }
+    }
 
-            // 共有ボタン (右上)
-            Icon(
-                imageVector = Icons.Default.Share,
-                contentDescription = "共有",
-                tint = Color.Black,
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .offset(x = (-8).dp, y = 8.dp)
-                    .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.8f))
-                    .padding(8.dp)
-                    .clickable(onClick = onShareClicked)
+    Box(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        if (imageUrl == null) {
+            CircularProgressIndicator(
+                modifier = Modifier.align(Alignment.Center)
+            )
+        } else {
+            AsyncImage(
+                model = imageUrl,
+                contentDescription = "生成されたコーディネート画像",
+                modifier = Modifier.fillMaxWidth(),
+                contentScale = ContentScale.FillWidth
             )
         }
 
-        // いいね/いまいちボタン (右下)
-        Row(
+        Icon(
+            imageVector = Icons.Default.Share,
+            contentDescription = "共有",
+            tint = Color.Black,
             modifier = Modifier
-                .align(Alignment.End)
-                .offset(y = (-16).dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            // いいねボタン
-            Icon(
-                imageVector = Icons.Default.ThumbUp,
-                contentDescription = "いいね",
-                tint = Color.White,
-                modifier = Modifier
-                    .clip(CircleShape)
-                    .background(Color(0xFF4285F4))
-                    .padding(8.dp)
-                    .clickable(onClick = onLikeClicked)
-            )
-            // いまいちボタン
-            Icon(
-                imageVector = Icons.Default.ThumbDown,
-                contentDescription = "いまいち",
-                tint = Color.White,
-                modifier = Modifier
-                    .clip(CircleShape)
-                    .background(Color(0xFFEA4335))
-                    .padding(8.dp)
-                    .clickable(onClick = onDislikeClicked)
-            )
-        }
+                .align(Alignment.TopEnd)
+                .padding(8.dp)
+                .clip(CircleShape)
+                .background(Color.White.copy(alpha = 0.8f))
+                .padding(8.dp)
+                .clickable(onClick = onShareClicked)
+        )
     }
 }
 
-// 3. コーディネート概要セクション
 @Composable
 fun CoordinateSummarySection(title: String, description: String) {
     Column(
@@ -191,7 +190,6 @@ fun CoordinateSummarySection(title: String, description: String) {
     }
 }
 
-// 4. アイテム詳細表示 (カテゴリと商品名)
 @Composable
 fun ItemDetailSection(category: String, name: String) {
     Column(
@@ -210,6 +208,52 @@ fun ItemDetailSection(category: String, name: String) {
             fontWeight = FontWeight.Normal
         )
     }
-    // アイテムごとに区切り線を入れる場合
-    Divider(color = Color.LightGray.copy(alpha = 0.5f), thickness = 0.5.dp, modifier = Modifier.padding(horizontal = 16.dp))
+    Divider(
+        color = Color.LightGray.copy(alpha = 0.5f),
+        thickness = 0.5.dp,
+        modifier = Modifier.padding(horizontal = 16.dp)
+    )
+}
+
+@Composable
+fun QrCodeDialog(
+    qrCodeBitmap: ImageBitmap?,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "QRコード",
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                qrCodeBitmap?.let {
+                    Image(
+                        bitmap = it,
+                        contentDescription = "QRコード",
+                        modifier = Modifier
+                            .size(300.dp)
+                            .clip(MaterialTheme.shapes.medium)
+                            .background(Color.White)
+                    )
+                    Text(
+                        text = "このQRコードをスキャンして\n画像を表示できます",
+                        fontSize = 14.sp,
+                        color = Color.Gray
+                    )
+                } ?: Text("QRコードの生成に失敗しました")
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("閉じる")
+            }
+        }
+    )
 }
