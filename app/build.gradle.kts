@@ -87,5 +87,9 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended:1.7.3")
     //GPS取得用
     implementation("com.google.android.gms:play-services-location:21.0.1")
+    
+    // QRコード生成用
+    implementation("com.google.zxing:core:3.5.2")
+    implementation("com.journeyapps:zxing-android-embedded:4.3.0")
 
 }
