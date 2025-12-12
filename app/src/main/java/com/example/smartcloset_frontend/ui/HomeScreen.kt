@@ -5,64 +5,97 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.*
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.*
-import androidx.navigation.NavController
-import com.example.smartcloset_frontend.R
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
-import com.example.smartcloset_frontend.data.ItemData
+
+import androidx.navigation.NavHostController
+
+import com.example.smartcloset_frontend.R
+import com.example.smartcloset_frontend.BuildConfig
 import com.example.smartcloset_frontend.viewmodel.ItemViewModel
+import com.example.smartcloset_frontend.viewmodel.UserSessionViewModel
+import com.example.smartcloset_frontend.ui.networkErr.AsyncState
 
 
+const val baseUrl = BuildConfig.SERVER_URL
 @Composable
 fun HomeScreen(
-    navController: NavController,
-    viewModel: ItemViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    navController: NavHostController,
+    viewModel: ItemViewModel,
+    userSessionViewModel : UserSessionViewModel
 ) {
-    // アイテム一覧の読み込み
-    LaunchedEffect(Unit) {
-        viewModel.loadItems(userId = 1) // TODO: 実ユーザーIDに
+    val userId by userSessionViewModel.userId.collectAsState()
+    
+    // userIdが変更されたときにアイテムをクリアして再読み込み
+    LaunchedEffect(userId) {
+        val currentUserId = userId
+        if (currentUserId == null) {
+            // userIdがnullになった場合（ログアウト時など）はアイテムをクリア
+            viewModel.clearItems()
+        } else {
+            // userIdが設定されたときは強制的に再読み込み（ユーザー切り替えを考慮）
+            viewModel.loadItems(currentUserId, forceRefresh = true)
+        }
     }
+    
+    // 画面が表示されたときにアイテム一覧を再読み込み（更新後の反映のため）
+    // ただし、userIdが変更されたときはLaunchedEffectで処理されるので、ここではスキップ
+    DisposableEffect(userId) {
+        userId?.let { id ->
+            // 少し遅延させて、初回読み込みが完了してから再読み込み
+            kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main).launch {
+                delay(300)
+                viewModel.loadItems(id, forceRefresh = true)
+            }
+        }
+        onDispose { }
+    }
+
     val items = viewModel.items
     val isLoading = viewModel.isLoading
-    val errorMessage = viewModel.errorMessage
+    val itemListState = viewModel.itemListState
+    
+    val extendedItems = remember(items) {
+        if (items.isEmpty()) emptyList()
+        else List(20) { index -> items[index % items.size] }
+    }
 
     var selectedCategory by remember { mutableStateOf("すべて") }
     var searchText by remember { mutableStateOf("") }
 
     val categories = listOf("すべて", "トップス", "ジャケット・アウター", "パンツ", "スカート")
 
-    //TODOデータ受け取り出来たら直す
-    // アイテム一覧の拡張とリスト状態の初期化　
-//    val extendedItems = remember(items) {
-//        if (items.isEmpty()) emptyList<ItemData>()
-//        else List(20) { index -> items[index % items.size] }
-//    }
-//    val listState = rememberLazyListState(initialFirstVisibleItemIndex = 500)
-
-
-    val dummyItems = List(5) { index -> "ウィンドブルーフス$index" }
-    val extendedItems = remember { List(1000) { dummyItems[it % dummyItems.size] } }
+    val categoryMap = mapOf(
+        1 to "トップス",
+        2 to "ジャケット・アウター",
+        3 to "パンツ",
+        4 to "スカート"
+    )
     val listState = rememberLazyListState(initialFirstVisibleItemIndex = 500)
+
     val flingBehavior = rememberSnapFlingBehavior(lazyListState = listState)
+// お気に入り状態を保持するマップ
     val favorites = remember {
         mutableStateMapOf<Int, Boolean>()
     }
-
-
 
     Column(
         modifier = Modifier
@@ -135,126 +168,158 @@ fun HomeScreen(
         }
 
         Spacer(modifier = Modifier.height(16.dp))
-
+        
+        // 読み込み中またはuserIdが設定される前はローディング表示
+        if (isLoading || userId == null) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+        } else if (items.isEmpty() && itemListState is AsyncState.Error) {
+            // 読み込み完了後、エラー状態で、かつアイテムが空の場合のみエラー表示
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text("アイテムを読み込めませんでした")
+                Spacer(Modifier.height(8.dp))
+                Button(onClick = {
+                    userId?.let { viewModel.loadItems(it, forceRefresh = true) }
+                }) {
+                    Text("再読み込み")
+                }
+            }
+        } else if (items.isEmpty()) {
+            // データが0件の場合（エラーではない）
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("アイテムがありません")
+            }
+        } else {
         // カード一覧
-        LazyRow(
-            state = listState,
-            flingBehavior = flingBehavior, // ← スナップ動作を追加
-            contentPadding = PaddingValues(horizontal = 32.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            modifier = Modifier.weight(1f) // ← 高さを圧迫しないように調整
-        ) {
-            items(extendedItems.size) { index ->
-                Card(
-                    modifier = Modifier
-                        .width(320.dp) // ← サイズ調整
-                        .height(460.dp) // ← サイズ調整で下ボタンが見えるように
-                        .clickable {
-                            navController.navigate("detail/${extendedItems[index]}")
-                        },
-                    shape = RoundedCornerShape(16.dp),
-                    elevation = CardDefaults.cardElevation(6.dp)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-
+            LazyRow(
+                state = listState,
+                flingBehavior = flingBehavior, // ← スナップ動作を追加
+                contentPadding = PaddingValues(horizontal = 32.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.weight(1f) // ← 高さを圧迫しないように調整
+            ) {
+                items(extendedItems.size) { index ->
+                    Card(
+                        modifier = Modifier
+                            .width(320.dp) // ← サイズ調整
+                            .height(460.dp) // ← サイズ調整で下ボタンが見えるように
+                            .clickable {
+                                navController.navigate("detail/${extendedItems[index].id}" )
+                            },
+                        shape = RoundedCornerShape(16.dp),
+                        elevation = CardDefaults.cardElevation(6.dp)
+                    ) {
                         // 画像領域
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(320.dp)
-                                .background(Color.LightGray)
-                        )
-//TODO 画像表示できたら直す
-//                        val item = extendedItems[index]
-//
-//                        if (item.imageUrl != null) {
-//                            Image(
-//                                painter = coil.compose.rememberAsyncImagePainter(item.imageUrl),
-//                                contentDescription = item.itemName,
-//                                modifier = Modifier
-//                                    .fillMaxWidth()
-//                                    .height(320.dp)
-//                                    .clip(RoundedCornerShape(12.dp))
-//                                    .background(Color.LightGray),
-//                                contentScale = ContentScale.Crop
-//                            )
-//                        } else {
-//                            Box(
-//                                modifier = Modifier
-//                                    .fillMaxWidth()
-//                                    .height(320.dp)
-//                                    .background(Color.LightGray)
-//                            )
-//                        }
+                        Column(modifier = Modifier.padding(16.dp)) {
 
-                        Spacer(modifier = Modifier.height(8.dp))
+                            val item = extendedItems[index]
+                            if (item.imageUrl != null) {
+                                val fullUrl = baseUrl + item.imageUrl
+                                Image(
+                                    painter = coil.compose.rememberAsyncImagePainter(fullUrl),
 
-                        Text(
-//                            TODO 直す
-//                            text = item.itemName,
-                            text = extendedItems[index],
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp,
-                            maxLines = 1
-                        )
+                                    contentDescription = item.itemName,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(320.dp)
+                                        .clip(RoundedCornerShape(12.dp)),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(320.dp)
+                                        .background(Color.LightGray)
+                                )
+                            }
 
-                        Text(
-                            //TODO 直す
-                            //text = "カテゴリ: ${categoryMap[item.category] ?: "不明"}",
-                            text = selectedCategory,
-                            fontSize = 14.sp,
-                            color = Color.Gray
-                        )
+                            Spacer(modifier = Modifier.height(8.dp))
 
-                        // アイコン右下配置
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 8.dp, end = 4.dp),
-                            contentAlignment = Alignment.BottomEnd
-                        ) {
-                            Row(
-                                horizontalArrangement = Arrangement.End,
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.fillMaxWidth()
+                            Text(
+                                text = item.itemName,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 18.sp,
+                                maxLines = 1
+                            )
+
+                            Text(
+                                text = "カテゴリ: ${categoryMap[item.category] ?: "不明"}",
+                                fontSize = 14.sp,
+                                color = Color.Gray
+                            )
+
+                            // アイコン右下配置
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 8.dp, end = 4.dp),
+                                contentAlignment = Alignment.BottomEnd
                             ) {
-                                IconButton(
-                                    onClick = {
-                                        val current = favorites[index] ?: false
-                                        favorites[index] = !current
-                                    },
-                                    modifier = Modifier
-                                        .size(40.dp)
-                                        .padding(horizontal = 8.dp)
+                                Row(
+                                    horizontalArrangement = Arrangement.End,
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    val isFavorite = favorites[index] ?: false
-                                    Icon(
-                                        painter = painterResource(
-                                            id = if (isFavorite) R.drawable.star_filled_icon else R.drawable.star_empty_icon
-                                        ),
-                                        contentDescription = "お気に入り",
-                                        tint = Color(0xFFFFC107),
-                                        modifier = Modifier.size(40.dp)
-                                    )
-                                }
+                                    IconButton(
+                                        onClick = {
+                                            val current = favorites[item.id] ?: false
+                                            val newValue = !current
+
+                                            // ローカル状態を更新
+                                            favorites[item.id] = newValue
+
+                                            // サーバーへ送信
+                                            userId?.let { uid ->
+                                                viewModel.toggleFavoriteOnServer(
+                                                    userId = uid,
+                                                    itemId = item.id,
+                                                    isFavorite = newValue
+                                                )
+                                            }
+                                        },
+                                        modifier = Modifier
+                                            .size(40.dp)
+                                            .padding(horizontal = 8.dp)
+                                    ) {
+                                        val isFavorite = favorites[item.id] ?: false
+                                        Icon(
+                                            painter = painterResource(
+                                                id = if (isFavorite) R.drawable.star_filled_icon else R.drawable.star_empty_icon
+                                            ),
+                                            contentDescription = "お気に入り",
+                                            tint = Color(0xFFFFC107),
+                                            modifier = Modifier.size(40.dp)
+                                        )
+                                    }
 
 
-                                IconButton(
-                                    onClick = {
-                                        navController.navigate("clothes_detail")
-//                                        TODO 直す
-//                                        val item = extendedItems[index]
-//                                        navController.navigate("detail/${item.id}")
-                                    },
-                                    modifier = Modifier
-                                        .size(40.dp)
-                                        .padding(horizontal = 8.dp)
-                                ) {
-                                    Icon(
-                                        painter = painterResource(id = R.drawable.edit_icon),
-                                        contentDescription = "編集",
-                                        modifier = Modifier.size(40.dp)
-                                    )
+                                    IconButton(
+                                        onClick = {
+                                            val item = extendedItems[index]
+                                            navController.navigate("detail/${item.id}")
+                                        },
+                                        modifier = Modifier
+                                            .size(40.dp)
+                                            .padding(horizontal = 8.dp)
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(id = R.drawable.edit_icon),
+                                            contentDescription = "編集",
+                                            modifier = Modifier.size(40.dp)
+                                        )
+                                    }
                                 }
                             }
                         }

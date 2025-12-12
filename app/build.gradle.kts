@@ -91,5 +91,6 @@ dependencies {
     // QRコード生成用
     implementation("com.google.zxing:core:3.5.2")
     implementation("com.journeyapps:zxing-android-embedded:4.3.0")
-
+    // DataStore
+        implementation("androidx.datastore:datastore-preferences:1.0.0")
 }

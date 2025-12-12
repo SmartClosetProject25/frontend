@@ -6,6 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
 import com.example.smartcloset_frontend.data.repository.AddDataRepository
+import com.example.smartcloset_frontend.data.repository.ItemRepository
 import com.example.smartcloset_frontend.ui.ItemFormState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
@@ -21,6 +22,7 @@ class AddItemViewModel(
 ) : AndroidViewModel(application) {
 
     private val repository = AddDataRepository()
+    private val itemRepository = ItemRepository()
 
     // 入力フォームの状態
     var itemState by mutableStateOf(ItemFormState())
@@ -30,12 +32,59 @@ class AddItemViewModel(
     var addItemState by mutableStateOf<AsyncState<Unit>>(AsyncState.Idle)
         private set
 
+    // 編集用のitemIdを保持
+    var editingItemId by mutableStateOf<Int?>(null)
+        private set
+
     fun setFormState(newState: ItemFormState) {
         itemState = newState
     }
 
     fun resetAddItemState() {
         addItemState = AsyncState.Idle
+    }
+
+    fun resetFormState() {
+        itemState = ItemFormState()
+        editingItemId = null
+    }
+
+    // アイテム詳細を読み込んでフォームに設定（編集用）
+    fun loadItemForEdit(itemId: Int) {
+        viewModelScope.launch {
+            editingItemId = itemId
+            try {
+                val detail = itemRepository.getDetailItems(itemId)
+                
+                // ItemDetailDataをItemFormStateに変換
+                itemState = ItemFormState(
+                    itemName = detail.itemName,
+                    color = detail.color,
+                    pattern = detail.pattern,
+                    brand = detail.brandName ?: "",
+                    size = detail.size,
+                    category = detail.category,
+                    imageUri = detail.imageUrl, // URL文字列として設定
+                    material = detail.material ?: "",
+                    feature = detail.feature ?: "",
+                    taste = detail.taste ?: "",
+                    season = detail.season ?: "",
+                    purchaseDate = "",
+                    price = 0,
+                    tags = emptyList()
+                )
+            } catch (e: Exception) {
+                // エラーハンドリング
+                val isNetwork = e is java.net.ConnectException ||
+                        e is java.net.SocketTimeoutException ||
+                        e is java.net.UnknownHostException
+
+                addItemState = AsyncState.Error(
+                    isNetworkError = isNetwork,
+                    message = "アイテムの読み込みに失敗しました"
+                )
+            }
+        }
     }
 
     /**
@@ -61,11 +110,11 @@ class AddItemViewModel(
                 val requestBody = bytes.toRequestBody(mediaType)
 
                 // サーバ側で保存するファイル名（お好みで変更可）
-                val fileName = "item_${System.currentTimeMillis()}.jpeg"
+                val fileName = "item_${System.currentTimeMillis()}.jpg"
 
                 // MultipartBody.Part 作成（"file" はサーバ側のフィールド名に合わせる）
                 val imagePart = MultipartBody.Part.createFormData(
-                    "file",
+                    "image",
                     fileName,
                     requestBody
                 )
@@ -90,6 +139,58 @@ class AddItemViewModel(
                     "サーバーに接続できませんでした"
                 } else {
                     "登録中にエラーが発生しました"
+                }
+
+                addItemState = AsyncState.Error(
+                    isNetworkError = isNetwork,
+                    message = msg
+                )
+            }
+        }
+    }
+
+    // 更新処理
+    fun updateItem(imageUri: Uri?, userId: Int) {
+        viewModelScope.launch {
+            addItemState = AsyncState.Loading
+
+            try {
+                val context = getApplication<Application>()
+                val cr = context.contentResolver
+
+                val imagePart: MultipartBody.Part? = if (imageUri != null) {
+                    val bytes = cr.openInputStream(imageUri)?.use { it.readBytes() }
+                        ?: throw IOException("画像を読み込めませんでした") as Throwable
+
+                    val mediaType = cr.getType(imageUri)?.toMediaTypeOrNull()
+                        ?: "image/*".toMediaTypeOrNull()
+
+                    val requestBody = bytes.toRequestBody(mediaType)
+                    val fileName = "item_${System.currentTimeMillis()}.jpg"
+                    MultipartBody.Part.createFormData("image", fileName, requestBody)
+                } else {
+                    null
+                }
+
+                repository.updateItem(
+                    itemId = editingItemId ?: throw IllegalStateException("編集アイテムIDが設定されていません"),
+                    itemState = itemState,
+                    imagePart = imagePart,
+                    userId = userId
+                )
+
+                addItemState = AsyncState.Success(Unit)
+                editingItemId = null // 編集完了後はクリア
+
+            } catch (e: Exception) {
+                val isNetwork = e is java.net.ConnectException ||
+                        e is java.net.SocketTimeoutException ||
+                        e is java.net.UnknownHostException
+
+                val msg = if (isNetwork) {
+                    "サーバーに接続できませんでした"
+                } else {
+                    "更新中にエラーが発生しました"
                 }
 
                 addItemState = AsyncState.Error(

@@ -20,12 +20,15 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material3.Icon
 import androidx.navigation.NavHostController
 import com.example.smartcloset_frontend.data.PreferencesManager
+import com.example.smartcloset_frontend.viewmodel.UserSessionViewModel
+import com.example.smartcloset_frontend.network.RetrofitClient
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit = {},
-    navController: NavHostController? = null
+    navController: NavHostController? = null,
+    userSessionViewModel: UserSessionViewModel
 ) {
     val context = LocalContext.current
     val preferencesManager = remember { PreferencesManager(context) }
@@ -111,7 +114,9 @@ fun SettingsScreen(
             item {
                 LogoutItem(
                     onClick = {
+                        userSessionViewModel.clear()
                         preferencesManager.clearLoginInfo()
+                        RetrofitClient.clearCookies() // Cookieをクリア
                         navController?.navigate("login") {
                             popUpTo(0) { inclusive = true }
                             launchSingleTop = true

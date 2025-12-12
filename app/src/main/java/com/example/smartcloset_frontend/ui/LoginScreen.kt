@@ -26,6 +26,7 @@ import android.content.Context
 import android.widget.Toast
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
+import com.example.smartcloset_frontend.viewmodel.UserSessionViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,7 +35,9 @@ fun LoginScreen(
     onRegisterClick: () -> Unit = {},
     onForgotPasswordClick: () -> Unit = {} ,
     loginViewModel: LoginViewModel = viewModel(),
-    navController: NavHostController
+    navController: NavHostController,
+    //TODO test用
+    userSessionViewModel: UserSessionViewModel
 ) {
     val context = LocalContext.current
     val preferencesManager = remember { PreferencesManager(context) }
@@ -69,14 +72,18 @@ fun LoginScreen(
             )
             
             Spacer(modifier = Modifier.height(60.dp))
-
+//TODO ★ テスト用：userId = 1 を保存 本来はサーバーからの返答を挿入
             Button(
                 onClick = {
-                    navController.navigate("home")
+                    userSessionViewModel.setUserId(1)
+                    // Home画面へ遷移
+                    navController.navigate("home") {
+                        popUpTo("login") { inclusive = true }
+                    }
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("top")
+                Text("top (test login)")
             }
             
             // メールアドレス入力フィールド
@@ -172,12 +179,24 @@ fun LoginScreen(
                         errorMessage = null
                         
                         scope.launch {
-                            loginViewModel.login(email, password) { success, message ->
+                            loginViewModel.login(email, password) { success, message, userId ->
                                 isLoading = false
                                 if (success) {
                                     // ログイン情報を保存（日時も記録）
                                     preferencesManager.saveLoginInfo(email, password)
-                                    onLoginClick(email, password)
+                                    // user_idをUserSessionViewModelに保存（完了を待つ）
+                                    userId?.let { id ->
+                                        userSessionViewModel.setUserId(id)
+                                        // userId保存後にHome画面へ遷移
+                                        navController.navigate("home") {
+                                            popUpTo("login") { inclusive = true }
+                                            launchSingleTop = true
+                                        }
+                                    } ?: run {
+                                        // userIdが取得できなかった場合
+                                        showError = true
+                                        errorMessage = "ユーザー情報の取得に失敗しました。"
+                                    }
                                 } else {
                                     showError = true
                                     errorMessage = message
