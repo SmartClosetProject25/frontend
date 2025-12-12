@@ -11,8 +11,15 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material3.*
@@ -21,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -31,6 +39,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
+import com.example.smartcloset_frontend.BuildConfig
+import com.example.smartcloset_frontend.data.Item
 import com.example.smartcloset_frontend.data.Proposal
 import com.example.smartcloset_frontend.data.TodayPlanData
 import com.example.smartcloset_frontend.viewmodel.SuggestionViewModel
@@ -252,7 +262,7 @@ fun SuggestionScreen(
 
 // ------------------- アイテム表示 -------------------
 @Composable
-fun ItemDisplay(imageUrl: String?, label: String, tags: List<String>) {
+fun ItemDisplay(item: Item?, label: String) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -268,8 +278,20 @@ fun ItemDisplay(imageUrl: String?, label: String, tags: List<String>) {
                 .border(1.dp, Color(0xFFC0C0C0), RoundedCornerShape(6.dp)),
             contentAlignment = Alignment.Center
         ) {
-            if (imageUrl != null) {
-                AsyncImage(model = imageUrl, contentDescription = label)
+            if (item != null && item.image_path.isNotBlank()) {
+                val imageUrl = if (item.image_path.startsWith("http://") || item.image_path.startsWith("https://")) {
+                    item.image_path
+                } else {
+                    val baseUrl = BuildConfig.SERVER_URL.trimEnd('/')
+                    val imagePath = if (item.image_path.startsWith("/")) item.image_path else "/${item.image_path}"
+                    "$baseUrl$imagePath"
+                }
+                AsyncImage(
+                    model = imageUrl,
+                    contentDescription = item.item_name,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
             } else {
                 Text(label, color = Color.Gray, fontSize = 11.sp)
             }
@@ -279,11 +301,19 @@ fun ItemDisplay(imageUrl: String?, label: String, tags: List<String>) {
 
         // ----- テキスト -----
         Column(modifier = Modifier.weight(1f)) {
-            Text(label, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+            Text(
+                text = item?.item_name ?: label,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold
+            )
 
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Spacer(modifier = Modifier.height(4.dp))
 
-                tags.forEach { tag ->
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                item?.taste?.forEach { tag ->
                     Box(
                         modifier = Modifier
                             .background(Color(0xFFE0F7FA), RoundedCornerShape(6.dp))
@@ -315,6 +345,7 @@ fun CoordinateCard(
 
     var isLiked by remember { mutableStateOf(false) }
     var isDisliked by remember { mutableStateOf(false) }
+    var isReasonExpanded by remember { mutableStateOf(false) }
 
     Card(
         modifier = modifier,
@@ -325,16 +356,64 @@ fun CoordinateCard(
         Column(modifier = Modifier.padding(14.dp)) {
 
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                ItemDisplay(null, "アウター", listOf(proposal.items.outer ?: ""))
-                ItemDisplay(null, "インナー", listOf(proposal.items.tops ?: ""))
-                ItemDisplay(null, "ボトムス", listOf(proposal.items.bottoms ?: ""))
+                ItemDisplay(proposal.items.outer, "アウター")
+                ItemDisplay(proposal.items.tops, "インナー")
+                ItemDisplay(proposal.items.bottoms, "ボトムス")
             }
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            Text(proposal.item_ids.joinToString(), style = MaterialTheme.typography.bodySmall)
+            // 理由をアコーディオン形式で表示
+            if (proposal.reason.isNotBlank()) {
+                // 展開ボタン
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { isReasonExpanded = !isReasonExpanded },
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "詳細を見る",
+                        fontSize = 12.sp,
+                        color = Color(0xFF2196F3),
+                        fontWeight = FontWeight.Medium
+                    )
+                    Icon(
+                        imageVector = if (isReasonExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        contentDescription = if (isReasonExpanded) "折りたたむ" else "展開する",
+                        tint = Color(0xFF2196F3),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
 
-            Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // 理由のテキスト（アニメーション付き）
+                AnimatedVisibility(
+                    visible = isReasonExpanded,
+                    enter = expandVertically(
+                        animationSpec = tween(300),
+                        expandFrom = Alignment.Top
+                    ),
+                    exit = shrinkVertically(
+                        animationSpec = tween(300),
+                        shrinkTowards = Alignment.Top
+                    )
+                ) {
+                    Text(
+                        text = proposal.reason,
+                        fontSize = 12.sp,
+                        color = Color.Gray,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+            } else {
+                Spacer(modifier = Modifier.height(14.dp))
+            }
 
             Divider(color = Color(0xFFE0E0E0))
 
@@ -377,7 +456,15 @@ fun CoordinateCard(
 
                 // ✨生成ボタン → generate へ遷移
                 IconButton(
-                    onClick = { suggestionViewModel.generateImage(proposal.item_ids) },
+                    onClick = {
+                        // proposal.itemsから各アイテムのimage_pathを取得
+                        val imagePaths = listOfNotNull(
+                            proposal.items.outer?.image_path,
+                            proposal.items.tops?.image_path,
+                            proposal.items.bottoms?.image_path
+                        )
+                        suggestionViewModel.generateImage(imagePaths)
+                    },
                     enabled = !isGeneratingImage
                 ) {
                     Box(

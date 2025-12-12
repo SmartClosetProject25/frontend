@@ -4,5 +4,5 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class GenerateImageRequest(
-    val item_ids: List<String>
+    val image_paths: List<String>
 )

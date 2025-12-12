@@ -61,12 +61,12 @@ class SuggestionViewModel : ViewModel() {
         }
     }
 
-    fun generateImage(itemIds: List<String>) {
+    fun generateImage(imagePaths: List<String>) {
         viewModelScope.launch {
             _isGeneratingImage.value = true
-            Log.d("SuggestionViewModel", "Sending item IDs to generate image: $itemIds")
+            Log.d("SuggestionViewModel", "Sending image paths to generate image: $imagePaths")
             try {
-                val response = repository.generateImage(itemIds)
+                val response = repository.generateImage(imagePaths)
                 if (response.isSuccessful) {
                     val imageResponse = response.body()
                     if (imageResponse?.status == "success") {

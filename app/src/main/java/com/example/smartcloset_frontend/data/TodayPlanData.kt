@@ -21,13 +21,21 @@ data class ProposalResponse(
 data class Proposal(
     val pattern: Int,
     val items: Items,
-    val item_ids: List<String>,
+    val item_ids: List<Int>,
     val reason: String
 )
 
 @Serializable
 data class Items(
-    val tops: String?,
-    val bottoms: String?,
-    val outer: String?
+    val tops: Item?,
+    val bottoms: Item?,
+    val outer: Item?
+)
+
+@Serializable
+data class Item(
+    val id: Int,
+    val item_name: String,
+    val image_path: String,
+    val taste: List<String>
 )

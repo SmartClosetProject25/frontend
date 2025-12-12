@@ -11,8 +11,8 @@ class TodayPlanRepository {
     suspend fun sendTodayPlan(todayPlanData: TodayPlanData): Response<ProposalResponse> =
         RetrofitClient.instance.sendTodayPlan(todayPlanData)
 
-    suspend fun generateImage(itemIds: List<String>): Response<ImageResponse> {
-        val request = GenerateImageRequest(item_ids = itemIds)
+    suspend fun generateImage(imagePaths: List<String>): Response<ImageResponse> {
+        val request = GenerateImageRequest(image_paths = imagePaths)
         return RetrofitClient.instance.generateImage(request)
     }
 }
