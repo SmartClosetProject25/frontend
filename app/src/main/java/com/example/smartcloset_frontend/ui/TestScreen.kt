@@ -202,9 +202,9 @@ fun TestScreen(navController: NavHostController) {
             }
                 Button(
                     onClick = {
-                        val location = LocationData(
-                            latitude = 35.681236,
-                            longitude = 139.767125
+                        val location = LocationData(lon = 139.767125,
+                            lat = 35.681236,
+
                         )
                         getWeatherViewModel.fetchWeather(
                             location
@@ -220,7 +220,7 @@ fun TestScreen(navController: NavHostController) {
                     Text("天気情報取得リクエスト送信 (東京駅)/get_weather")
                 }
                 weather?.let { data ->
-                    Text(text = "取得した天気情報: ${data}, 気温: ${data.temperature}°C")
+                    Text(text = "取得した天気情報: ${data}, 気温: ${data.tempC}°C")
             }
             }
         }
