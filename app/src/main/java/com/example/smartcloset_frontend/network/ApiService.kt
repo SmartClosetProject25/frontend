@@ -4,6 +4,7 @@ import com.example.smartcloset_frontend.data.FavoriteRequest
 import com.example.smartcloset_frontend.data.GenerateImageRequest
 import com.example.smartcloset_frontend.data.GenerateOutfitData
 import com.example.smartcloset_frontend.data.GenerateOutfitWithWeather
+import com.example.smartcloset_frontend.data.GetCoordinatesResponse
 import com.example.smartcloset_frontend.data.GetItemDetailResponse
 import com.example.smartcloset_frontend.data.GetItemsResponse
 import com.example.smartcloset_frontend.data.ImageResponse
@@ -152,5 +153,9 @@ interface ApiService {
 
     @GET("/get_master_data")
     suspend fun getMasterData(): Response<MasterDataResponse>
+
+    // コーディネート履歴取得処理
+    @GET("/get_coordinates")
+    suspend fun getCoordinates(): Response<GetCoordinatesResponse>
 
 }

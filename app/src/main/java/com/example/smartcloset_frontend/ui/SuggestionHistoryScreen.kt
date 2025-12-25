@@ -19,51 +19,61 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
+import com.example.smartcloset_frontend.BuildConfig
+import com.example.smartcloset_frontend.data.CoordinateData
+import com.example.smartcloset_frontend.viewmodel.SuggestionHistoryViewModel
+import java.text.SimpleDateFormat
+import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SuggestionHistoryScreen(navController: NavHostController) {
+fun SuggestionHistoryScreen(
+    navController: NavHostController,
+    viewModel: SuggestionHistoryViewModel
+) {
 
     var isSearchVisible by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
 
-    // 履歴画面は「1枚画像＋タグ」の簡易モデルを使う
-    val historyData = remember {
-        listOf(
+    val coordinatesData by viewModel.coordinatesData.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+    val error by viewModel.error.collectAsState()
+
+    // 初回ロード時にデータを取得
+    LaunchedEffect(Unit) {
+        viewModel.fetchCoordinates()
+    }
+
+    // 日付別にグループ化
+    val historyData = remember(coordinatesData) {
+        coordinatesData?.coordinates?.groupBy { coordinate ->
+            // "2025-12-01 00:00:00" -> "2025/12/01" に変換
+            try {
+                val inputFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+                val outputFormat = SimpleDateFormat("yyyy/MM/dd", Locale.getDefault())
+                val date = inputFormat.parse(coordinate.created_at)
+                outputFormat.format(date ?: Date())
+            } catch (e: Exception) {
+                coordinate.created_at.substring(0, 10).replace("-", "/")
+            }
+        }?.map { (date, coordinates) ->
             HistoryDateGroup(
-                date = "2025/10/10",
-                suggestions = listOf(
+                date = date,
+                suggestions = coordinates.map { coordinate ->
                     HistoryCoordinate(
-                        id = "1",
-                        imageUrl = null,
-                        tags = listOf("アウター", "ブルゾン", "グレイ")
-                    ),
-                    HistoryCoordinate(
-                        id = "2",
-                        imageUrl = null,
-                        tags = listOf("オフホワイト", "ワイドパンツ")
-                    ),
-                    HistoryCoordinate(
-                        id = "3",
-                        imageUrl = null,
-                        tags = listOf("ジャケット", "カジュアル")
+                        id = coordinate.coordinate_id.toString(),
+                        imageUrl = buildImageUrl(coordinate.top.image_path),
+                        tags = buildTags(coordinate)
                     )
-                )
-            ),
-            HistoryDateGroup(
-                date = "2025/10/9",
-                suggestions = listOf(
-                    HistoryCoordinate("4", null, listOf("ブルゾン", "カーキ")),
-                    HistoryCoordinate("5", null, listOf("シャツ", "白")),
-                    HistoryCoordinate("6", null, listOf("ジャケット", "ブラック"))
-                )
+                }
             )
-        )
+        }?.sortedByDescending { it.date } ?: emptyList()
     }
 
     Box(
@@ -136,9 +146,43 @@ fun SuggestionHistoryScreen(navController: NavHostController) {
                     .padding(16.dp)
                     .verticalScroll(rememberScrollState())
             ) {
-                historyData.forEach { dateGroup ->
-                    DateGroupSection(dateGroup)
-                    Spacer(Modifier.height(24.dp))
+                when {
+                    isLoading -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator()
+                        }
+                    }
+                    error != null -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = error ?: "エラーが発生しました",
+                                color = Color.Red
+                            )
+                        }
+                    }
+                    historyData.isEmpty() -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "履歴がありません",
+                                color = Color.Gray
+                            )
+                        }
+                    }
+                    else -> {
+                        historyData.forEach { dateGroup ->
+                            DateGroupSection(dateGroup)
+                            Spacer(Modifier.height(24.dp))
+                        }
+                    }
                 }
             }
         }
@@ -214,7 +258,8 @@ fun HistoryCoordinateCard(suggestion: HistoryCoordinate) {
                     AsyncImage(
                         model = suggestion.imageUrl,
                         contentDescription = "履歴コーデ",
-                        modifier = Modifier.fillMaxSize()
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
                     )
                 } else {
                     Text("画像", color = Color.Gray, fontSize = 14.sp)
@@ -284,3 +329,38 @@ data class HistoryCoordinate(
     val imageUrl: String?,
     val tags: List<String>
 )
+
+// ヘルパー関数: 画像URLを構築
+private fun buildImageUrl(imagePath: String): String? {
+    if (imagePath.isBlank()) return null
+    return if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) {
+        imagePath
+    } else {
+        val baseUrl = BuildConfig.SERVER_URL.trimEnd('/')
+        val path = if (imagePath.startsWith("/")) imagePath else "/$imagePath"
+        "$baseUrl$path"
+    }
+}
+
+// ヘルパー関数: タグを構築
+private fun buildTags(coordinate: CoordinateData): List<String> {
+    val tags = mutableListOf<String>()
+    
+    // sceneを追加
+    if (coordinate.scene.isNotBlank()) {
+        tags.add(coordinate.scene)
+    }
+    
+    // featuresからタグを追加
+    coordinate.features.forEach { (key, value) ->
+        if (value.isNotBlank()) {
+            when (key) {
+                "style" -> tags.add(value)
+                "season" -> tags.addAll(value.split(",").map { it.trim() }.filter { it.isNotBlank() })
+                "color_scheme" -> tags.add(value)
+            }
+        }
+    }
+    
+    return tags.take(5) // 最大5つまで
+}
