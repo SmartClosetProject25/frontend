@@ -52,9 +52,23 @@ fun SuggestionHistoryScreen(
         viewModel.fetchCoordinates()
     }
 
-    // 日付別にグループ化
-    val historyData = remember(coordinatesData) {
-        coordinatesData?.coordinates?.groupBy { coordinate ->
+    // 日付別にグループ化（検索クエリでフィルタリング）
+    val historyData = remember(coordinatesData, searchQuery) {
+        val filteredCoordinates = coordinatesData?.coordinates?.filter { coordinate ->
+            // 検索クエリが空の場合は全件表示
+            if (searchQuery.isBlank()) {
+                true
+            } else {
+                // アイテム名で検索（大文字小文字を区別しない）
+                val query = searchQuery.lowercase()
+                coordinate.top.name.lowercase().contains(query) ||
+                coordinate.bottom.name.lowercase().contains(query) ||
+                coordinate.scene.lowercase().contains(query) ||
+                coordinate.features.values.any { it.lowercase().contains(query) }
+            }
+        }
+        
+        filteredCoordinates?.groupBy { coordinate ->
             // "2025-12-01 00:00:00" -> "2025/12/01" に変換
             try {
                 val inputFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
@@ -127,7 +141,7 @@ fun SuggestionHistoryScreen(
                     OutlinedTextField(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
-                        placeholder = { Text("検索", color = Color.Gray) },
+                        placeholder = { Text("アイテム名で検索", color = Color.Gray) },
                         modifier = Modifier.weight(1f),
                         singleLine = true
                     )
