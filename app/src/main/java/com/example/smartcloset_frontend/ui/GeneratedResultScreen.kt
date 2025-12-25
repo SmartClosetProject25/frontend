@@ -5,11 +5,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -19,18 +17,17 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import kotlinx.coroutines.delay
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
-import coil.compose.AsyncImage
 import coil.compose.AsyncImagePainter
 import coil.compose.SubcomposeAsyncImage
 import coil.compose.SubcomposeAsyncImageContent
@@ -44,8 +41,14 @@ fun GeneratedResultScreen(
     suggestionViewModel: SuggestionViewModel
 ) {
     val generatedImageUrl by suggestionViewModel.generatedImage.collectAsState()
-    var showQrCodeDialog by remember { mutableStateOf(false) }
     var qrCodeBitmap by remember { mutableStateOf<ImageBitmap?>(null) }
+    
+    // QRコードを生成
+    LaunchedEffect(generatedImageUrl) {
+        generatedImageUrl?.let { url ->
+            qrCodeBitmap = QrCodeGenerator.generateQrCode(url).asImageBitmap()
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -62,21 +65,8 @@ fun GeneratedResultScreen(
                     .verticalScroll(rememberScrollState())
             ) {
                 CoordinateImageSection(
-                    imageUrlOrPath = generatedImageUrl,
-                    onShareClicked = {
-                        generatedImageUrl?.let {
-                            qrCodeBitmap = QrCodeGenerator.generateQrCode(it).asImageBitmap()
-                            showQrCodeDialog = true
-                        }
-                    }
+                    imageUrlOrPath = generatedImageUrl
                 )
-                
-                if (showQrCodeDialog) {
-                    QrCodeDialog(
-                        qrCodeBitmap = qrCodeBitmap,
-                        onDismiss = { showQrCodeDialog = false }
-                    )
-                }
 
                 CoordinateSummarySection(
                     title = "今日のコーデ",
@@ -97,6 +87,13 @@ fun GeneratedResultScreen(
                     category = "ボトムス",
                     name = "スウェットワイドパンツ"
                 )
+                
+                Spacer(modifier = Modifier.height(32.dp))
+                
+                // QRコードセクション
+                QrCodeSection(qrCodeBitmap = qrCodeBitmap)
+                
+                Spacer(modifier = Modifier.height(24.dp))
             }
         }
     )
@@ -131,8 +128,7 @@ fun CoordinateTopBar(title: String, onBackClicked: () -> Unit) {
 
 @Composable
 fun CoordinateImageSection(
-    imageUrlOrPath: String?,
-    onShareClicked: () -> Unit
+    imageUrlOrPath: String?
 ) {
     val imageUrl: String? = imageUrlOrPath?.let { path ->
         if (path.startsWith("http://") || path.startsWith("https://")) {
@@ -229,19 +225,6 @@ fun CoordinateImageSection(
                 }
             }
         }
-
-        Icon(
-            imageVector = Icons.Default.Share,
-            contentDescription = "共有",
-            tint = Color.Black,
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(8.dp)
-                .clip(CircleShape)
-                .background(Color.White.copy(alpha = 0.8f))
-                .padding(8.dp)
-                .clickable(onClick = onShareClicked)
-        )
     }
 }
 
@@ -291,44 +274,38 @@ fun ItemDetailSection(category: String, name: String) {
 }
 
 @Composable
-fun QrCodeDialog(
-    qrCodeBitmap: ImageBitmap?,
-    onDismiss: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                text = "QRコード",
-                fontWeight = FontWeight.Bold
+fun QrCodeSection(qrCodeBitmap: ImageBitmap?) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "QRコード",
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+        
+        qrCodeBitmap?.let {
+            Image(
+                bitmap = it,
+                contentDescription = "QRコード",
+                modifier = Modifier
+                    .size(200.dp)
+                    .clip(MaterialTheme.shapes.medium)
+                    .background(Color.White)
             )
-        },
-        text = {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                qrCodeBitmap?.let {
-                    Image(
-                        bitmap = it,
-                        contentDescription = "QRコード",
-                        modifier = Modifier
-                            .size(300.dp)
-                            .clip(MaterialTheme.shapes.medium)
-                            .background(Color.White)
-                    )
-                    Text(
-                        text = "このQRコードをスキャンして\n画像を表示できます",
-                        fontSize = 14.sp,
-                        color = Color.Gray
-                    )
-                } ?: Text("QRコードの生成に失敗しました")
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("閉じる")
-            }
-        }
-    )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "このQRコードをスキャンして\n画像を表示できます",
+                fontSize = 12.sp,
+                color = Color.Gray,
+                modifier = Modifier.padding(top = 8.dp)
+            )
+        } ?: CircularProgressIndicator(
+            modifier = Modifier.size(200.dp)
+        )
+    }
 }
