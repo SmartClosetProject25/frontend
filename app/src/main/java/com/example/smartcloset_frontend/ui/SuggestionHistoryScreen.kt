@@ -1,6 +1,7 @@
 package com.example.smartcloset_frontend.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -12,21 +13,22 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
 import com.example.smartcloset_frontend.BuildConfig
 import com.example.smartcloset_frontend.data.CoordinateData
+import com.example.smartcloset_frontend.data.CoordinateItem
 import com.example.smartcloset_frontend.viewmodel.SuggestionHistoryViewModel
 import java.text.SimpleDateFormat
 import java.util.*
@@ -68,7 +70,9 @@ fun SuggestionHistoryScreen(
                 suggestions = coordinates.map { coordinate ->
                     HistoryCoordinate(
                         id = coordinate.coordinate_id.toString(),
-                        imageUrl = buildImageUrl(coordinate.top.image_path),
+                        outer = null, // 将来的にAPIレスポンスにouterが追加された場合に対応
+                        top = coordinate.top,
+                        bottom = coordinate.bottom,
                         tags = buildTags(coordinate)
                     )
                 }
@@ -235,85 +239,106 @@ fun DateGroupSection(dateGroup: HistoryDateGroup) {
 
 @Composable
 fun HistoryCoordinateCard(suggestion: HistoryCoordinate) {
-
-    var isLiked by remember { mutableStateOf(false) }
-    var isDisliked by remember { mutableStateOf(false) }
-
     Card(
-        modifier = Modifier.width(140.dp),
-        shape = RoundedCornerShape(8.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE0E0E0))
+        modifier = Modifier.width(180.dp),
+        shape = RoundedCornerShape(12.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE0E0E0)),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFF6F6F6))
     ) {
-        Box {
-
-            // 画像
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(200.dp)
-                    .background(Color(0xFFE0E0E0)),
-                contentAlignment = Alignment.Center
-            ) {
-                if (suggestion.imageUrl != null) {
-                    AsyncImage(
-                        model = suggestion.imageUrl,
-                        contentDescription = "履歴コーデ",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                } else {
-                    Text("画像", color = Color.Gray, fontSize = 14.sp)
-                }
-
-                // タグ
-                Column(
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(8.dp)
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            // アウター（ある場合）
+            suggestion.outer?.let { outer ->
+                HistoryItemDisplay(
+                    item = outer,
+                    label = "アウター"
+                )
+            }
+            
+            // トップス
+            HistoryItemDisplay(
+                item = suggestion.top,
+                label = "トップス"
+            )
+            
+            // ボトムス
+            HistoryItemDisplay(
+                item = suggestion.bottom,
+                label = "ボトムス"
+            )
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            // タグ
+            if (suggestion.tags.isNotEmpty()) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    suggestion.tags.take(3).forEach {
+                    suggestion.tags.take(3).forEach { tag ->
                         Box(
                             modifier = Modifier
-                                .padding(bottom = 4.dp)
-                                .background(Color(0xFFE0F7FA), RoundedCornerShape(4.dp))
-                                .padding(6.dp, 2.dp)
+                                .background(Color(0xFFE0F7FA), RoundedCornerShape(6.dp))
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
                         ) {
-                            Text(text = it, color = Color(0xFF2196F3), fontSize = 10.sp)
+                            Text(
+                                text = tag,
+                                fontSize = 10.sp,
+                                color = Color(0xFF2196F3),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
                         }
                     }
                 }
             }
+        }
+    }
+}
 
-            // いいね/よくない
-            Row(
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(8.dp),
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                IconButton(onClick = {
-                    isLiked = !isLiked
-                    if (isLiked) isDisliked = false
-                }) {
-                    Icon(
-                        Icons.Default.ThumbUp,
-                        contentDescription = "いいね",
-                        tint = if (isLiked) Color(0xFF2196F3) else Color.White
-                    )
-                }
-
-                IconButton(onClick = {
-                    isDisliked = !isDisliked
-                    if (isDisliked) isLiked = false
-                }) {
-                    Icon(
-                        Icons.Default.ThumbUp,
-                        contentDescription = "よくない",
-                        tint = if (isDisliked) Color(0xFFE53935) else Color.White,
-                        modifier = Modifier.rotate(180f)
-                    )
-                }
+@Composable
+fun HistoryItemDisplay(item: CoordinateItem, label: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // 画像
+        Box(
+            modifier = Modifier
+                .size(width = 70.dp, height = 90.dp)
+                .clip(RoundedCornerShape(6.dp))
+                .background(Color(0xFFE0E0E0))
+                .border(1.dp, Color(0xFFC0C0C0), RoundedCornerShape(6.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            val imageUrl = buildImageUrl(item.image_path)
+            if (imageUrl != null) {
+                AsyncImage(
+                    model = imageUrl,
+                    contentDescription = item.name,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Text(label, color = Color.Gray, fontSize = 10.sp)
             }
+        }
+        
+        Spacer(modifier = Modifier.width(10.dp))
+        
+        // テキスト
+        Column(
+            modifier = Modifier.weight(1f)
+        ) {
+            Text(
+                text = item.name,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
         }
     }
 }
@@ -326,7 +351,9 @@ data class HistoryDateGroup(
 
 data class HistoryCoordinate(
     val id: String,
-    val imageUrl: String?,
+    val outer: CoordinateItem?,
+    val top: CoordinateItem,
+    val bottom: CoordinateItem,
     val tags: List<String>
 )
 
