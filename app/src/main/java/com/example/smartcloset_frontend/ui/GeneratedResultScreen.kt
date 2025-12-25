@@ -12,11 +12,13 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.delay
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.Alignment
@@ -29,6 +31,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
+import coil.compose.AsyncImagePainter
+import coil.compose.SubcomposeAsyncImage
+import coil.compose.SubcomposeAsyncImageContent
 import com.example.smartcloset_frontend.BuildConfig
 import com.example.smartcloset_frontend.utils.QrCodeGenerator
 import com.example.smartcloset_frontend.viewmodel.SuggestionViewModel
@@ -139,6 +144,20 @@ fun CoordinateImageSection(
         }
     }
 
+    // エラー時のリトライ用に、URLにタイムスタンプを追加して再試行を促す
+    var retryKey by remember { mutableStateOf(0) }
+    val imageUrlWithRetry = remember(imageUrl, retryKey) {
+        imageUrl?.let { url ->
+            // リトライ時はクエリパラメータを追加してURLを変更し、再読み込みを促す
+            if (retryKey > 0) {
+                val separator = if (url.contains("?")) "&" else "?"
+                "$url${separator}_retry=$retryKey"
+            } else {
+                url
+            }
+        }
+    }
+
     Box(
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -147,12 +166,68 @@ fun CoordinateImageSection(
                 modifier = Modifier.align(Alignment.Center)
             )
         } else {
-            AsyncImage(
-                model = imageUrl,
-                contentDescription = "生成されたコーディネート画像",
-                modifier = Modifier.fillMaxWidth(),
-                contentScale = ContentScale.FillWidth
-            )
+            var imageState by remember { mutableStateOf<AsyncImagePainter.State?>(null) }
+            
+            Box(modifier = Modifier.fillMaxWidth()) {
+                SubcomposeAsyncImage(
+                    model = imageUrlWithRetry,
+                    contentDescription = "生成されたコーディネート画像",
+                    modifier = Modifier.fillMaxWidth(),
+                    contentScale = ContentScale.FillWidth
+                ) {
+                    imageState = painter.state
+                    when (painter.state) {
+                        is AsyncImagePainter.State.Loading -> {
+                            // ローディング中はプログレスインジケーターを表示
+                            Box(
+                                modifier = Modifier.fillMaxWidth(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator()
+                            }
+                        }
+                        is AsyncImagePainter.State.Error -> {
+                            // エラー時でも画像を表示しようと試みる（読み込めたら自動的に表示される）
+                            // 背景にプレースホルダーを表示
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(Color(0xFFE0E0E0)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center
+                                ) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(24.dp),
+                                        strokeWidth = 2.dp
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        text = "画像を読み込み中...",
+                                        color = Color.Gray,
+                                        fontSize = 12.sp
+                                    )
+                                }
+                            }
+                            // エラー状態でも画像を表示しようと試みる
+                            SubcomposeAsyncImageContent()
+                        }
+                        else -> {
+                            SubcomposeAsyncImageContent()
+                        }
+                    }
+                }
+            }
+            
+            // エラー状態の時、定期的にリトライする
+            LaunchedEffect(imageState) {
+                if (imageState is AsyncImagePainter.State.Error) {
+                    delay(2000) // 2秒待機
+                    retryKey++ // リトライキーを更新して再読み込みを促す
+                }
+            }
         }
 
         Icon(
