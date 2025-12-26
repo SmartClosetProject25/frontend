@@ -7,6 +7,7 @@ import com.example.smartcloset_frontend.data.GenerateOutfitWithWeather
 import com.example.smartcloset_frontend.data.GetCoordinatesResponse
 import com.example.smartcloset_frontend.data.GetItemDetailResponse
 import com.example.smartcloset_frontend.data.GetItemsResponse
+import com.example.smartcloset_frontend.data.GetProfileResponse
 import com.example.smartcloset_frontend.data.ImageResponse
 import com.example.smartcloset_frontend.data.JudgeRequestData
 import com.example.smartcloset_frontend.data.LocationData
@@ -41,6 +42,11 @@ interface ApiService {
     suspend fun updateProfile(
         @Body profileData: ProfileData
     ): Response<Unit> // サーバーからのレスポンス。今回はボディがないためUnitを指定
+
+    @GET("/get_profile")
+    suspend fun getProfile(
+        @Query("user_id") userId: Int
+    ): GetProfileResponse
 
     //login処理
     @POST("/login")

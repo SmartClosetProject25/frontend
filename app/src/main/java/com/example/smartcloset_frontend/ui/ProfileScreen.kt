@@ -1,5 +1,6 @@
 package com.example.smartcloset_frontend.ui
 
+import android.util.Log
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -13,6 +14,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -30,41 +34,33 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
+import com.example.smartcloset_frontend.data.RadarAxisDto
 import kotlin.math.cos
 import kotlin.math.sin
+import androidx.compose.runtime.remember
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.smartcloset_frontend.data.repository.ProfileRepository
+import com.example.smartcloset_frontend.network.ApiService
+import com.example.smartcloset_frontend.network.RetrofitClient
+import com.example.smartcloset_frontend.ui.networkErr.ProfileUiState
+import com.example.smartcloset_frontend.viewmodel.ProfileViewModel
+import com.example.smartcloset_frontend.viewmodel.UserSessionViewModel
 
 // ====================================================================
 // 1. データ構造 (Data Classes)
 // ====================================================================
-
-// スタイルデータの構造を定義
-data class StyleData(
-    val casual: Int,
-    val elegant: Int,
-    val mode: Int,
-    val mannishMasculine: Int,
-    val street: Int,
-    val natural: Int
-)
-
-// 身体測定値の構造を定義（簡略版）
+//// 身体測定値の構造を定義
 data class BodyMeasurements(
     val heightCm: String,
     val weightKg: String
 )
-
-// ユーザープロフィールの全情報を持つ構造を定義（簡略版）
-data class UserProfile(
-    val name: String,
-    val gender: String,
-    val itemCount: Int,
-    val coordCount: Int,
-    val likeCount: Int,
-    val styleData: StyleData,
-    val bodyMeasurements: BodyMeasurements,
-    val personalColor: String,
-    val frameType: String
-)
+fun axesToRadarValues(axes: List<RadarAxisDto>): Pair<List<Int>, List<String>> {
+    val values = axes.map { (it.norm01 * 100.0).toInt().coerceIn(0, 100) }
+    val labels = axes.map { it.label }
+    return values to labels
+}
 
 // ====================================================================
 // 2. UIコンポーネント (Composable Functions)
@@ -72,19 +68,27 @@ data class UserProfile(
 
 // プロフィール画面全体のUIを定義するメインのComposable関数
 @Composable
-fun ProfileScreen(navController: NavHostController) {
-    // 表示するための仮のユーザープロフィールデータを作成
-    val profile = UserProfile(
-        name = "はるたろう",
-        gender = "Male",
-        itemCount = 126,
-        coordCount = 21,
-        likeCount = 5,
-        styleData = StyleData(casual = 90, elegant = 40, mode = 50, mannishMasculine = 80, street = 40, natural = 70),
-        bodyMeasurements = BodyMeasurements(heightCm = "165", weightKg = "52"),
-        personalColor = "イエベ",
-        frameType = "ストレート"
+fun ProfileScreen(
+    navController: NavHostController,
+    userSessionViewModel : UserSessionViewModel,
+    api: ApiService = RetrofitClient.instance
+) {
+    val userId by userSessionViewModel.userId.collectAsState()
+    val vm: ProfileViewModel = viewModel(
+        factory = object : ViewModelProvider.Factory {
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                @Suppress("UNCHECKED_CAST")
+                return ProfileViewModel(
+                    repository = ProfileRepository()
+                ) as T
+            }
+        }
     )
+    val state by vm.uiState.collectAsState()
+
+    LaunchedEffect(userId) {
+        vm.load(userId ?: 1)
+    }
 
     // 画面全体を縦方向に配置し、スクロール可能にする
     Column(
@@ -95,13 +99,48 @@ fun ProfileScreen(navController: NavHostController) {
             .padding(16.dp)
     ) {
         // 各UIセクションを呼び出す
-        HeaderSection(profile.name, profile.gender, navController)
-        Spacer(modifier = Modifier.height(24.dp))
-        StatsSection(profile.itemCount, profile.coordCount, profile.likeCount)
-        Spacer(modifier = Modifier.height(24.dp))
-        RadarChartSection(profile.styleData)
-        Spacer(modifier = Modifier.height(24.dp))
-        DetailsSection(profile.bodyMeasurements, profile.personalColor, profile.frameType)
+        when (val s = state) {
+            is ProfileUiState.Loading -> {
+                Text("読み込み中…")
+            }
+            is ProfileUiState.Error -> {
+                Text("取得失敗: ${s.message}", color = Color.Red)
+                Log.e("ProfileScreen", "Error loading profile: ${s.message}")
+            }
+            is ProfileUiState.Success -> {
+                val d = s.data
+
+                // 既存UIに合わせて変換（null対策）
+                val name = d.profile.userName.ifBlank { "ゲスト" }
+//                val gender = d.profile.gender ?: "未設定"
+                val height = d.profile.height?.toString() ?: ""
+                val weight = d.profile.weight?.toString() ?: ""
+                val genderText = when (d.profile.gender) {
+                    0 -> "未設定"
+                    1 -> "男性"
+                    2 -> "女性"
+                    else -> "その他"
+                }
+
+                HeaderSection(name, genderText, navController)
+                Spacer(modifier = Modifier.height(24.dp))
+                StatsSection(d.counts.itemCount, d.counts.coordinateCount, d.counts.favoriteCount)
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // ★ここが変更点：6軸固定 → axes(8軸)へ
+                RadarChartSection(d.axes)
+
+                Spacer(modifier = Modifier.height(24.dp))
+                DetailsSection(
+                    body = BodyMeasurements(heightCm = height, weightKg = weight),
+                    color = d.personalColor.colorName,
+                    frame = "未設定" // frameTypeはバックに無いので今は固定でOK
+                )
+            }
+            else -> {
+                // 何も表示しない
+            }
+        }
     }
 }
 
@@ -157,17 +196,15 @@ fun StatItem(value: String, label: String) {
 
 // レーダーチャートセクション
 @Composable
-fun RadarChartSection(data: StyleData) {
-    val values = listOf(data.casual, data.elegant, data.mode, data.mannishMasculine, data.street, data.natural)
-    val labels = listOf("カジュアル", "エレガント", "モード", "マニッシュ/\nマスキュリン", "ストリート", "ナチュラル")
-
+fun RadarChartSection(axes: List<RadarAxisDto>) {
+    val (values, labels) = remember(axes) { axesToRadarValues(axes) }
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(300.dp), // ラベル表示のために高さを確保
         contentAlignment = Alignment.Center
     ) {
-        RadarChart(values = values, labels = labels)
+        RadarChart(values = values, labels = labels, maxValue = 100f)
     }
 }
 
@@ -175,7 +212,6 @@ fun RadarChartSection(data: StyleData) {
 @Composable
 fun RadarChart(values: List<Int>, labels: List<String>, maxValue: Float = 100f) {
     val textMeasurer = rememberTextMeasurer()
-
     Canvas(modifier = Modifier.fillMaxSize()) {
         val center = Offset(size.width / 2, size.height / 2)
         val radius = size.minDimension / 2 * 0.7f // ラベルのスペースを考慮して半径を調整
@@ -247,7 +283,7 @@ fun DetailsSection(body: BodyMeasurements, color: String, frame: String) {
         }
         DataCard(title = "診断", modifier = Modifier.weight(1f)) {
             DataRow("パーソナルカラー", color)
-            DataRow("骨格", frame)
+//            DataRow("骨格", frame)
         }
     }
 }
@@ -280,9 +316,9 @@ fun DataRow(label: String, value: String) {
 // ====================================================================
 // 3. プレビュー
 // ====================================================================
-
-@Preview(showBackground = true)
-@Composable
-fun ProfileScreenPreview() {
-    ProfileScreen(navController = rememberNavController())
-}
+//TODOこれなに？
+//@Preview(showBackground = true)
+//@Composable
+//fun ProfileScreenPreview() {
+//    ProfileScreen(navController = rememberNavController(), userId = 1)
+//}

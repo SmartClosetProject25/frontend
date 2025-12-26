@@ -93,7 +93,7 @@ fun NavGraph(
             SuggestionHistoryScreen(navController, historyViewModel)
         }
         composable("generate") { GeneratedResultScreen(navController, suggestionViewModel) }
-        composable("profile") { ProfileScreen(navController) }
+        composable("profile") { ProfileScreen(navController, userSessionViewModel = userSessionViewModel) }
         composable("profile_edit") { ProfileEditScreen(navController) }
 //        composable("clothes_detail") { ClothesDetailScreen(navController) }
         composable("register") { ItemRegistrationScreen(navController,sharedVM) }

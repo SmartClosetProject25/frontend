@@ -336,7 +336,9 @@ fun HomeScreen(
             contentAlignment = Alignment.Center
         ) {
             Button(
-                onClick = { },
+                onClick = {
+                    navController.navigate("coordinate")
+                },
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFBFD8FF)),
                 modifier = Modifier
                     .wrapContentWidth()
