@@ -1,29 +1,31 @@
 package com.example.smartcloset_frontend.network
 
 import com.example.smartcloset_frontend.data.FavoriteRequest
-import com.example.smartcloset_frontend.data.LoginData
-import com.example.smartcloset_frontend.data.LoginResponse
-import com.example.smartcloset_frontend.data.ProfileData
-import com.example.smartcloset_frontend.data.SignUpData
-import com.example.smartcloset_frontend.data.SearchData
+import com.example.smartcloset_frontend.data.GenerateImageRequest
 import com.example.smartcloset_frontend.data.GenerateOutfitData
 import com.example.smartcloset_frontend.data.GenerateOutfitWithWeather
+import com.example.smartcloset_frontend.data.GetCoordinatesResponse
 import com.example.smartcloset_frontend.data.GetItemDetailResponse
 import com.example.smartcloset_frontend.data.GetItemsResponse
+import com.example.smartcloset_frontend.data.ImageResponse
 import com.example.smartcloset_frontend.data.JudgeRequestData
 import com.example.smartcloset_frontend.data.LocationData
+import com.example.smartcloset_frontend.data.LoginData
+import com.example.smartcloset_frontend.data.LoginResponse
+import com.example.smartcloset_frontend.data.MasterDataResponse
+import com.example.smartcloset_frontend.data.PasswordResetConfirmData
+import com.example.smartcloset_frontend.data.PasswordResetRequestData
+import com.example.smartcloset_frontend.data.ProfileData
 import com.example.smartcloset_frontend.data.ProposalResponse
+import com.example.smartcloset_frontend.data.SearchData
+import com.example.smartcloset_frontend.data.SignUpData
 import com.example.smartcloset_frontend.data.TodayPlanData
 import com.example.smartcloset_frontend.data.WeatherData
-import com.example.smartcloset_frontend.data.PasswordResetRequestData
-import com.example.smartcloset_frontend.data.PasswordResetConfirmData
-import com.example.smartcloset_frontend.data.MasterDataResponse
 import com.example.smartcloset_frontend.data.WeatherDto
 
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import okhttp3.ResponseBody
-
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -148,7 +150,14 @@ interface ApiService {
     @POST("/send_today_plan")
     suspend fun sendTodayPlan(@Body todayPlanData: TodayPlanData): Response<ProposalResponse>
 
+    @POST("/generate_image")
+    suspend fun generateImage(@Body request: GenerateImageRequest): Response<ImageResponse>
+
     @GET("/get_master_data")
     suspend fun getMasterData(): Response<MasterDataResponse>
+
+    // コーディネート履歴取得処理
+    @GET("/get_coordinates")
+    suspend fun getCoordinates(): Response<GetCoordinatesResponse>
 
 }
