@@ -83,6 +83,7 @@ fun NavGraph(
             )
         }
         composable("test") { TestScreen(navController) }
+        //composable("coordinate") { SuggestionScreen(navController ,userSessionViewModel = userSessionViewModel,suggestionViewModel ) }
         composable("coordinate") { SuggestionScreen(navController ,userSessionViewModel = userSessionViewModel) }
 
 

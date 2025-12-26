@@ -1,4 +1,5 @@
 package com.example.smartcloset_frontend.data
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 @Serializable
 data class ItemData (
@@ -37,8 +38,9 @@ data class GetItemDetailResponse(
 
 @Serializable
 data class JudgeRequestData(
-    val planItemId: Int,
-    val vote: String  // "GOOD" or "BAD"
+    @SerialName("user_id") val userId: Int?,
+    @SerialName("coordinate_id") val planItemId: Int,
+    @SerialName("rating") val vote: String  //good or bad
 )
 
 @Serializable

@@ -110,12 +110,15 @@ interface ApiService {
         @Part image: MultipartBody.Part?,
     ): Response<Unit>
 
-    @POST("/judgement")
+
+    //組み合わせいいねバッド判定処理
+    @POST("/rate_coordinate")
     suspend fun judgement(
-        @Body body: JudgeRequestData
+        @Body req : JudgeRequestData
     ): Response<Unit>
 
-    @POST("/favorite")  // ← エンドポイント名はサーバー側に合わせて変更してOK
+    // お気に入り設定処理
+    @POST("/favorite")
     suspend fun setFavorite(
         @Body request: FavoriteRequest
     )

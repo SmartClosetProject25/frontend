@@ -42,6 +42,7 @@ import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
 import com.example.smartcloset_frontend.BuildConfig
 import com.example.smartcloset_frontend.data.Item
+import com.example.smartcloset_frontend.data.JudgeRequestData
 import com.example.smartcloset_frontend.data.LocationData
 import com.example.smartcloset_frontend.data.Proposal
 import com.example.smartcloset_frontend.data.TodayPlanData
@@ -49,6 +50,7 @@ import com.example.smartcloset_frontend.utils.GetLocation
 import com.example.smartcloset_frontend.viewmodel.SuggestionViewModel
 import com.example.smartcloset_frontend.viewmodel.GetWeatherViewModel
 import com.example.smartcloset_frontend.utils.WeatherLocationLoader
+import com.example.smartcloset_frontend.viewmodel.ItemViewModel
 import com.example.smartcloset_frontend.viewmodel.UserSessionViewModel
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -61,7 +63,7 @@ fun SuggestionScreen(
     navController: NavHostController,
     suggestionViewModel: SuggestionViewModel = viewModel(),
     getWeatherViewModel: GetWeatherViewModel = viewModel(),
-    userSessionViewModel : UserSessionViewModel
+    userSessionViewModel : UserSessionViewModel,
 ) {
     val userId by userSessionViewModel.userId.collectAsState()
     val context = LocalContext.current
@@ -281,7 +283,9 @@ fun SuggestionScreen(
                     proposal = proposal,
                     suggestionViewModel = suggestionViewModel,
                     isGeneratingImage = isGeneratingImage,
-                    modifier = Modifier.width(cardWidth)
+                    modifier = Modifier.width(cardWidth),
+                    userSessionViewModel = userSessionViewModel,
+                    itemViewModel = viewModel()
                 )
             }
         }
@@ -384,9 +388,11 @@ fun CoordinateCard(
     proposal: Proposal,
     suggestionViewModel: SuggestionViewModel,
     isGeneratingImage: Boolean,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    userSessionViewModel : UserSessionViewModel,
+    itemViewModel: ItemViewModel
 ) {
-
+    val userId by userSessionViewModel.userId.collectAsState()
     var isLiked by remember { mutableStateOf(false) }
     var isDisliked by remember { mutableStateOf(false) }
     var isReasonExpanded by remember { mutableStateOf(false) }
@@ -474,6 +480,12 @@ fun CoordinateCard(
                     onClick = {
                         isLiked = !isLiked
                         if (isLiked) isDisliked = false
+                        val data = JudgeRequestData(
+                            userId = userId,
+                            planItemId = 2,
+                            vote = "good"
+                        )
+                        itemViewModel.sendJudge(data)
                     }
                 ) {
                     Icon(
@@ -488,6 +500,12 @@ fun CoordinateCard(
                     onClick = {
                         isDisliked = !isDisliked
                         if (isDisliked) isLiked = false
+                        val data = JudgeRequestData(
+                            userId = userId,
+                            planItemId = 2,
+                            vote = "bad"
+                        )
+                        itemViewModel.sendJudge(data)
                     }
                 ) {
                     Icon(
