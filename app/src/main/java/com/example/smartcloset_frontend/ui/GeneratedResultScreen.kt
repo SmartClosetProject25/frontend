@@ -41,6 +41,8 @@ fun GeneratedResultScreen(
     suggestionViewModel: SuggestionViewModel
 ) {
     val generatedImageUrl by suggestionViewModel.generatedImage.collectAsState()
+    val selectedProposal by suggestionViewModel.selectedProposal.collectAsState()
+    val todayPlan by suggestionViewModel.todayPlan.collectAsState()
     var qrCodeBitmap by remember { mutableStateOf<ImageBitmap?>(null) }
     
     // QRコードを生成
@@ -70,23 +72,29 @@ fun GeneratedResultScreen(
 
                 CoordinateSummarySection(
                     title = "今日のコーデ",
-                    description = "友達とごはん"
+                    description = todayPlan?.plan ?: ""
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                ItemDetailSection(
-                    category = "アウター",
-                    name = "ウィンドプルーフスタンドブルゾン"
-                )
-                ItemDetailSection(
-                    category = "トップス",
-                    name = "スウェットシャツ"
-                )
-                ItemDetailSection(
-                    category = "ボトムス",
-                    name = "スウェットワイドパンツ"
-                )
+                selectedProposal?.items?.outer?.item_name?.let {
+                    ItemDetailSection(
+                        category = "アウター",
+                        name = it
+                    )
+                }
+                selectedProposal?.items?.tops?.item_name?.let {
+                    ItemDetailSection(
+                        category = "トップス",
+                        name = it
+                    )
+                }
+                selectedProposal?.items?.bottoms?.item_name?.let {
+                    ItemDetailSection(
+                        category = "ボトムス",
+                        name = it
+                    )
+                }
                 
                 Spacer(modifier = Modifier.height(32.dp))
                 

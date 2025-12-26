@@ -463,7 +463,7 @@ fun CoordinateCard(
                             proposal.items.tops?.image_path,
                             proposal.items.bottoms?.image_path
                         )
-                        suggestionViewModel.generateImage(imagePaths)
+                        suggestionViewModel.generateImage(imagePaths, proposal)
                     },
                     enabled = !isGeneratingImage
                 ) {

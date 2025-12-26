@@ -32,10 +32,17 @@ class SuggestionViewModel : ViewModel() {
     private val _navigateToGenerate = MutableStateFlow(false)
     val navigateToGenerate: StateFlow<Boolean> = _navigateToGenerate
 
+    private val _selectedProposal = MutableStateFlow<Proposal?>(null)
+    val selectedProposal: StateFlow<Proposal?> = _selectedProposal
+
+    private val _todayPlan = MutableStateFlow<TodayPlanData?>(null)
+    val todayPlan: StateFlow<TodayPlanData?> = _todayPlan
+
     fun sendTodayPlan(todayPlanData: TodayPlanData) {
         viewModelScope.launch {
             _isSendingPlan.value = true
             _proposals.value = emptyList() // Clear previous proposals
+            _todayPlan.value = todayPlanData // 今日の予定を保存
             try {
                 val response = repository.sendTodayPlan(todayPlanData)
                 if (response.isSuccessful) {
@@ -61,7 +68,10 @@ class SuggestionViewModel : ViewModel() {
         }
     }
 
-    fun generateImage(imagePaths: List<String>) {
+    fun generateImage(imagePaths: List<String>, proposal: Proposal? = null) {
+        // 選択されたProposalを保存
+        proposal?.let { _selectedProposal.value = it }
+        
         viewModelScope.launch {
             _isGeneratingImage.value = true
             Log.d("SuggestionViewModel", "Sending image paths to generate image: $imagePaths")
