@@ -80,7 +80,7 @@ fun NavGraph(
             )
         }
         composable("test") { TestScreen(navController) }
-        composable("coordinate") { SuggestionScreen(navController) }
+        composable("coordinate") { SuggestionScreen(navController ,userSessionViewModel = userSessionViewModel) }
 
         composable("suggestion_history") { 
             SuggestionHistoryScreen(navController)

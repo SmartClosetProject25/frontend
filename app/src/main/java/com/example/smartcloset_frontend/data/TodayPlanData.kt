@@ -4,6 +4,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class TodayPlanData(
+    val id: Int?,
     val plan: String,
     val date: String,
     val location: String,
