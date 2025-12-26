@@ -1,5 +1,6 @@
 package com.example.smartcloset_frontend.ui
 
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -41,44 +42,65 @@ import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
 import com.example.smartcloset_frontend.BuildConfig
 import com.example.smartcloset_frontend.data.Item
+import com.example.smartcloset_frontend.data.LocationData
 import com.example.smartcloset_frontend.data.Proposal
 import com.example.smartcloset_frontend.data.TodayPlanData
+import com.example.smartcloset_frontend.utils.GetLocation
 import com.example.smartcloset_frontend.viewmodel.SuggestionViewModel
+import com.example.smartcloset_frontend.viewmodel.GetWeatherViewModel
+import com.example.smartcloset_frontend.utils.WeatherLocationLoader
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-// ------------------- データ -------------------
-data class CoordinateSuggestion(
-    val id: String,
-    val outerImageUrl: String?,
-    val innerImageUrl: String?,
-    val bottomImageUrl: String?,
-    val tags: List<String>
-)
-
-
 // ------------------- メイン画面 -------------------
 @Composable
 fun SuggestionScreen(
     navController: NavHostController,
+    suggestionViewModel: SuggestionViewModel = viewModel(),
+    getWeatherViewModel: GetWeatherViewModel = viewModel()
     suggestionViewModel: SuggestionViewModel
 ) {
-
-    val todayPlan = remember { mutableStateOf("") }
     val context = LocalContext.current
+    val weatherData by getWeatherViewModel.weatherData.collectAsState()
+    val weatherError by getWeatherViewModel.error.collectAsState()
+    val todayPlan = remember { mutableStateOf("") }
     val isSending by suggestionViewModel.isSendingPlan.collectAsState()
     val isGeneratingImage by suggestionViewModel.isGeneratingImage.collectAsState()
     val proposals by suggestionViewModel.proposals.collectAsState()
     val toastMessage by suggestionViewModel.toastMessage.collectAsState()
     val navigateToGenerate by suggestionViewModel.navigateToGenerate.collectAsState()
 
-    LaunchedEffect(toastMessage) {
+    LaunchedEffect(toastMessage ) {
         toastMessage?.let {
             Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
             suggestionViewModel.onToastShown()
         }
+    }
+    LaunchedEffect(Unit) {
+        try {
+            val loc = GetLocation.getLastLocationSuspend(context)
+            getWeatherViewModel.fetchWeather(
+                LocationData(lat = loc.latitude, lon = loc.longitude)
+            )
+        } catch (e: Exception) {
+            Log.e("Weather", "Location error: ${e.message}", e)
+        }
+    }
+    // 位置情報パーミッションの許可
+    WeatherLocationLoader(getWeatherViewModel)
+
+    val locationText = weatherData?.location ?: "取得中..."
+    val tempText = weatherData?.tempC?.let { "${it}℃" } ?: "--℃"
+    val popText = weatherData?.precipitationPercent?.let { "${it}%" } ?: "--%"
+    val humText = weatherData?.humidityPercent?.let { "${it}%" } ?: "--%"
+    val emoji = when (weatherData?.today3h?.firstOrNull()?.weatherType) {
+        "clear" -> "☀️"
+        "rain" -> "🌧️"
+        "snow" -> "❄️"
+        "cloud" -> "☁️"
+        else -> "☁️"
     }
 
     LaunchedEffect(navigateToGenerate) {
@@ -134,7 +156,7 @@ fun SuggestionScreen(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.LocationOn, contentDescription = null, tint = Color.Black)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("日本 - 愛知 - 名古屋", fontSize = 14.sp)
+                    Text(locationText, fontSize = 14.sp)
                 }
                 Spacer(modifier = Modifier.height(12.dp))
 
@@ -143,19 +165,32 @@ fun SuggestionScreen(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("🌧️", fontSize = 24.sp)
+                        Text(emoji, fontSize = 24.sp)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("22℃", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                        Text(tempText, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                     }
 
                     Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
                         Column {
                             Text("降水確率", fontSize = 12.sp, color = Color.Gray)
-                            Text("90%", fontSize = 14.sp)
+                            Text(popText, fontSize = 14.sp)
                         }
                         Column {
                             Text("湿度", fontSize = 12.sp, color = Color.Gray)
-                            Text("65%", fontSize = 14.sp)
+                            Text(humText, fontSize = 14.sp)
+                        }
+                    }
+                }
+                // 3時間ごとの天気予報
+                val list = weatherData?.today3h.orEmpty()
+                if (list.isNotEmpty()) {
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        items(list) { h ->
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(h.timeLabel, fontSize = 12.sp, color = Color.Gray)
+                                Text("${h.tempC}℃", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                Text("${h.precipitationPercent}%", fontSize = 12.sp, color = Color.Gray)
+                            }
                         }
                     }
                 }
@@ -189,13 +224,18 @@ fun SuggestionScreen(
             onClick = {
                 if (todayPlan.value.isNotBlank()) {
                     val currentDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+                    val sendLocation = weatherData?.location ?: "不明"
+                    val sendWeather = weatherData?.tempC?.let { "${it}℃" } ?: "--℃"
+                    val sendPrecip = weatherData?.precipitationPercent?.let { "${it}%" } ?: "--%"
+                    val sendHumidity = weatherData?.humidityPercent?.let { "${it}%" } ?: "--%"
+
                     val todayPlanData = TodayPlanData(
                         plan = todayPlan.value,
                         date = currentDate,
-                        location = "日本 - 愛知 - 名古屋",
-                        weather = "22℃",
-                        precipitation = "90%",
-                        humidity = "65%"
+                        location = sendLocation,
+                        weather = sendWeather,
+                        precipitation = sendPrecip,
+                        humidity = sendHumidity
                     )
                     suggestionViewModel.sendTodayPlan(todayPlanData)
                 } else {

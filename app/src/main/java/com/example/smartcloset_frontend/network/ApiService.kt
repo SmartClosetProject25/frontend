@@ -21,6 +21,11 @@ import com.example.smartcloset_frontend.data.SearchData
 import com.example.smartcloset_frontend.data.SignUpData
 import com.example.smartcloset_frontend.data.TodayPlanData
 import com.example.smartcloset_frontend.data.WeatherData
+import com.example.smartcloset_frontend.data.PasswordResetRequestData
+import com.example.smartcloset_frontend.data.PasswordResetConfirmData
+import com.example.smartcloset_frontend.data.MasterDataResponse
+import com.example.smartcloset_frontend.data.WeatherDto
+
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import okhttp3.ResponseBody
@@ -131,7 +136,7 @@ interface ApiService {
     @POST("/get_weather")
     suspend fun getWeather(
         @Body locationData:LocationData
-    ): Response<WeatherData>
+    ): Response<WeatherDto>
 
     // パスワードリセットリクエスト（メール送信）
     @POST("/auth/password-reset/request")
