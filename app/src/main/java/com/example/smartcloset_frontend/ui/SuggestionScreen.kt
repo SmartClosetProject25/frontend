@@ -49,6 +49,7 @@ import com.example.smartcloset_frontend.utils.GetLocation
 import com.example.smartcloset_frontend.viewmodel.SuggestionViewModel
 import com.example.smartcloset_frontend.viewmodel.GetWeatherViewModel
 import com.example.smartcloset_frontend.utils.WeatherLocationLoader
+import com.example.smartcloset_frontend.viewmodel.UserSessionViewModel
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -59,8 +60,10 @@ import java.util.Locale
 fun SuggestionScreen(
     navController: NavHostController,
     suggestionViewModel: SuggestionViewModel = viewModel(),
-    getWeatherViewModel: GetWeatherViewModel = viewModel()
+    getWeatherViewModel: GetWeatherViewModel = viewModel(),
+    userSessionViewModel : UserSessionViewModel
 ) {
+    val userId by userSessionViewModel.userId.collectAsState()
     val context = LocalContext.current
     val weatherData by getWeatherViewModel.weatherData.collectAsState()
     val weatherError by getWeatherViewModel.error.collectAsState()
@@ -227,8 +230,10 @@ fun SuggestionScreen(
                     val sendWeather = weatherData?.tempC?.let { "${it}℃" } ?: "--℃"
                     val sendPrecip = weatherData?.precipitationPercent?.let { "${it}%" } ?: "--%"
                     val sendHumidity = weatherData?.humidityPercent?.let { "${it}%" } ?: "--%"
+                    val userId = userId
 
                     val todayPlanData = TodayPlanData(
+                        id = userId,
                         plan = todayPlan.value,
                         date = currentDate,
                         location = sendLocation,

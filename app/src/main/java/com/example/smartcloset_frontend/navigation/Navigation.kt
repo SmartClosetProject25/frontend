@@ -83,7 +83,9 @@ fun NavGraph(
             )
         }
         composable("test") { TestScreen(navController) }
-        composable("coordinate") { SuggestionScreen(navController, suggestionViewModel) }
+        composable("coordinate") { SuggestionScreen(navController ,userSessionViewModel = userSessionViewModel) }
+
+
 
         composable("suggestion_history") { 
             val historyViewModel: SuggestionHistoryViewModel = viewModel()
