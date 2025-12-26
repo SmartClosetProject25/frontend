@@ -32,6 +32,8 @@ import com.example.smartcloset_frontend.ui.ItemRegistrationScreen
 import com.example.smartcloset_frontend.ui.GeneratedResultScreen
 import com.example.smartcloset_frontend.viewmodel.AddItemViewModel
 import com.example.smartcloset_frontend.viewmodel.ItemViewModel
+import com.example.smartcloset_frontend.viewmodel.SuggestionHistoryViewModel
+import com.example.smartcloset_frontend.viewmodel.SuggestionViewModel
 import com.example.smartcloset_frontend.viewmodel.UserSessionViewModel
 import com.example.smartcloset_frontend.viewmodel.UserSessionViewModelFactory
 
@@ -47,6 +49,7 @@ fun NavGraph(
     )
     val itemViewModel: ItemViewModel = viewModel()
     val sharedVM: AddItemViewModel = viewModel()
+    val suggestionViewModel: SuggestionViewModel = viewModel()
     NavHost(navController, startDestination = startDestination) {
         composable("login") { 
             LoginScreen(
@@ -80,12 +83,13 @@ fun NavGraph(
             )
         }
         composable("test") { TestScreen(navController) }
-        composable("coordinate") { SuggestionScreen(navController) }
+        composable("coordinate") { SuggestionScreen(navController, suggestionViewModel) }
 
         composable("suggestion_history") { 
-            SuggestionHistoryScreen(navController)
+            val historyViewModel: SuggestionHistoryViewModel = viewModel()
+            SuggestionHistoryScreen(navController, historyViewModel)
         }
-        composable("generate") { GeneratedResultScreen(navController) }
+        composable("generate") { GeneratedResultScreen(navController, suggestionViewModel) }
         composable("profile") { ProfileScreen(navController) }
         composable("profile_edit") { ProfileEditScreen(navController) }
 //        composable("clothes_detail") { ClothesDetailScreen(navController) }

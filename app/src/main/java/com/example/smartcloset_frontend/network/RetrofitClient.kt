@@ -23,9 +23,9 @@ object RetrofitClient {
 
     // タイムアウト設定とCookieJarを追加したOkHttpClientインスタンスを生成
     private val okHttpClient = OkHttpClient.Builder()
-        .connectTimeout(60, TimeUnit.SECONDS)
-        .readTimeout(60, TimeUnit.SECONDS)
-        .writeTimeout(60, TimeUnit.SECONDS)
+        .connectTimeout(300, TimeUnit.SECONDS)
+        .readTimeout(300, TimeUnit.SECONDS)
+        .writeTimeout(300, TimeUnit.SECONDS)
         .cookieJar(cookieJar) // Cookie管理を追加
         .build()
 
