@@ -1,9 +1,15 @@
 package com.example.smartcloset_frontend.viewmodel
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.smartcloset_frontend.data.ProfileData
 import com.example.smartcloset_frontend.data.repository.ProfileRepository
+import com.example.smartcloset_frontend.network.ApiService
+import com.example.smartcloset_frontend.ui.networkErr.ProfileUiState
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 
@@ -47,5 +53,45 @@ class ProfileEditViewModel : ViewModel() {
                 println("An error occurred: ${e.message}")
             }
         }
+    }
+}
+
+class ProfileViewModel(
+    private val repository: ProfileRepository
+) : ViewModel() {
+
+    private val _uiState = MutableStateFlow<ProfileUiState>(ProfileUiState.Idle)
+    val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
+
+    fun load(userId: Int) {
+        if (userId <= 0) {
+            _uiState.value = ProfileUiState.Error("userId が不正です")
+            return
+        }
+
+        _uiState.value = ProfileUiState.Loading
+        viewModelScope.launch {
+            repository.fetchProfileSummary(userId)
+                .onSuccess { data ->
+                    _uiState.value = ProfileUiState.Success(data)
+                }
+                .onFailure { e ->
+                    _uiState.value = ProfileUiState.Error(e.message ?: "取得に失敗しました")
+                }
+        }
+    }
+
+    fun retry(userId: Int) = load(userId)
+}
+
+class ProfileViewModelFactory(
+    private val repository: ProfileRepository
+) : ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(ProfileViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return ProfileViewModel(repository) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
     }
 }

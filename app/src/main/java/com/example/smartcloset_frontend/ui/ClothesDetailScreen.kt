@@ -104,15 +104,15 @@ fun ClothesDetailScreen(
                         )
                     }
                 },
-                actions = {
-                    IconButton(onClick = { isFavorite = !isFavorite }) {
-                        Icon(
-                            imageVector = Icons.Default.Star,
-                            contentDescription = "お気に入り",
-                            tint = if (isFavorite) Color(0xFFFFD700) else Color.Gray
-                        )
-                    }
-                },
+//                actions = {
+//                    IconButton(onClick = { isFavorite = !isFavorite }) {
+//                        Icon(
+//                            imageVector = Icons.Default.Star,
+//                            contentDescription = "お気に入り",
+//                            tint = if (isFavorite) Color(0xFFFFD700) else Color.Gray
+//                        )
+//                    }
+//                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color.White
                 )
