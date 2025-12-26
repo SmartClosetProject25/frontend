@@ -94,6 +94,7 @@ fun TestScreen(navController: NavHostController) {
                 Button(
                 onClick = {
                     val data = JudgeRequestData(
+                        userId = 1,
                         planItemId = 1,
                         vote = "good"
                     )
@@ -107,6 +108,7 @@ fun TestScreen(navController: NavHostController) {
                 Button(
                         onClick = {
                             val data = JudgeRequestData(
+                                userId = 1,
                                 planItemId = 2,
                                 vote = "bad"
                             )

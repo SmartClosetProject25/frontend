@@ -19,6 +19,9 @@ class ItemRepository {
     suspend fun judge(data: JudgeRequestData) =
         RetrofitClient.instance.judgement( data)
 
+
+
+
     suspend fun setFavorite(userId: Int, itemId: Int, isFavorite: Boolean) {
         val req = FavoriteRequest(
             userId = userId,
