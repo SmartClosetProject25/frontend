@@ -21,9 +21,6 @@ import com.example.smartcloset_frontend.data.SearchData
 import com.example.smartcloset_frontend.data.SignUpData
 import com.example.smartcloset_frontend.data.TodayPlanData
 import com.example.smartcloset_frontend.data.WeatherData
-import com.example.smartcloset_frontend.data.PasswordResetRequestData
-import com.example.smartcloset_frontend.data.PasswordResetConfirmData
-import com.example.smartcloset_frontend.data.MasterDataResponse
 import com.example.smartcloset_frontend.data.WeatherDto
 
 import okhttp3.MultipartBody

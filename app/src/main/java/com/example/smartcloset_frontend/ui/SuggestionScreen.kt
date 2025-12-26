@@ -60,7 +60,6 @@ fun SuggestionScreen(
     navController: NavHostController,
     suggestionViewModel: SuggestionViewModel = viewModel(),
     getWeatherViewModel: GetWeatherViewModel = viewModel()
-    suggestionViewModel: SuggestionViewModel
 ) {
     val context = LocalContext.current
     val weatherData by getWeatherViewModel.weatherData.collectAsState()
