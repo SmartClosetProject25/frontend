@@ -1,6 +1,8 @@
 package com.example.smartcloset_frontend.ui
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.net.Uri
 import android.util.Log
@@ -29,6 +31,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -143,6 +146,18 @@ fun ItemRegistrationScreen(
         }
     }
 
+    // 追加：カメラ権限リクエスト用
+    val cameraPermissionLauncher =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.RequestPermission()
+        ) { granted ->
+            if (granted) {
+                cameraLauncherBitmap.launch(null)
+            } else {
+                Toast.makeText(context, "カメラの権限が必要です", Toast.LENGTH_SHORT).show()
+            }
+        }
+
 
     Scaffold(
         topBar = {
@@ -248,8 +263,17 @@ fun ItemRegistrationScreen(
                 TextButton(
                     onClick = {
                         showImageSourceDialog = false
-                        // カメラを起動（TakePicturePreviewはURI不要）
-                        cameraLauncherBitmap.launch(null)
+
+                        val granted = ContextCompat.checkSelfPermission(
+                            context,
+                            Manifest.permission.CAMERA
+                        ) == PackageManager.PERMISSION_GRANTED
+
+                        if (granted) {
+                            cameraLauncherBitmap.launch(null)
+                        } else {
+                            cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                        }
                     }
                 ) {
                     Text("カメラで撮影")
