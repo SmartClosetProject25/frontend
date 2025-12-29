@@ -61,6 +61,7 @@ fun SuggestionHistoryScreen(
             } else {
                 // アイテム名で検索（大文字小文字を区別しない）
                 val query = searchQuery.lowercase()
+                coordinate.outer?.name?.lowercase()?.contains(query) == true ||
                 coordinate.top.name.lowercase().contains(query) ||
                 coordinate.bottom.name.lowercase().contains(query) ||
                 coordinate.scene.lowercase().contains(query) ||
@@ -84,7 +85,7 @@ fun SuggestionHistoryScreen(
                 suggestions = coordinates.map { coordinate ->
                     HistoryCoordinate(
                         id = coordinate.coordinate_id.toString(),
-                        outer = null, // 将来的にAPIレスポンスにouterが追加された場合に対応
+                        outer = coordinate.outer,
                         top = coordinate.top,
                         bottom = coordinate.bottom,
                         tags = buildTags(coordinate)
@@ -243,7 +244,7 @@ fun DateGroupSection(dateGroup: HistoryDateGroup) {
         Spacer(Modifier.height(12.dp))
 
         // 横スクロールカード
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             items(dateGroup.suggestions) { suggestion ->
                 HistoryCoordinateCard(suggestion)
             }
@@ -254,36 +255,61 @@ fun DateGroupSection(dateGroup: HistoryDateGroup) {
 @Composable
 fun HistoryCoordinateCard(suggestion: HistoryCoordinate) {
     Card(
-        modifier = Modifier.width(180.dp),
+        modifier = Modifier.width(200.dp),
         shape = RoundedCornerShape(12.dp),
         border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE0E0E0)),
         colors = CardDefaults.cardColors(containerColor = Color(0xFFF6F6F6))
     ) {
         Column(
             modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // アウター（ある場合）
-            suggestion.outer?.let { outer ->
-                HistoryItemDisplay(
-                    item = outer,
-                    label = "アウター"
-                )
+            // 2x2グリッドレイアウト
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // 1行目
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // アウター（ある場合）または空きスペース
+                    if (suggestion.outer != null) {
+                        HistoryItemGridCell(
+                            item = suggestion.outer,
+                            label = "アウター",
+                            modifier = Modifier.weight(1f)
+                        )
+                    } else {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
+                    
+                    // トップス
+                    HistoryItemGridCell(
+                        item = suggestion.top,
+                        label = "トップス",
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                
+                // 2行目
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // ボトムス
+                    HistoryItemGridCell(
+                        item = suggestion.bottom,
+                        label = "ボトムス",
+                        modifier = Modifier.weight(1f)
+                    )
+                    
+                    // 4枚目用の空きスペース（将来的に使用）
+                    Spacer(modifier = Modifier.weight(1f))
+                }
             }
             
-            // トップス
-            HistoryItemDisplay(
-                item = suggestion.top,
-                label = "トップス"
-            )
-            
-            // ボトムス
-            HistoryItemDisplay(
-                item = suggestion.bottom,
-                label = "ボトムス"
-            )
-            
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(4.dp))
             
             // タグ
             if (suggestion.tags.isNotEmpty()) {
@@ -313,18 +339,24 @@ fun HistoryCoordinateCard(suggestion: HistoryCoordinate) {
 }
 
 @Composable
-fun HistoryItemDisplay(item: CoordinateItem, label: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
+fun HistoryItemGridCell(
+    item: CoordinateItem,
+    label: String,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         // 画像
         Box(
             modifier = Modifier
-                .size(width = 70.dp, height = 90.dp)
-                .clip(RoundedCornerShape(6.dp))
+                .fillMaxWidth()
+                .aspectRatio(0.75f) // 縦長の比率
+                .clip(RoundedCornerShape(8.dp))
                 .background(Color(0xFFE0E0E0))
-                .border(1.dp, Color(0xFFC0C0C0), RoundedCornerShape(6.dp)),
+                .border(1.dp, Color(0xFFC0C0C0), RoundedCornerShape(8.dp)),
             contentAlignment = Alignment.Center
         ) {
             val imageUrl = buildImageUrl(item.image_path)
@@ -336,22 +368,28 @@ fun HistoryItemDisplay(item: CoordinateItem, label: String) {
                     contentScale = ContentScale.Crop
                 )
             } else {
-                Text(label, color = Color.Gray, fontSize = 10.sp)
+                Text(label, color = Color.Gray, fontSize = 9.sp)
             }
         }
         
-        Spacer(modifier = Modifier.width(10.dp))
-        
-        // テキスト
+        // ラベルとアイテム名
         Column(
-            modifier = Modifier.weight(1f)
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.fillMaxWidth()
         ) {
             Text(
+                text = label,
+                fontSize = 9.sp,
+                color = Color(0xFF757575),
+                fontWeight = FontWeight.Medium
+            )
+            Text(
                 text = item.name,
-                fontSize = 12.sp,
+                fontSize = 10.sp,
                 fontWeight = FontWeight.Bold,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.fillMaxWidth()
             )
         }
     }
