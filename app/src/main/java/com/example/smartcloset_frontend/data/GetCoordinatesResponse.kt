@@ -20,7 +20,8 @@ data class CoordinateData(
     val created_at: String,
     val top: CoordinateItem,
     val bottom: CoordinateItem,
-    val outer: CoordinateItem? = null
+    val outer: CoordinateItem? = null,
+    val genimg_path: String? = null
 )
 
 @Serializable

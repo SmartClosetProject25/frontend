@@ -88,6 +88,7 @@ fun SuggestionHistoryScreen(
                         outer = coordinate.outer,
                         top = coordinate.top,
                         bottom = coordinate.bottom,
+                        genimgPath = coordinate.genimg_path,
                         tags = buildTags(coordinate)
                     )
                 }
@@ -304,8 +305,16 @@ fun HistoryCoordinateCard(suggestion: HistoryCoordinate) {
                         modifier = Modifier.weight(1f)
                     )
                     
-                    // 4枚目用の空きスペース（将来的に使用）
-                    Spacer(modifier = Modifier.weight(1f))
+                    // 4枚目: 生成画像
+                    if (suggestion.genimgPath != null && suggestion.genimgPath.isNotBlank()) {
+                        HistoryGeneratedImageCell(
+                            imagePath = suggestion.genimgPath,
+                            label = "生成画像",
+                            modifier = Modifier.weight(1f)
+                        )
+                    } else {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
                 }
             }
             
@@ -395,6 +404,55 @@ fun HistoryItemGridCell(
     }
 }
 
+@Composable
+fun HistoryGeneratedImageCell(
+    imagePath: String,
+    label: String,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        // 画像
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(0.75f) // 縦長の比率
+                .clip(RoundedCornerShape(8.dp))
+                .background(Color(0xFFE0E0E0))
+                .border(1.dp, Color(0xFFC0C0C0), RoundedCornerShape(8.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            val imageUrl = buildImageUrl(imagePath)
+            if (imageUrl != null) {
+                AsyncImage(
+                    model = imageUrl,
+                    contentDescription = label,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Text(label, color = Color.Gray, fontSize = 9.sp)
+            }
+        }
+        
+        // ラベル
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(
+                text = label,
+                fontSize = 9.sp,
+                color = Color(0xFF757575),
+                fontWeight = FontWeight.Medium
+            )
+        }
+    }
+}
+
 ///// データクラス（履歴専用）
 data class HistoryDateGroup(
     val date: String,
@@ -406,6 +464,7 @@ data class HistoryCoordinate(
     val outer: CoordinateItem?,
     val top: CoordinateItem,
     val bottom: CoordinateItem,
+    val genimgPath: String?,
     val tags: List<String>
 )
 
