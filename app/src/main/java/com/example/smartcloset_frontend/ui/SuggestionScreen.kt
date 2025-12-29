@@ -24,11 +24,13 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -732,6 +734,13 @@ fun ModelSelectionDialog(
                         .height(56.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3))
                 ) {
+                    Icon(
+                        Icons.Default.Person,
+                        contentDescription = "マネキン",
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "マネキンを使用",
                         fontSize = 16.sp,
@@ -748,6 +757,13 @@ fun ModelSelectionDialog(
                         .height(56.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
                 ) {
+                    Icon(
+                        Icons.Default.AccountCircle,
+                        contentDescription = "プロフィール画像",
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "プロフィール画像を使用",
                         fontSize = 16.sp,
