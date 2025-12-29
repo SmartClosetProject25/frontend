@@ -511,78 +511,92 @@ fun CoordinateCard(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-
-                // 👍
-                IconButton(
-                    onClick = {
-                        isLiked = !isLiked
-                        if (isLiked) isDisliked = false
-                        val data = JudgeRequestData(
-                            userId = userId,
-                            planItemId = 2,
-                            vote = "good"
-                        )
-                        itemViewModel.sendJudge(data)
-                    }
-                ) {
-                    Icon(
-                        Icons.Default.ThumbUp,
-                        contentDescription = null,
-                        tint = if (isLiked) Color(0xFF2196F3) else Color.Gray
-                    )
-                }
-
-                // 👎
-                IconButton(
-                    onClick = {
-                        isDisliked = !isDisliked
-                        if (isDisliked) isLiked = false
-                        val data = JudgeRequestData(
-                            userId = userId,
-                            planItemId = 2,
-                            vote = "bad"
-                        )
-                        itemViewModel.sendJudge(data)
-                    }
-                ) {
-                    Icon(
-                        Icons.Default.ThumbUp,
-                        contentDescription = null,
-                        modifier = Modifier.rotate(180f),
-                        tint = if (isDisliked) Color(0xFFE53935) else Color.Gray
-                    )
-                }
-
-                // ✨生成ボタン → モデル選択ダイアログを表示
-                IconButton(
+                // 左側：✨生成ボタン（大きめ）
+                Button(
                     onClick = {
                         showModelSelectionDialog = true
                     },
-                    enabled = !isGeneratingImage
+                    enabled = !isGeneratingImage,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp)
+                        .padding(end = 8.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00C853)),
+                    shape = RoundedCornerShape(24.dp)
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(34.dp)
-                            .background(Color(0xFF00C853), RoundedCornerShape(50)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (isGeneratingImage) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                color = Color.White,
-                                strokeWidth = 2.dp
+                    if (isGeneratingImage) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = Color.White,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Icon(
+                            Icons.Default.AutoAwesome,
+                            contentDescription = "生成",
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "生成",
+                            color = Color.White,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+
+                // 右側：評価ボタン（👍と👎）
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // 👍評価ボタン
+                    IconButton(
+                        onClick = {
+                            isLiked = !isLiked
+                            if (isLiked) isDisliked = false
+                            val data = JudgeRequestData(
+                                userId = userId,
+                                planItemId = 2,
+                                vote = "good"
                             )
-                        } else {
-                            Icon(
-                                Icons.Default.AutoAwesome,
-                                contentDescription = "生成",
-                                tint = Color.White,
-                                modifier = Modifier.size(20.dp)
-                            )
+                            itemViewModel.sendJudge(data)
                         }
+                    ) {
+                        Icon(
+                            Icons.Default.ThumbUp,
+                            contentDescription = null,
+                            tint = if (isLiked) Color(0xFF2196F3) else Color.Gray,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+
+                    // 👎評価ボタン
+                    IconButton(
+                        onClick = {
+                            isDisliked = !isDisliked
+                            if (isDisliked) isLiked = false
+                            val data = JudgeRequestData(
+                                userId = userId,
+                                planItemId = 2,
+                                vote = "bad"
+                            )
+                            itemViewModel.sendJudge(data)
+                        }
+                    ) {
+                        Icon(
+                            Icons.Default.ThumbUp,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .rotate(180f)
+                                .size(24.dp),
+                            tint = if (isDisliked) Color(0xFFE53935) else Color.Gray
+                        )
                     }
                 }
             }
