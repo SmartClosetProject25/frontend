@@ -23,7 +23,8 @@ data class Proposal(
     val pattern: Int,
     val items: Items,
     val item_ids: List<Int>,
-    val reason: String
+    val reason: String,
+    val coordinate_id: Int? = null
 )
 
 @Serializable

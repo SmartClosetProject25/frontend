@@ -16,7 +16,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import kotlinx.coroutines.delay
+import android.util.Log
+import androidx.compose.foundation.clickable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -28,9 +29,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
-import coil.compose.AsyncImagePainter
 import coil.compose.SubcomposeAsyncImage
-import coil.compose.SubcomposeAsyncImageContent
+import coil.compose.AsyncImagePainter
 import com.example.smartcloset_frontend.BuildConfig
 import com.example.smartcloset_frontend.utils.QrCodeGenerator
 import com.example.smartcloset_frontend.viewmodel.SuggestionViewModel
@@ -148,11 +148,10 @@ fun CoordinateImageSection(
         }
     }
 
-    // エラー時のリトライ用に、URLにタイムスタンプを追加して再試行を促す
+    // リトライ用のキー
     var retryKey by remember { mutableStateOf(0) }
     val imageUrlWithRetry = remember(imageUrl, retryKey) {
         imageUrl?.let { url ->
-            // リトライ時はクエリパラメータを追加してURLを変更し、再読み込みを促す
             if (retryKey > 0) {
                 val separator = if (url.contains("?")) "&" else "?"
                 "$url${separator}_retry=$retryKey"
@@ -162,77 +161,64 @@ fun CoordinateImageSection(
         }
     }
 
-    Box(
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        if (imageUrl == null) {
-            CircularProgressIndicator(
-                modifier = Modifier.align(Alignment.Center)
-            )
-        } else {
-            var imageState by remember { mutableStateOf<AsyncImagePainter.State?>(null) }
-            
-            Box(modifier = Modifier.fillMaxWidth()) {
-                SubcomposeAsyncImage(
-                    model = imageUrlWithRetry,
-                    contentDescription = "生成されたコーディネート画像",
-                    modifier = Modifier.fillMaxWidth(),
-                    contentScale = ContentScale.FillWidth
+    if (imageUrlWithRetry == null) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(0xFFE0E0E0)),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator()
+        }
+    } else {
+        SubcomposeAsyncImage(
+            model = imageUrlWithRetry,
+            contentDescription = "生成されたコーディネート画像",
+            modifier = Modifier.fillMaxWidth(),
+            contentScale = ContentScale.FillWidth,
+            loading = {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFFE0E0E0)),
+                    contentAlignment = Alignment.Center
                 ) {
-                    imageState = painter.state
-                    when (painter.state) {
-                        is AsyncImagePainter.State.Loading -> {
-                            // ローディング中はプログレスインジケーターを表示
-                            Box(
-                                modifier = Modifier.fillMaxWidth(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                CircularProgressIndicator()
-                            }
-                        }
-                        is AsyncImagePainter.State.Error -> {
-                            // エラー時でも画像を表示しようと試みる（読み込めたら自動的に表示される）
-                            // 背景にプレースホルダーを表示
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .background(Color(0xFFE0E0E0)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.Center
-                                ) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(24.dp),
-                                        strokeWidth = 2.dp
-                                    )
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Text(
-                                        text = "画像を読み込み中...",
-                                        color = Color.Gray,
-                                        fontSize = 12.sp
-                                    )
-                                }
-                            }
-                            // エラー状態でも画像を表示しようと試みる
-                            SubcomposeAsyncImageContent()
-                        }
-                        else -> {
-                            SubcomposeAsyncImageContent()
+                    CircularProgressIndicator()
+                }
+            },
+            error = { state ->
+                val error = state.result.throwable
+                Log.e("GeneratedResultScreen", "画像読み込みエラー: ${error?.message}", error)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFFE0E0E0)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "画像の読み込みに失敗しました",
+                            color = Color.Gray,
+                            fontSize = 14.sp
+                        )
+                        Text(
+                            text = error?.message ?: "不明なエラー",
+                            color = Color.Red,
+                            fontSize = 12.sp
+                        )
+                        Button(
+                            onClick = { retryKey++ },
+                            modifier = Modifier.padding(top = 8.dp)
+                        ) {
+                            Text("再試行")
                         }
                     }
                 }
             }
-            
-            // エラー状態の時、定期的にリトライする
-            LaunchedEffect(imageState) {
-                if (imageState is AsyncImagePainter.State.Error) {
-                    delay(2000) // 2秒待機
-                    retryKey++ // リトライキーを更新して再読み込みを促す
-                }
-            }
-        }
+        )
     }
 }
 

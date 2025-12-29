@@ -11,8 +11,13 @@ class TodayPlanRepository {
     suspend fun sendTodayPlan(todayPlanData: TodayPlanData): Response<ProposalResponse> =
         RetrofitClient.instance.sendTodayPlan(todayPlanData)
 
-    suspend fun generateImage(imagePaths: List<String>): Response<ImageResponse> {
-        val request = GenerateImageRequest(image_paths = imagePaths)
+    suspend fun generateImage(imagePaths: List<String>, modelImageBase64: String? = null, modelTemplate: String? = null, coordinateId: Int? = null): Response<ImageResponse> {
+        val request = GenerateImageRequest(
+            image_paths = imagePaths,
+            model_image_base64 = modelImageBase64,
+            model_template = modelTemplate,
+            coordinate_id = coordinateId
+        )
         return RetrofitClient.instance.generateImage(request)
     }
 }

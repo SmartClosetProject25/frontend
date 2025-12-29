@@ -1,7 +1,13 @@
 package com.example.smartcloset_frontend.ui
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.net.Uri
 import android.util.Log
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -19,6 +25,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.LocationOn
@@ -37,6 +44,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
@@ -47,6 +55,7 @@ import com.example.smartcloset_frontend.data.LocationData
 import com.example.smartcloset_frontend.data.Proposal
 import com.example.smartcloset_frontend.data.TodayPlanData
 import com.example.smartcloset_frontend.utils.GetLocation
+import com.example.smartcloset_frontend.utils.ImageUtils
 import com.example.smartcloset_frontend.viewmodel.SuggestionViewModel
 import com.example.smartcloset_frontend.viewmodel.GetWeatherViewModel
 import com.example.smartcloset_frontend.utils.WeatherLocationLoader
@@ -393,9 +402,40 @@ fun CoordinateCard(
     itemViewModel: ItemViewModel
 ) {
     val userId by userSessionViewModel.userId.collectAsState()
+    val context = LocalContext.current
     var isLiked by remember { mutableStateOf(false) }
     var isDisliked by remember { mutableStateOf(false) }
     var isReasonExpanded by remember { mutableStateOf(false) }
+    var showModelSelectionDialog by remember { mutableStateOf(false) }
+
+    // カメラ撮影用のLauncher
+    val cameraLauncherBitmap = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicturePreview()
+    ) { bitmap: Bitmap? ->
+        bitmap?.let {
+            showModelSelectionDialog = false
+            // カメラで撮影した画像で生成を開始
+            startImageGeneration(
+                proposal = proposal,
+                modelBitmap = it,
+                modelUri = null,
+                modelTemplate = null,
+                context = context,
+                suggestionViewModel = suggestionViewModel
+            )
+        }
+    }
+
+    // カメラ権限リクエスト用
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            cameraLauncherBitmap.launch(null)
+        } else {
+            Toast.makeText(context, "カメラの権限が必要です", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     Card(
         modifier = modifier,
@@ -516,16 +556,10 @@ fun CoordinateCard(
                     )
                 }
 
-                // ✨生成ボタン → generate へ遷移
+                // ✨生成ボタン → モデル選択ダイアログを表示
                 IconButton(
                     onClick = {
-                        // proposal.itemsから各アイテムのimage_pathを取得
-                        val imagePaths = listOfNotNull(
-                            proposal.items.outer?.image_path,
-                            proposal.items.tops?.image_path,
-                            proposal.items.bottoms?.image_path
-                        )
-                        suggestionViewModel.generateImage(imagePaths, proposal)
+                        showModelSelectionDialog = true
                     },
                     enabled = !isGeneratingImage
                 ) {
@@ -554,4 +588,165 @@ fun CoordinateCard(
             }
         }
     }
+
+    // モデル選択ダイアログ
+    if (showModelSelectionDialog) {
+        ModelSelectionDialog(
+            onDismiss = {
+                showModelSelectionDialog = false
+            },
+            onCameraClick = {
+                val granted = ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.CAMERA
+                ) == PackageManager.PERMISSION_GRANTED
+
+                if (granted) {
+                    cameraLauncherBitmap.launch(null)
+                } else {
+                    cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                }
+            },
+            onMannequinClick = {
+                showModelSelectionDialog = false
+                startImageGeneration(
+                    proposal = proposal,
+                    modelBitmap = null,
+                    modelUri = null,
+                    modelTemplate = "mannequin",
+                    context = context,
+                    suggestionViewModel = suggestionViewModel
+                )
+            },
+            onProfileClick = {
+                showModelSelectionDialog = false
+                startImageGeneration(
+                    proposal = proposal,
+                    modelBitmap = null,
+                    modelUri = null,
+                    modelTemplate = "profile",
+                    context = context,
+                    suggestionViewModel = suggestionViewModel
+                )
+            }
+        )
+    }
+}
+
+// 画像生成を開始する関数
+fun startImageGeneration(
+    proposal: Proposal,
+    modelBitmap: Bitmap?,
+    modelUri: Uri?,
+    modelTemplate: String?,
+    context: android.content.Context,
+    suggestionViewModel: SuggestionViewModel
+) {
+    // proposal.itemsから各アイテムのimage_pathを取得
+    val imagePaths = mutableListOf<String>()
+    
+    // 服の画像パスを追加
+    imagePaths.addAll(
+        listOfNotNull(
+            proposal.items.outer?.image_path,
+            proposal.items.tops?.image_path,
+            proposal.items.bottoms?.image_path
+        )
+    )
+    
+    // モデル画像をbase64エンコード（カメラ撮影時のみ）
+    val modelImageBase64: String? = when {
+        modelBitmap != null -> ImageUtils.bitmapToBase64(modelBitmap)
+        modelUri != null -> ImageUtils.uriToBase64(context, modelUri)
+        else -> null
+    }
+    
+    suggestionViewModel.generateImage(imagePaths, modelImageBase64, modelTemplate, proposal, proposal.coordinate_id)
+}
+
+// モデル選択ダイアログ
+@Composable
+fun ModelSelectionDialog(
+    onDismiss: () -> Unit,
+    onCameraClick: () -> Unit,
+    onMannequinClick: () -> Unit,
+    onProfileClick: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "モデルを選択",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // カメラで撮影ボタン
+                Button(
+                    onClick = onCameraClick,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Black)
+                ) {
+                    Icon(
+                        Icons.Default.CameraAlt,
+                        contentDescription = "カメラ",
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "カメラで撮影",
+                        fontSize = 16.sp,
+                        color = Color.White,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+
+                // マネキンを使用ボタン
+                Button(
+                    onClick = onMannequinClick,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3))
+                ) {
+                    Text(
+                        text = "マネキンを使用",
+                        fontSize = 16.sp,
+                        color = Color.White,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+
+                // プロフィール画像を使用ボタン
+                Button(
+                    onClick = onProfileClick,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
+                ) {
+                    Text(
+                        text = "プロフィール画像を使用",
+                        fontSize = 16.sp,
+                        color = Color.White,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("キャンセル", color = Color.Gray)
+            }
+        }
+    )
 }
