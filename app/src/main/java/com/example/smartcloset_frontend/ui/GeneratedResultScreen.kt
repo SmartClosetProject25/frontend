@@ -2,12 +2,15 @@ package com.example.smartcloset_frontend.ui
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -17,6 +20,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import android.util.Log
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -29,9 +33,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import coil.compose.AsyncImage
 import coil.compose.SubcomposeAsyncImage
 import coil.compose.AsyncImagePainter
 import com.example.smartcloset_frontend.BuildConfig
+import com.example.smartcloset_frontend.data.Item
 import com.example.smartcloset_frontend.utils.QrCodeGenerator
 import com.example.smartcloset_frontend.viewmodel.SuggestionViewModel
 
@@ -63,43 +69,159 @@ fun GeneratedResultScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
-                    .background(Color.White)
+                    .background(Color(0xFFF5F5F5))
                     .verticalScroll(rememberScrollState())
             ) {
-                CoordinateImageSection(
-                    imageUrlOrPath = generatedImageUrl
-                )
-
-                CoordinateSummarySection(
-                    title = "今日のコーデ",
-                    description = todayPlan?.plan ?: ""
-                )
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                selectedProposal?.items?.outer?.item_name?.let {
-                    ItemDetailSection(
-                        category = "アウター",
-                        name = it
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                // 生成画像セクション（カード形式）
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                ) {
+                    CoordinateImageSection(
+                        imageUrlOrPath = generatedImageUrl
                     )
                 }
-                selectedProposal?.items?.tops?.item_name?.let {
-                    ItemDetailSection(
-                        category = "トップス",
-                        name = it
-                    )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // コーディネート情報カード
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = "今日のコーデ",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        // 予定
+                        if (!todayPlan?.plan.isNullOrBlank()) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    Icons.Default.Event,
+                                    contentDescription = null,
+                                    tint = Color(0xFF2196F3),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = todayPlan?.plan ?: "",
+                                    fontSize = 16.sp,
+                                    color = Color.Black
+                                )
+                            }
+                        }
+                    }
                 }
-                selectedProposal?.items?.bottoms?.item_name?.let {
-                    ItemDetailSection(
-                        category = "ボトムス",
-                        name = it
-                    )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // アイテム詳細カード
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = "使用アイテム",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(bottom = 12.dp)
+                        )
+                        
+                        selectedProposal?.items?.outer?.let { item ->
+                            ItemDetailCard(
+                                category = "アウター",
+                                item = item
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                        }
+                        selectedProposal?.items?.tops?.let { item ->
+                            ItemDetailCard(
+                                category = "トップス",
+                                item = item
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                        }
+                        selectedProposal?.items?.bottoms?.let { item ->
+                            ItemDetailCard(
+                                category = "ボトムス",
+                                item = item
+                            )
+                        }
+                    }
                 }
                 
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(16.dp))
                 
-                // QRコードセクション
-                QrCodeSection(qrCodeBitmap = qrCodeBitmap)
+                // QRコードセクション（カード形式）
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    QrCodeSection(qrCodeBitmap = qrCodeBitmap)
+                }
+                
+                // コーディネート理由
+                selectedProposal?.reason?.takeIf { it.isNotBlank() }?.let { reason ->
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Row(verticalAlignment = Alignment.Top) {
+                                Icon(
+                                    Icons.Default.Lightbulb,
+                                    contentDescription = null,
+                                    tint = Color(0xFFFFC107),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "コーディネートのポイント",
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.Black
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = reason,
+                                        fontSize = 13.sp,
+                                        color = Color.Gray,
+                                        lineHeight = 20.sp
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
                 
                 Spacer(modifier = Modifier.height(24.dp))
             }
@@ -165,6 +287,7 @@ fun CoordinateImageSection(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
+                .height(400.dp)
                 .background(Color(0xFFE0E0E0)),
             contentAlignment = Alignment.Center
         ) {
@@ -174,12 +297,15 @@ fun CoordinateImageSection(
         SubcomposeAsyncImage(
             model = imageUrlWithRetry,
             contentDescription = "生成されたコーディネート画像",
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)),
             contentScale = ContentScale.FillWidth,
             loading = {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .height(400.dp)
                         .background(Color(0xFFE0E0E0)),
                     contentAlignment = Alignment.Center
                 ) {
@@ -192,22 +318,25 @@ fun CoordinateImageSection(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .height(400.dp)
                         .background(Color(0xFFE0E0E0)),
                     contentAlignment = Alignment.Center
                 ) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.padding(16.dp)
                     ) {
+                        Icon(
+                            Icons.Default.ErrorOutline,
+                            contentDescription = null,
+                            tint = Color.Gray,
+                            modifier = Modifier.size(48.dp)
+                        )
                         Text(
                             text = "画像の読み込みに失敗しました",
                             color = Color.Gray,
                             fontSize = 14.sp
-                        )
-                        Text(
-                            text = error?.message ?: "不明なエラー",
-                            color = Color.Red,
-                            fontSize = 12.sp
                         )
                         Button(
                             onClick = { retryKey++ },
@@ -223,48 +352,70 @@ fun CoordinateImageSection(
 }
 
 @Composable
-fun CoordinateSummarySection(title: String, description: String) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
+fun ItemDetailCard(category: String, item: Item) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = title,
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold
+        // アイテム画像
+        val imageUrl = if (item.image_path.startsWith("http://") || item.image_path.startsWith("https://")) {
+            item.image_path
+        } else {
+            val baseUrl = BuildConfig.SERVER_URL.trimEnd('/')
+            val imagePath = if (item.image_path.startsWith("/")) item.image_path else "/${item.image_path}"
+            "$baseUrl$imagePath"
+        }
+        
+        AsyncImage(
+            model = imageUrl,
+            contentDescription = item.item_name,
+            modifier = Modifier
+                .size(60.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(Color(0xFFE0E0E0)),
+            contentScale = ContentScale.Crop
         )
-        Text(
-            text = description,
-            fontSize = 14.sp,
-            color = Color.Gray
-        )
+        
+        Spacer(modifier = Modifier.width(12.dp))
+        
+        // アイテム情報
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = category,
+                fontSize = 12.sp,
+                color = Color.Gray
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = item.item_name,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color.Black
+            )
+            // タグ表示
+            if (item.taste.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    item.taste.take(3).forEach { tag ->
+                        Box(
+                            modifier = Modifier
+                                .background(Color(0xFFE3F2FD), RoundedCornerShape(4.dp))
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = tag,
+                                fontSize = 10.sp,
+                                color = Color(0xFF2196F3)
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
-}
-
-@Composable
-fun ItemDetailSection(category: String, name: String) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-    ) {
-        Text(
-            text = category,
-            fontSize = 12.sp,
-            color = Color.Gray
-        )
-        Text(
-            text = name,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Normal
-        )
-    }
-    Divider(
-        color = Color.LightGray.copy(alpha = 0.5f),
-        thickness = 0.5.dp,
-        modifier = Modifier.padding(horizontal = 16.dp)
-    )
 }
 
 @Composable
@@ -272,34 +423,54 @@ fun QrCodeSection(qrCodeBitmap: ImageBitmap?) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp),
+            .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(
-            text = "QRコード",
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold,
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(bottom = 16.dp)
-        )
+        ) {
+            Icon(
+                Icons.Default.QrCode,
+                contentDescription = null,
+                tint = Color(0xFF2196F3),
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "QRコード",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
         
         qrCodeBitmap?.let {
-            Image(
-                bitmap = it,
-                contentDescription = "QRコード",
+            Box(
                 modifier = Modifier
                     .size(200.dp)
-                    .clip(MaterialTheme.shapes.medium)
-                    .background(Color.White)
-            )
-            Spacer(modifier = Modifier.height(8.dp))
+                    .background(Color.White, RoundedCornerShape(12.dp))
+                    .border(1.dp, Color(0xFFE0E0E0), RoundedCornerShape(12.dp))
+                    .padding(12.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    bitmap = it,
+                    contentDescription = "QRコード",
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+            Spacer(modifier = Modifier.height(12.dp))
             Text(
                 text = "このQRコードをスキャンして\n画像を表示できます",
-                fontSize = 12.sp,
+                fontSize = 13.sp,
                 color = Color.Gray,
-                modifier = Modifier.padding(top = 8.dp)
+                lineHeight = 18.sp
             )
-        } ?: CircularProgressIndicator(
-            modifier = Modifier.size(200.dp)
-        )
+        } ?: Box(
+            modifier = Modifier.size(200.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator()
+        }
     }
 }
