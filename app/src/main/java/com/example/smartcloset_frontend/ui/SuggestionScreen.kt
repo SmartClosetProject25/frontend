@@ -661,7 +661,7 @@ fun startImageGeneration(
         else -> null
     }
     
-    suggestionViewModel.generateImage(imagePaths, modelImageBase64, modelTemplate, proposal)
+    suggestionViewModel.generateImage(imagePaths, modelImageBase64, modelTemplate, proposal, proposal.coordinate_id)
 }
 
 // モデル選択ダイアログ

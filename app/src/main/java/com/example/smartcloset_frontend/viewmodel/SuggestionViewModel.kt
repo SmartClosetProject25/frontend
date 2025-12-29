@@ -68,7 +68,7 @@ class SuggestionViewModel : ViewModel() {
         }
     }
 
-    fun generateImage(imagePaths: List<String>, modelImageBase64: String? = null, modelTemplate: String? = null, proposal: Proposal? = null) {
+    fun generateImage(imagePaths: List<String>, modelImageBase64: String? = null, modelTemplate: String? = null, proposal: Proposal? = null, coordinateId: Int? = null) {
         // 選択されたProposalを保存
         proposal?.let { _selectedProposal.value = it }
         
@@ -77,8 +77,9 @@ class SuggestionViewModel : ViewModel() {
             Log.d("SuggestionViewModel", "Sending image paths to generate image: $imagePaths")
             Log.d("SuggestionViewModel", "Model image base64 length: ${modelImageBase64?.length ?: 0}")
             Log.d("SuggestionViewModel", "Model template: $modelTemplate")
+            Log.d("SuggestionViewModel", "Coordinate ID: $coordinateId")
             try {
-                val response = repository.generateImage(imagePaths, modelImageBase64, modelTemplate)
+                val response = repository.generateImage(imagePaths, modelImageBase64, modelTemplate, coordinateId)
                 if (response.isSuccessful) {
                     val imageResponse = response.body()
                     if (imageResponse?.status == "success") {
