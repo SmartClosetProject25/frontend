@@ -40,6 +40,7 @@ import com.example.smartcloset_frontend.BuildConfig
 import com.example.smartcloset_frontend.data.Item
 import com.example.smartcloset_frontend.utils.QrCodeGenerator
 import com.example.smartcloset_frontend.viewmodel.SuggestionViewModel
+import java.net.URLEncoder
 
 @Composable
 fun GeneratedResultScreen(
@@ -49,12 +50,15 @@ fun GeneratedResultScreen(
     val generatedImageUrl by suggestionViewModel.generatedImage.collectAsState()
     val selectedProposal by suggestionViewModel.selectedProposal.collectAsState()
     val todayPlan by suggestionViewModel.todayPlan.collectAsState()
+    val coordinateId by suggestionViewModel.coordinateId.collectAsState()
     var qrCodeBitmap by remember { mutableStateOf<ImageBitmap?>(null) }
     
-    // QRコードを生成
-    LaunchedEffect(generatedImageUrl) {
-        generatedImageUrl?.let { url ->
-            qrCodeBitmap = QrCodeGenerator.generateQrCode(url).asImageBitmap()
+    // QRコードを生成（HTMLページのURLを使用）
+    LaunchedEffect(generatedImageUrl, coordinateId) {
+        generatedImageUrl?.let { imageUrl ->
+            // HTMLページのURLを生成
+            val htmlPageUrl = generateHtmlPageUrl(imageUrl, coordinateId)
+            qrCodeBitmap = QrCodeGenerator.generateQrCode(htmlPageUrl).asImageBitmap()
         }
     }
 
@@ -415,6 +419,35 @@ fun ItemDetailCard(category: String, item: Item) {
                 }
             }
         }
+    }
+}
+
+/**
+ * 画像URLからHTMLページのURLを生成する関数
+ * @param imageUrl 画像のURL（相対パスまたは完全なURL）
+ * @param coordinateId コーディネートID（オプション）
+ * @return HTMLページの完全なURL
+ */
+fun generateHtmlPageUrl(imageUrl: String, coordinateId: Int?): String {
+    val baseUrl = BuildConfig.SERVER_URL.trimEnd('/')
+    
+    // 画像URLを完全なURLに変換
+    val fullImageUrl = if (imageUrl.startsWith("http://") || imageUrl.startsWith("https://")) {
+        imageUrl
+    } else {
+        val imagePath = if (imageUrl.startsWith("/")) imageUrl else "/$imageUrl"
+        "$baseUrl$imagePath"
+    }
+    
+    // URLエンコード
+    val encodedImageUrl = URLEncoder.encode(fullImageUrl, "UTF-8")
+    
+    // HTMLページのURLを生成
+    // coordinateIdがある場合はそれを使用、ない場合はimage_urlパラメータを使用
+    return if (coordinateId != null) {
+        "$baseUrl/view_coordinate?coordinate_id=$coordinateId"
+    } else {
+        "$baseUrl/view_coordinate?image_url=$encodedImageUrl"
     }
 }
 
