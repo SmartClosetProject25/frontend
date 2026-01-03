@@ -47,9 +47,10 @@ fun SuggestionHistoryScreen(
     val isLoading by viewModel.isLoading.collectAsState()
     val error by viewModel.error.collectAsState()
 
-    // 初回ロード時にデータを取得
-    LaunchedEffect(Unit) {
+    // 画面が表示されるたびにデータを取得
+    DisposableEffect(Unit) {
         viewModel.fetchCoordinates()
+        onDispose { }
     }
 
     // 日付別にグループ化（検索クエリでフィルタリング）

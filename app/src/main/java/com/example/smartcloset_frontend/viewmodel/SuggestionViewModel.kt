@@ -38,6 +38,9 @@ class SuggestionViewModel : ViewModel() {
     private val _todayPlan = MutableStateFlow<TodayPlanData?>(null)
     val todayPlan: StateFlow<TodayPlanData?> = _todayPlan
 
+    private val _coordinateId = MutableStateFlow<Int?>(null)
+    val coordinateId: StateFlow<Int?> = _coordinateId
+
     fun sendTodayPlan(todayPlanData: TodayPlanData) {
         viewModelScope.launch {
             _isSendingPlan.value = true
@@ -71,6 +74,8 @@ class SuggestionViewModel : ViewModel() {
     fun generateImage(imagePaths: List<String>, modelImageBase64: String? = null, modelTemplate: String? = null, proposal: Proposal? = null, coordinateId: Int? = null) {
         // 選択されたProposalを保存
         proposal?.let { _selectedProposal.value = it }
+        // Coordinate IDを保存
+        coordinateId?.let { _coordinateId.value = it }
         
         viewModelScope.launch {
             _isGeneratingImage.value = true

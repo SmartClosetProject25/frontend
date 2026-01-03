@@ -22,10 +22,11 @@ object RetrofitClient {
     private val cookieJar = SimpleCookieJar()
 
     // タイムアウト設定とCookieJarを追加したOkHttpClientインスタンスを生成
+    // 接続タイムアウトは短めに、読み込みタイムアウトはデータ量に応じて長めに設定
     private val okHttpClient = OkHttpClient.Builder()
-        .connectTimeout(300, TimeUnit.SECONDS)
-        .readTimeout(300, TimeUnit.SECONDS)
-        .writeTimeout(300, TimeUnit.SECONDS)
+        .connectTimeout(30, TimeUnit.SECONDS) // 接続確立のタイムアウト
+        .readTimeout(120, TimeUnit.SECONDS) // データ読み込みのタイムアウト（大量データ対応）
+        .writeTimeout(30, TimeUnit.SECONDS) // データ送信のタイムアウト
         .cookieJar(cookieJar) // Cookie管理を追加
         .addInterceptor(BaseUrlOverrideInterceptor())
         .build()
