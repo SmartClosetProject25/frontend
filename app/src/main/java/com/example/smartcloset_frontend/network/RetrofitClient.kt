@@ -28,6 +28,7 @@ object RetrofitClient {
         .readTimeout(120, TimeUnit.SECONDS) // データ読み込みのタイムアウト（大量データ対応）
         .writeTimeout(30, TimeUnit.SECONDS) // データ送信のタイムアウト
         .cookieJar(cookieJar) // Cookie管理を追加
+        .addInterceptor(BaseUrlOverrideInterceptor())
         .build()
 
     // ApiServiceのインスタンスを遅延初期化で生成する
