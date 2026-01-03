@@ -19,10 +19,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material3.Icon
 import androidx.navigation.NavHostController
+import com.example.smartcloset_frontend.BuildConfig
 import com.example.smartcloset_frontend.data.PreferencesManager
 import com.example.smartcloset_frontend.viewmodel.UserSessionViewModel
 import com.example.smartcloset_frontend.network.RetrofitClient
+import com.example.smartcloset_frontend.network.ServerUrlHolder
 
+const val serverUrl = BuildConfig.SERVER_URL
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
@@ -39,6 +42,10 @@ fun SettingsScreen(
 
     var locationUsage by remember { mutableStateOf(false) }
     var aiDataUsage by remember { mutableStateOf(true) }
+
+    var serverUrlInput by remember { mutableStateOf("") }
+    var serverUrlMessage by remember { mutableStateOf<String?>(null) }
+    var showServerForm by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -107,6 +114,26 @@ fun SettingsScreen(
             item {
                 SettingArrowItem("よくある質問") { /* navigate */ }
             }
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { showServerForm = !showServerForm }
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "サーバーURL設定",
+                        modifier = Modifier.weight(1f),
+                        fontSize = 14.sp
+                    )
+                    Icon(
+                        imageVector = if (showServerForm) Icons.Default.ArrowBack else Icons.Default.ArrowForward,
+                        contentDescription = null
+                    )
+                }
+            }
+
 
             // ログアウト項目
             item { Spacer(modifier = Modifier.height(32.dp)) }
@@ -124,7 +151,75 @@ fun SettingsScreen(
                     }
                 )
             }
-            
+
+
+
+            // ===== サーバーURL設定（デバッグ用）=====
+            if (showServerForm){
+            item {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                ) {
+                    Text(
+                        text = "サーバーURL）",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    OutlinedTextField(
+                        value = serverUrlInput,
+                        onValueChange = { serverUrlInput = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        placeholder = {
+                            Text("例: http://192.168.50.77:5000/")
+                        }
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Button(
+                            onClick = {
+                                val input = serverUrlInput.trim()
+                                ServerUrlHolder.overrideBaseUrl =
+                                    if (input.isBlank()) null
+                                    else if (input.endsWith("/")) input else "$input/"
+
+                                serverUrlMessage =
+                                    if (input.isBlank()) "デフォルトに戻しました"
+                                    else "サーバーURLを適用しました"
+                            }
+                        ) {
+                            Text("適用")
+                        }
+
+                        OutlinedButton(
+                            onClick = {
+                                serverUrlInput = ""
+                                ServerUrlHolder.overrideBaseUrl = null
+                                serverUrlMessage = "デフォルトに戻しました"
+                            }
+                        ) {
+                            Text("デフォルト")
+                        }
+                    }
+
+                    serverUrlMessage?.let {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(it, fontSize = 12.sp)
+                    }
+                }
+            }
+            }
+
+
             item { Spacer(modifier = Modifier.height(32.dp)) }
         }
     }

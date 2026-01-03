@@ -27,6 +27,7 @@ object RetrofitClient {
         .readTimeout(300, TimeUnit.SECONDS)
         .writeTimeout(300, TimeUnit.SECONDS)
         .cookieJar(cookieJar) // Cookie管理を追加
+        .addInterceptor(BaseUrlOverrideInterceptor())
         .build()
 
     // ApiServiceのインスタンスを遅延初期化で生成する
