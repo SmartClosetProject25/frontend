@@ -12,7 +12,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.example.smartcloset_frontend.data.repository.UserSessionRepository
 
-import com.example.smartcloset_frontend.ui.TestScreen
+//import com.example.smartcloset_frontend.ui.TestScreen
 import com.example.smartcloset_frontend.ui.HomeScreen
 import com.example.smartcloset_frontend.ui.SettingsScreen
 import com.example.smartcloset_frontend.ui.LoginScreen
@@ -82,7 +82,7 @@ fun NavGraph(
                 userSessionViewModel = userSessionViewModel
             )
         }
-        composable("test") { TestScreen(navController) }
+//        composable("test") { TestScreen(navController) }
         composable("coordinate") { SuggestionScreen(navController, suggestionViewModel = suggestionViewModel, userSessionViewModel = userSessionViewModel) }
 
 

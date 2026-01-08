@@ -38,6 +38,7 @@ import coil.compose.SubcomposeAsyncImage
 import coil.compose.AsyncImagePainter
 import com.example.smartcloset_frontend.BuildConfig
 import com.example.smartcloset_frontend.data.Item
+import com.example.smartcloset_frontend.network.ServerUrlHolder
 import com.example.smartcloset_frontend.utils.QrCodeGenerator
 import com.example.smartcloset_frontend.viewmodel.SuggestionViewModel
 import java.net.URLEncoder
@@ -268,7 +269,7 @@ fun CoordinateImageSection(
         if (path.startsWith("http://") || path.startsWith("https://")) {
             path
         } else {
-            val baseUrl = BuildConfig.SERVER_URL.trimEnd('/')
+            val baseUrl = (ServerUrlHolder.overrideBaseUrl ?: BuildConfig.SERVER_URL).trimEnd('/')
             val imagePath = if (path.startsWith("/")) path else "/$path"
             "$baseUrl$imagePath"
         }

@@ -24,7 +24,7 @@ fun BottomNavBar(navController: NavHostController) {
             "profile" to R.drawable.user_4_line,
             "settings" to R.drawable.settings_4_line,
             // 不要になったら消す(コメントアウトでも可)
-            "test" to R.drawable.bug_line
+//            "test" to R.drawable.bug_line
         )
 
         items.forEach { (route, iconRes) ->

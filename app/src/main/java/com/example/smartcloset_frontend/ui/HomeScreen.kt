@@ -30,12 +30,13 @@ import androidx.navigation.NavHostController
 
 import com.example.smartcloset_frontend.R
 import com.example.smartcloset_frontend.BuildConfig
+import com.example.smartcloset_frontend.network.ServerUrlHolder
 import com.example.smartcloset_frontend.viewmodel.ItemViewModel
 import com.example.smartcloset_frontend.viewmodel.UserSessionViewModel
 import com.example.smartcloset_frontend.ui.networkErr.AsyncState
 
 
-const val baseUrl = BuildConfig.SERVER_URL
+//const val baseUrl = BuildConfig.SERVER_URL
 @Composable
 fun HomeScreen(
     navController: NavHostController,
@@ -225,7 +226,10 @@ fun HomeScreen(
 
                             val item = extendedItems[index]
                             if (item.imageUrl != null) {
-                                val fullUrl = baseUrl + item.imageUrl
+//                                val fullUrl = baseUrl + item.imageUrl
+                                val fullUrl =
+                                    (ServerUrlHolder.overrideBaseUrl ?: BuildConfig.SERVER_URL) + item.imageUrl
+
                                 Image(
                                     painter = coil.compose.rememberAsyncImagePainter(fullUrl),
 

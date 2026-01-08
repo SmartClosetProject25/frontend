@@ -37,6 +37,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import coil.compose.rememberAsyncImagePainter
+import com.example.smartcloset_frontend.BuildConfig
+import com.example.smartcloset_frontend.network.ServerUrlHolder
 import com.example.smartcloset_frontend.utils.saveBitmapAndGetUri
 import com.example.smartcloset_frontend.viewmodel.AddItemViewModel
 import com.example.smartcloset_frontend.viewmodel.MasterDataViewModel
@@ -359,9 +361,9 @@ fun ImageUploadArea(
             imageUri.isNullOrBlank() -> null
             imageUri.startsWith("http://") || imageUri.startsWith("https://") -> imageUri
             imageUri.startsWith("/static/") -> {
-                // HomeScreen.ktで定義されているbaseUrlを使用
-                com.example.smartcloset_frontend.ui.baseUrl + imageUri
+                (ServerUrlHolder.overrideBaseUrl ?: BuildConfig.SERVER_URL) + imageUri
             }
+
             else -> imageUri // ローカルのUri（content://など）
         }
     }
