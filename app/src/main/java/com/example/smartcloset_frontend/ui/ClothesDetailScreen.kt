@@ -27,6 +27,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
+import com.example.smartcloset_frontend.BuildConfig
+import com.example.smartcloset_frontend.network.ServerUrlHolder
 import com.example.smartcloset_frontend.viewmodel.ClothesDetailViewModel
 import com.example.smartcloset_frontend.viewmodel.MasterDataViewModel
 import com.example.smartcloset_frontend.ui.networkErr.AsyncState
@@ -152,7 +154,9 @@ fun ClothesDetailScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         if (!itemDetail.imageUrl.isNullOrBlank()) {
-                            val fullUrl = baseUrl + itemDetail.imageUrl
+                            val fullUrl =
+                                (ServerUrlHolder.overrideBaseUrl ?: BuildConfig.SERVER_URL) + itemDetail.imageUrl
+
                             Image(
                                 painter = rememberAsyncImagePainter(fullUrl),
                                 contentDescription = itemDetail.itemName,

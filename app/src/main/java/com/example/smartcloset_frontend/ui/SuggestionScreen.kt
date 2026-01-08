@@ -56,6 +56,7 @@ import com.example.smartcloset_frontend.data.JudgeRequestData
 import com.example.smartcloset_frontend.data.LocationData
 import com.example.smartcloset_frontend.data.Proposal
 import com.example.smartcloset_frontend.data.TodayPlanData
+import com.example.smartcloset_frontend.network.ServerUrlHolder
 import com.example.smartcloset_frontend.utils.GetLocation
 import com.example.smartcloset_frontend.utils.ImageUtils
 import com.example.smartcloset_frontend.viewmodel.SuggestionViewModel
@@ -389,7 +390,7 @@ fun ItemDisplay(item: Item?, label: String) {
                 val imageUrl = if (item.image_path.startsWith("http://") || item.image_path.startsWith("https://")) {
                     item.image_path
                 } else {
-                    val baseUrl = BuildConfig.SERVER_URL.trimEnd('/')
+                    val baseUrl = (ServerUrlHolder.overrideBaseUrl ?: BuildConfig.SERVER_URL).trimEnd('/')
                     val imagePath = if (item.image_path.startsWith("/")) item.image_path else "/${item.image_path}"
                     "$baseUrl$imagePath"
                 }
