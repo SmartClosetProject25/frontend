@@ -72,19 +72,6 @@ fun LoginScreen(
             )
             
             Spacer(modifier = Modifier.height(60.dp))
-//TODO ★ テスト用：userId = 1 を保存 本来はサーバーからの返答を挿入
-            Button(
-                onClick = {
-                    userSessionViewModel.setUserId(1)
-                    // Home画面へ遷移
-                    navController.navigate("home") {
-                        popUpTo("login") { inclusive = true }
-                    }
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("top (test login)")
-            }
             
             // メールアドレス入力フィールド
             OutlinedTextField(
@@ -170,66 +157,82 @@ fun LoginScreen(
             
             Spacer(modifier = Modifier.height(40.dp))
 
-            // ログインボタン
+            //TODO ★ テスト用：userId = 1 を保存 本来はサーバーからの返答を挿入
             Button(
                 onClick = {
-                    if (email.isNotEmpty() && password.isNotEmpty()) {
-                        isLoading = true
-                        showError = false
-                        errorMessage = null
-                        
-                        scope.launch {
-                            loginViewModel.login(email, password) { success, message, userId ->
-                                isLoading = false
-                                if (success) {
-                                    // ログイン情報を保存（日時も記録）
-                                    preferencesManager.saveLoginInfo(email, password)
-                                    // user_idをUserSessionViewModelに保存（完了を待つ）
-                                    userId?.let { id ->
-                                        userSessionViewModel.setUserId(id)
-                                        // userId保存後にHome画面へ遷移
-                                        navController.navigate("home") {
-                                            popUpTo("login") { inclusive = true }
-                                            launchSingleTop = true
-                                        }
-                                    } ?: run {
-                                        // userIdが取得できなかった場合
-                                        showError = true
-                                        errorMessage = "ユーザー情報の取得に失敗しました。"
-                                    }
-                                } else {
-                                    showError = true
-                                    errorMessage = message
-                                }
-                            }
-                        }
-                    } else {
-                        showError = true
-                        errorMessage = "メールアドレスとパスワードを入力してください。"
+                    userSessionViewModel.setUserId(1)
+                    // Home画面へ遷移
+                    navController.navigate("home") {
+                        popUpTo("login") { inclusive = true }
                     }
                 },
-                enabled = !isLoading,
-                colors = ButtonDefaults.buttonColors(
+                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.buttonColors(
                     containerColor = Color.Black
                 ),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp)
             ) {
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        strokeWidth = 2.dp,
-                        color = Color.White,
-                        modifier = Modifier.size(20.dp)
-                    )
-                } else {
-                    Text(
-                        text = "ログイン",
-                        color = Color.White,
-                        fontSize = 16.sp
-                    )
-                }
+                Text("ログイン")
             }
+            // ログインボタン
+//            Button(
+//                onClick = {
+//                    if (email.isNotEmpty() && password.isNotEmpty()) {
+//                        isLoading = true
+//                        showError = false
+//                        errorMessage = null
+//
+//                        scope.launch {
+//                            loginViewModel.login(email, password) { success, message, userId ->
+//                                isLoading = false
+//                                if (success) {
+//                                    // ログイン情報を保存（日時も記録）
+//                                    preferencesManager.saveLoginInfo(email, password)
+//                                    // user_idをUserSessionViewModelに保存（完了を待つ）
+//                                    userId?.let { id ->
+//                                        userSessionViewModel.setUserId(id)
+//                                        // userId保存後にHome画面へ遷移
+//                                        navController.navigate("home") {
+//                                            popUpTo("login") { inclusive = true }
+//                                            launchSingleTop = true
+//                                        }
+//                                    } ?: run {
+//                                        // userIdが取得できなかった場合
+//                                        showError = true
+//                                        errorMessage = "ユーザー情報の取得に失敗しました。"
+//                                    }
+//                                } else {
+//                                    showError = true
+//                                    errorMessage = message
+//                                }
+//                            }
+//                        }
+//                    } else {
+//                        showError = true
+//                        errorMessage = "メールアドレスとパスワードを入力してください。"
+//                    }
+//                },
+//                enabled = !isLoading,
+//                colors = ButtonDefaults.buttonColors(
+//                    containerColor = Color.Black
+//                ),
+//                modifier = Modifier
+//                    .fillMaxWidth()
+//                    .height(48.dp)
+//            ) {
+//                if (isLoading) {
+//                    CircularProgressIndicator(
+//                        strokeWidth = 2.dp,
+//                        color = Color.White,
+//                        modifier = Modifier.size(20.dp)
+//                    )
+//                } else {
+//                    Text(
+//                        text = "ログイン",
+//                        color = Color.White,
+//                        fontSize = 16.sp
+//                    )
+//                }
+//            }
             
             Spacer(modifier = Modifier.height(32.dp))
             
