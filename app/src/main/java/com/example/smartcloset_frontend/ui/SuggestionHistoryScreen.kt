@@ -29,6 +29,7 @@ import coil.compose.AsyncImage
 import com.example.smartcloset_frontend.BuildConfig
 import com.example.smartcloset_frontend.data.CoordinateData
 import com.example.smartcloset_frontend.data.CoordinateItem
+import com.example.smartcloset_frontend.network.ServerUrlHolder
 import com.example.smartcloset_frontend.viewmodel.SuggestionHistoryViewModel
 import java.text.SimpleDateFormat
 import java.util.*
@@ -475,7 +476,7 @@ private fun buildImageUrl(imagePath: String): String? {
     return if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) {
         imagePath
     } else {
-        val baseUrl = BuildConfig.SERVER_URL.trimEnd('/')
+        val baseUrl = (ServerUrlHolder.overrideBaseUrl ?: BuildConfig.SERVER_URL).trimEnd('/')
         val path = if (imagePath.startsWith("/")) imagePath else "/$imagePath"
         "$baseUrl$path"
     }
