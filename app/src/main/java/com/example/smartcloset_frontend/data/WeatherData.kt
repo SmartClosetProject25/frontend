@@ -3,7 +3,7 @@ import kotlinx.serialization.Serializable
 
 data class WeatherData(
     val location: String,
-    val tempC: Int,
+    val tempC: Double,
     val precipitationPercent: Int,
     val humidityPercent: Int,
     val today3h: List<Today3h>
@@ -11,7 +11,7 @@ data class WeatherData(
 
 data class Today3h(
     val timeLabel: String,
-    val tempC: Int,
+    val tempC: Double,
     val precipitationPercent: Int,
     val weatherType: String
 )
@@ -19,7 +19,7 @@ data class Today3h(
 @Serializable
 data class WeatherDto(
     val location: String,
-    val tempC: Int,
+    val tempC: Double,
     val precipitationPercent: Int,
     val humidityPercent: Int,
     val today3h: List<Today3hDto>
@@ -28,7 +28,7 @@ data class WeatherDto(
 @Serializable
 data class Today3hDto(
     val timeLabel: String,
-    val tempC: Int,
+    val tempC: Double,
     val precipitationPercent: Int,
     val weatherType: String
 )

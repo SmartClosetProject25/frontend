@@ -25,6 +25,8 @@ import androidx.compose.ui.unit.*
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 
 import androidx.navigation.NavHostController
 
@@ -74,10 +76,11 @@ fun HomeScreen(
     val isLoading = viewModel.isLoading
     val itemListState = viewModel.itemListState
     
-    val extendedItems = remember(items) {
-        if (items.isEmpty()) emptyList()
-        else List(20) { index -> items[index % items.size] }
-    }
+//    val extendedItems = remember(items) {
+//        if (items.isEmpty()) emptyList()
+//        else List(20) { index -> items[index % items.size] }
+//    }
+
 
     var selectedCategory by remember { mutableStateOf("すべて") }
     var searchText by remember { mutableStateOf("") }
@@ -90,6 +93,28 @@ fun HomeScreen(
         3 to "パンツ",
         4 to "スカート"
     )
+    val filteredItems = remember(items, selectedCategory, searchText) {
+        val categoryId = when (selectedCategory) {
+            "トップス" -> 1
+            "ジャケット・アウター" -> 2
+            "パンツ" -> 3
+            "スカート" -> 4
+            else -> null // "すべて"
+        }
+
+        items.filter { item ->
+            // カテゴリ条件
+            (categoryId == null || item.category == categoryId) &&
+                    // 検索条件
+                    (searchText.isBlank() ||
+                            item.itemName.contains(searchText, ignoreCase = true))
+        }
+    }
+    val extendedItems = remember(filteredItems) {
+        if (filteredItems.isEmpty()) emptyList()
+        else List(20) { index -> filteredItems[index % filteredItems.size] }
+    }
+
     val listState = rememberLazyListState(initialFirstVisibleItemIndex = 500)
 
     val flingBehavior = rememberSnapFlingBehavior(lazyListState = listState)
@@ -97,6 +122,16 @@ fun HomeScreen(
     val favorites = remember {
         mutableStateMapOf<Int, Boolean>()
     }
+    // キーボードとフォーカスマネージャーの取得
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
+
+    val onSearch: (String) -> Unit = { query ->
+        searchText = query
+        keyboardController?.hide()
+        focusManager.clearFocus()
+    }
+
 
     Column(
         modifier = Modifier
@@ -126,7 +161,7 @@ fun HomeScreen(
             ),
             keyboardActions = KeyboardActions(
                 onSearch = {
-                    println("検索実行：$searchText")
+                    onSearch(searchText)
                 }
             )
         )
