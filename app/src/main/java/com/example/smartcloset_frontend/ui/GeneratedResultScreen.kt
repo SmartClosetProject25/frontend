@@ -556,14 +556,59 @@ fun ItemDetailCard(category: String, item: Item) {
             "$baseUrl$imagePath"
         }
         
-        AsyncImage(
-            model = imageUrl,
+        // リトライ用のキー
+        var retryKey by remember { mutableStateOf(0) }
+        val imageUrlWithRetry = remember(imageUrl, retryKey) {
+            imageUrl?.let { url ->
+                if (retryKey > 0) {
+                    val separator = if (url.contains("?")) "&" else "?"
+                    "$url${separator}_retry=$retryKey"
+                } else {
+                    url
+                }
+            }
+        }
+        
+        SubcomposeAsyncImage(
+            model = imageUrlWithRetry,
             contentDescription = item.item_name,
             modifier = Modifier
                 .size(60.dp)
                 .clip(RoundedCornerShape(8.dp))
-                .background(Color(0xFFE0E0E0)),
-            contentScale = ContentScale.Crop
+                .background(Color(0xFFE0E0E0))
+                .clickable { retryKey++ },
+            contentScale = ContentScale.Crop,
+            loading = {
+                Box(
+                    modifier = Modifier
+                        .size(60.dp)
+                        .background(Color(0xFFE0E0E0)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp
+                    )
+                }
+            },
+            error = { state ->
+                val error = state.result.throwable
+                Log.e("GeneratedResultScreen", "アイテム画像読み込みエラー: ${error?.message}", error)
+                Box(
+                    modifier = Modifier
+                        .size(60.dp)
+                        .background(Color(0xFFE0E0E0))
+                        .clickable { retryKey++ },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Default.Refresh,
+                        contentDescription = "再読み込み",
+                        tint = Color.Gray,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
         )
         
         Spacer(modifier = Modifier.width(12.dp))
