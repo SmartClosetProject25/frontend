@@ -6,13 +6,16 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,8 +27,20 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
+import android.util.Log
 import androidx.navigation.NavHostController
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
+import coil.ImageLoader
+import coil.request.ImageRequest
+import coil.imageLoader
 import com.example.smartcloset_frontend.BuildConfig
 import com.example.smartcloset_frontend.data.CoordinateData
 import com.example.smartcloset_frontend.data.CoordinateItem
@@ -162,11 +177,17 @@ fun SuggestionHistoryScreen(
             // ──────────────────
             //   日別一覧
             // ──────────────────
+            val scrollState = rememberScrollState()
+            val density = LocalDensity.current
+            val screenHeight = with(density) { 
+                androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp.dp.toPx()
+            }
+            
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(16.dp)
-                    .verticalScroll(rememberScrollState())
+                    .verticalScroll(scrollState)
             ) {
                 when {
                     isLoading -> {
@@ -200,8 +221,13 @@ fun SuggestionHistoryScreen(
                         }
                     }
                     else -> {
-                        historyData.forEach { dateGroup ->
-                            DateGroupSection(dateGroup)
+                        historyData.forEachIndexed { index, dateGroup ->
+                            DateGroupSection(
+                                dateGroup = dateGroup,
+                                index = index,
+                                scrollState = scrollState,
+                                screenHeight = screenHeight
+                            )
                             Spacer(Modifier.height(24.dp))
                         }
                     }
@@ -212,9 +238,94 @@ fun SuggestionHistoryScreen(
 }
 
 @Composable
-fun DateGroupSection(dateGroup: HistoryDateGroup) {
-    Column {
+fun DateGroupSection(
+    dateGroup: HistoryDateGroup,
+    index: Int,
+    scrollState: ScrollState,
+    screenHeight: Float
+) {
+    val context = LocalContext.current
+    val imageLoader = context.imageLoader
+    val density = LocalDensity.current
+    
+    // セクションの位置を追跡
+    var sectionTopY by remember { mutableStateOf<Float?>(null) }
+    var sectionHeight by remember { mutableStateOf<Float?>(null) }
+    
+    // 画像プリロード状態
+    var imagesPreloaded by remember(dateGroup) { mutableStateOf(false) }
+    var shouldPreload by remember { mutableStateOf(false) }
+    
+    // すべての画像URLを収集
+    val imageUrls = remember(dateGroup) {
+        val urls = mutableListOf<String>()
+        dateGroup.suggestions.forEach { suggestion ->
+            // アイテム画像
+            listOfNotNull(
+                suggestion.outer?.image_path,
+                suggestion.top.image_path,
+                suggestion.bottom.image_path
+            ).forEach { imagePath ->
+                buildImageUrl(imagePath)?.let { urls.add(it) }
+            }
+            // 生成画像
+            suggestion.genimgPath?.let { genimgPath ->
+                buildImageUrl(genimgPath)?.let { urls.add(it) }
+            }
+        }
+        urls.distinct()
+    }
+    
+    // スクロール位置を監視して可視領域を判定
+    LaunchedEffect(scrollState.value, sectionTopY, sectionHeight) {
+        val scrollY = with(density) { scrollState.value.toFloat() }
+        val viewportBottom = scrollY + screenHeight
+        
+        // 最初の2グループは即座にプリロード
+        if (index < 2) {
+            shouldPreload = true
+        } else if (sectionTopY != null && sectionHeight != null) {
+            // セクションが表示領域に入ったか判定（少し前からプリロード開始）
+            val preloadThreshold = screenHeight * 0.5f // 画面の50%手前からプリロード
+            val sectionBottom = sectionTopY!! + sectionHeight!!
+            shouldPreload = sectionTopY!! < viewportBottom + preloadThreshold
+        }
+    }
+    
+    // 画像をプリロードする
+    LaunchedEffect(dateGroup, shouldPreload) {
+        if (shouldPreload && imageUrls.isNotEmpty() && !imagesPreloaded) {
+            try {
+                // すべての画像を並列でプリロード
+                val preloadJobs = imageUrls.map { imageUrl ->
+                    async {
+                        try {
+                            val request = ImageRequest.Builder(context)
+                                .data(imageUrl)
+                                .build()
+                            imageLoader.execute(request)
+                        } catch (e: Exception) {
+                            Log.e("SuggestionHistoryScreen", "画像プリロードエラー ($imageUrl): ${e.message}", e)
+                        }
+                    }
+                }
+                // すべてのプリロードが完了するまで待機
+                preloadJobs.awaitAll()
+                imagesPreloaded = true
+            } catch (e: Exception) {
+                Log.e("SuggestionHistoryScreen", "画像プリロードエラー: ${e.message}", e)
+                imagesPreloaded = true
+            }
+        }
+    }
 
+    Column(
+        modifier = Modifier.onGloballyPositioned { coordinates ->
+            val position = coordinates.positionInRoot()
+            sectionTopY = position.y
+            sectionHeight = coordinates.size.height.toFloat()
+        }
+    ) {
         // 日付ヘッダー
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -246,10 +357,25 @@ fun DateGroupSection(dateGroup: HistoryDateGroup) {
 
         Spacer(Modifier.height(12.dp))
 
-        // 横スクロールカード
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            items(dateGroup.suggestions) { suggestion ->
-                HistoryCoordinateCard(suggestion)
+        // 画像プリロード中はローディング表示
+        if (!imagesPreloaded && imageUrls.isNotEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp),
+                    strokeWidth = 2.dp
+                )
+            }
+        } else {
+            // 横スクロールカード
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                items(dateGroup.suggestions) { suggestion ->
+                    HistoryCoordinateCard(suggestion)
+                }
             }
         }
     }
@@ -355,6 +481,8 @@ fun HistoryItemGridCell(
     label: String,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -372,11 +500,61 @@ fun HistoryItemGridCell(
         ) {
             val imageUrl = buildImageUrl(item.image_path)
             if (imageUrl != null) {
-                AsyncImage(
-                    model = imageUrl,
+                // リトライ用のキー
+                var retryKey by remember { mutableStateOf(0) }
+                val imageUrlWithRetry = remember(imageUrl, retryKey) {
+                    if (retryKey > 0) {
+                        val separator = if (imageUrl.contains("?")) "&" else "?"
+                        "$imageUrl${separator}_retry=$retryKey"
+                    } else {
+                        imageUrl
+                    }
+                }
+                
+                SubcomposeAsyncImage(
+                    model = imageUrlWithRetry,
                     contentDescription = item.name,
                     modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
+                    contentScale = ContentScale.Crop,
+                    loading = {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp
+                            )
+                        }
+                    },
+                    error = { state ->
+                        val error = state.result.throwable
+                        Log.e("SuggestionHistoryScreen", "画像読み込みエラー: ${error?.message}", error)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clickable { retryKey++ },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(2.dp),
+                                modifier = Modifier.padding(2.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.ErrorOutline,
+                                    contentDescription = null,
+                                    tint = Color.Gray,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Text(
+                                    text = "タップ",
+                                    color = Color.Gray,
+                                    fontSize = 7.sp
+                                )
+                            }
+                        }
+                    }
                 )
             } else {
                 Text(label, color = Color.Gray, fontSize = 9.sp)
@@ -412,6 +590,8 @@ fun HistoryGeneratedImageCell(
     label: String,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -429,11 +609,61 @@ fun HistoryGeneratedImageCell(
         ) {
             val imageUrl = buildImageUrl(imagePath)
             if (imageUrl != null) {
-                AsyncImage(
-                    model = imageUrl,
+                // リトライ用のキー
+                var retryKey by remember { mutableStateOf(0) }
+                val imageUrlWithRetry = remember(imageUrl, retryKey) {
+                    if (retryKey > 0) {
+                        val separator = if (imageUrl.contains("?")) "&" else "?"
+                        "$imageUrl${separator}_retry=$retryKey"
+                    } else {
+                        imageUrl
+                    }
+                }
+                
+                SubcomposeAsyncImage(
+                    model = imageUrlWithRetry,
                     contentDescription = label,
                     modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
+                    contentScale = ContentScale.Crop,
+                    loading = {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp
+                            )
+                        }
+                    },
+                    error = { state ->
+                        val error = state.result.throwable
+                        Log.e("SuggestionHistoryScreen", "画像読み込みエラー: ${error?.message}", error)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clickable { retryKey++ },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(2.dp),
+                                modifier = Modifier.padding(2.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.ErrorOutline,
+                                    contentDescription = null,
+                                    tint = Color.Gray,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Text(
+                                    text = "タップ",
+                                    color = Color.Gray,
+                                    fontSize = 7.sp
+                                )
+                            }
+                        }
+                    }
                 )
             } else {
                 Text(label, color = Color.Gray, fontSize = 9.sp)
