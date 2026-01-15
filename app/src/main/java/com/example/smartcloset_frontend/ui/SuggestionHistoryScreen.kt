@@ -44,8 +44,12 @@ import coil.imageLoader
 import com.example.smartcloset_frontend.BuildConfig
 import com.example.smartcloset_frontend.data.CoordinateData
 import com.example.smartcloset_frontend.data.CoordinateItem
+import com.example.smartcloset_frontend.data.Item
+import com.example.smartcloset_frontend.data.Items
+import com.example.smartcloset_frontend.data.Proposal
 import com.example.smartcloset_frontend.network.ServerUrlHolder
 import com.example.smartcloset_frontend.viewmodel.SuggestionHistoryViewModel
+import com.example.smartcloset_frontend.viewmodel.SuggestionViewModel
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -53,7 +57,8 @@ import java.util.*
 @Composable
 fun SuggestionHistoryScreen(
     navController: NavHostController,
-    viewModel: SuggestionHistoryViewModel
+    viewModel: SuggestionHistoryViewModel,
+    suggestionViewModel: SuggestionViewModel
 ) {
 
     var isSearchVisible by remember { mutableStateOf(false) }
@@ -62,6 +67,11 @@ fun SuggestionHistoryScreen(
     val coordinatesData by viewModel.coordinatesData.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val error by viewModel.error.collectAsState()
+    
+    // CoordinateDataのマップを作成（coordinate_idをキーとして）
+    val coordinateDataMap = remember(coordinatesData) {
+        coordinatesData?.coordinates?.associateBy { it.coordinate_id } ?: emptyMap()
+    }
 
     // 画面が表示されるたびにデータを取得
     DisposableEffect(Unit) {
@@ -226,7 +236,10 @@ fun SuggestionHistoryScreen(
                                 dateGroup = dateGroup,
                                 index = index,
                                 scrollState = scrollState,
-                                screenHeight = screenHeight
+                                screenHeight = screenHeight,
+                                navController = navController,
+                                suggestionViewModel = suggestionViewModel,
+                                coordinateDataMap = coordinateDataMap
                             )
                             Spacer(Modifier.height(24.dp))
                         }
@@ -242,7 +255,10 @@ fun DateGroupSection(
     dateGroup: HistoryDateGroup,
     index: Int,
     scrollState: ScrollState,
-    screenHeight: Float
+    screenHeight: Float,
+    navController: NavHostController,
+    suggestionViewModel: SuggestionViewModel,
+    coordinateDataMap: Map<Int, CoordinateData>
 ) {
     val context = LocalContext.current
     val imageLoader = context.imageLoader
@@ -374,7 +390,17 @@ fun DateGroupSection(
             // 横スクロールカード
             LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 items(dateGroup.suggestions) { suggestion ->
-                    HistoryCoordinateCard(suggestion)
+                    HistoryCoordinateCard(
+                        suggestion = suggestion,
+                        onClick = {
+                            navigateToGeneratedResult(
+                                suggestion = suggestion,
+                                navController = navController,
+                                suggestionViewModel = suggestionViewModel,
+                                coordinateDataMap = coordinateDataMap
+                            )
+                        }
+                    )
                 }
             }
         }
@@ -382,9 +408,14 @@ fun DateGroupSection(
 }
 
 @Composable
-fun HistoryCoordinateCard(suggestion: HistoryCoordinate) {
+fun HistoryCoordinateCard(
+    suggestion: HistoryCoordinate,
+    onClick: () -> Unit
+) {
     Card(
-        modifier = Modifier.width(200.dp),
+        modifier = Modifier
+            .width(200.dp)
+            .clickable(onClick = onClick),
         shape = RoundedCornerShape(12.dp),
         border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE0E0E0)),
         colors = CardDefaults.cardColors(containerColor = Color(0xFFF6F6F6))
@@ -733,4 +764,78 @@ private fun buildTags(coordinate: CoordinateData): List<String> {
     }
     
     return tags.take(5) // 最大5つまで
+}
+
+// ヘルパー関数: CoordinateItemからItemに変換
+private fun coordinateItemToItem(coordinateItem: CoordinateItem): Item {
+    return Item(
+        id = coordinateItem.id,
+        item_name = coordinateItem.name,
+        image_path = coordinateItem.image_path,
+        taste = emptyList() // CoordinateItemにはtasteがないため空リスト
+    )
+}
+
+// ヘルパー関数: CoordinateDataからProposalを作成
+private fun createProposalFromCoordinateData(coordinate: CoordinateData): Proposal {
+    val items = Items(
+        tops = coordinateItemToItem(coordinate.top),
+        bottoms = coordinateItemToItem(coordinate.bottom),
+        outer = coordinate.outer?.let { coordinateItemToItem(it) }
+    )
+    
+    val itemIds = mutableListOf<Int>()
+    itemIds.add(coordinate.top.id)
+    itemIds.add(coordinate.bottom.id)
+    coordinate.outer?.let { itemIds.add(it.id) }
+    
+    // reasonはfeaturesから生成（簡易版）
+    val reason = buildString {
+        if (coordinate.scene.isNotBlank()) {
+            append("シーン: ${coordinate.scene}")
+        }
+        coordinate.features["style"]?.let {
+            if (isNotEmpty()) append("、")
+            append("スタイル: $it")
+        }
+    }.ifBlank { "コーディネート" }
+    
+    return Proposal(
+        pattern = 0, // パターンは履歴には保存されていないため0
+        items = items,
+        item_ids = itemIds,
+        reason = reason,
+        coordinate_id = coordinate.coordinate_id
+    )
+}
+
+// ナビゲーション関数: 生成結果画面に移動
+private fun navigateToGeneratedResult(
+    suggestion: HistoryCoordinate,
+    navController: NavHostController,
+    suggestionViewModel: SuggestionViewModel,
+    coordinateDataMap: Map<Int, CoordinateData>
+) {
+    val coordinateId = suggestion.id.toIntOrNull()
+    val coordinateData = coordinateId?.let { coordinateDataMap[it] }
+    
+    if (coordinateData != null) {
+        // Proposalを作成
+        val proposal = createProposalFromCoordinateData(coordinateData)
+        
+        // 生成画像のパスを設定
+        val generatedImagePath = suggestion.genimgPath
+        
+        // SuggestionViewModelにデータを設定
+        suggestionViewModel.setHistoryData(
+            proposal = proposal,
+            coordinateId = coordinateId,
+            generatedImagePath = generatedImagePath
+        )
+        
+        // ナビゲーション
+        navController.navigate("generate")
+    } else {
+        Log.e("SuggestionHistoryScreen", "Coordinate data not found for id: ${suggestion.id}")
+    }
 }

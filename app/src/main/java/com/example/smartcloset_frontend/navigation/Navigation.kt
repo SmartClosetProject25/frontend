@@ -89,7 +89,7 @@ fun NavGraph(
 
         composable("suggestion_history") { 
             val historyViewModel: SuggestionHistoryViewModel = viewModel()
-            SuggestionHistoryScreen(navController, historyViewModel)
+            SuggestionHistoryScreen(navController, historyViewModel, suggestionViewModel)
         }
         composable("generate") { GeneratedResultScreen(navController, suggestionViewModel) }
         composable("profile") { ProfileScreen(navController, userSessionViewModel = userSessionViewModel) }

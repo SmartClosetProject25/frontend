@@ -1,5 +1,13 @@
 package com.example.smartcloset_frontend.ui
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.net.Uri
+import android.util.Log
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -19,9 +27,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import android.util.Log
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.clickable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -29,16 +34,19 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
 import coil.compose.SubcomposeAsyncImage
-import coil.compose.AsyncImagePainter
 import com.example.smartcloset_frontend.BuildConfig
 import com.example.smartcloset_frontend.data.Item
+import com.example.smartcloset_frontend.data.Proposal
 import com.example.smartcloset_frontend.network.ServerUrlHolder
+import com.example.smartcloset_frontend.utils.ImageUtils
 import com.example.smartcloset_frontend.utils.QrCodeGenerator
 import com.example.smartcloset_frontend.viewmodel.SuggestionViewModel
 import java.net.URLEncoder
@@ -48,12 +56,45 @@ fun GeneratedResultScreen(
     navController: NavHostController,
     suggestionViewModel: SuggestionViewModel
 ) {
+    val context = LocalContext.current
     val generatedImageUrl by suggestionViewModel.generatedImage.collectAsState()
     val selectedProposal by suggestionViewModel.selectedProposal.collectAsState()
     val todayPlan by suggestionViewModel.todayPlan.collectAsState()
     val coordinateId by suggestionViewModel.coordinateId.collectAsState()
+    val isGeneratingImage by suggestionViewModel.isGeneratingImage.collectAsState()
     var qrCodeBitmap by remember { mutableStateOf<ImageBitmap?>(null) }
     var qrCodeError by remember { mutableStateOf<String?>(null) }
+    var showModelSelectionDialog by remember { mutableStateOf(false) }
+    
+    // カメラ撮影用のLauncher
+    val cameraLauncherBitmap = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicturePreview()
+    ) { bitmap: Bitmap? ->
+        bitmap?.let {
+            showModelSelectionDialog = false
+            // カメラで撮影した画像で生成を開始
+            startImageGenerationFromHistory(
+                proposal = selectedProposal,
+                coordinateId = coordinateId,
+                modelBitmap = it,
+                modelUri = null,
+                modelTemplate = null,
+                context = context,
+                suggestionViewModel = suggestionViewModel
+            )
+        }
+    }
+    
+    // カメラ権限リクエスト用
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            cameraLauncherBitmap.launch(null)
+        } else {
+            Toast.makeText(context, "カメラの権限が必要です", Toast.LENGTH_SHORT).show()
+        }
+    }
     
     // QRコードを生成（HTMLページのURLを使用）
     LaunchedEffect(generatedImageUrl, coordinateId) {
@@ -100,7 +141,58 @@ fun GeneratedResultScreen(
                     elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
                 ) {
                     CoordinateImageSection(
-                        imageUrlOrPath = generatedImageUrl
+                        imageUrlOrPath = generatedImageUrl,
+                        selectedProposal = selectedProposal,
+                        coordinateId = coordinateId,
+                        isGeneratingImage = isGeneratingImage,
+                        onGenerateClick = {
+                            showModelSelectionDialog = true
+                        }
+                    )
+                }
+                
+                // モデル選択ダイアログ
+                if (showModelSelectionDialog) {
+                    ModelSelectionDialog(
+                        onDismiss = {
+                            showModelSelectionDialog = false
+                        },
+                        onCameraClick = {
+                            val granted = ContextCompat.checkSelfPermission(
+                                context,
+                                Manifest.permission.CAMERA
+                            ) == PackageManager.PERMISSION_GRANTED
+                            
+                            if (granted) {
+                                cameraLauncherBitmap.launch(null)
+                            } else {
+                                cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                            }
+                        },
+                        onMannequinClick = {
+                            showModelSelectionDialog = false
+                            startImageGenerationFromHistory(
+                                proposal = selectedProposal,
+                                coordinateId = coordinateId,
+                                modelBitmap = null,
+                                modelUri = null,
+                                modelTemplate = "mannequin",
+                                context = context,
+                                suggestionViewModel = suggestionViewModel
+                            )
+                        },
+                        onProfileClick = {
+                            showModelSelectionDialog = false
+                            startImageGenerationFromHistory(
+                                proposal = selectedProposal,
+                                coordinateId = coordinateId,
+                                modelBitmap = null,
+                                modelUri = null,
+                                modelTemplate = "profile",
+                                context = context,
+                                suggestionViewModel = suggestionViewModel
+                            )
+                        }
                     )
                 }
 
@@ -275,7 +367,11 @@ fun CoordinateTopBar(title: String, onBackClicked: () -> Unit) {
 
 @Composable
 fun CoordinateImageSection(
-    imageUrlOrPath: String?
+    imageUrlOrPath: String?,
+    selectedProposal: Proposal? = null,
+    coordinateId: Int? = null,
+    isGeneratingImage: Boolean = false,
+    onGenerateClick: (() -> Unit)? = null
 ) {
     val imageUrl: String? = imageUrlOrPath?.let { path ->
         if (path.startsWith("http://") || path.startsWith("https://")) {
@@ -300,15 +396,92 @@ fun CoordinateImageSection(
         }
     }
 
-    if (imageUrlWithRetry == null) {
+    // 画像がない場合、生成ボタンを表示
+    if (imageUrlWithRetry == null && !isGeneratingImage) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(400.dp)
-                .background(Color(0xFFE0E0E0)),
+                .background(Color(0xFFF5F5F5)),
             contentAlignment = Alignment.Center
         ) {
-            CircularProgressIndicator()
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.padding(24.dp)
+            ) {
+                Icon(
+                    Icons.Default.Image,
+                    contentDescription = null,
+                    tint = Color(0xFF9E9E9E),
+                    modifier = Modifier.size(64.dp)
+                )
+                Text(
+                    text = "画像が生成されていません",
+                    fontSize = 16.sp,
+                    color = Color(0xFF757575),
+                    fontWeight = FontWeight.Medium
+                )
+                Text(
+                    text = "ボタンをタップして画像を生成できます",
+                    fontSize = 14.sp,
+                    color = Color(0xFF9E9E9E),
+                    lineHeight = 20.sp
+                )
+                if (selectedProposal != null && coordinateId != null && onGenerateClick != null) {
+                    Button(
+                        onClick = onGenerateClick,
+                        modifier = Modifier.padding(top = 8.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF2196F3)
+                        )
+                    ) {
+                        Icon(
+                            Icons.Default.AutoAwesome,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("画像を生成する", fontSize = 16.sp)
+                    }
+                } else {
+                    Text(
+                        text = "コーディネート情報が不足しています",
+                        fontSize = 12.sp,
+                        color = Color(0xFF9E9E9E)
+                    )
+                }
+            }
+        }
+    } else if (isGeneratingImage) {
+        // 生成中
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(400.dp)
+                .background(Color(0xFFF5F5F5)),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(48.dp),
+                    color = Color(0xFF2196F3)
+                )
+                Text(
+                    text = "画像を生成中...",
+                    fontSize = 16.sp,
+                    color = Color(0xFF757575),
+                    fontWeight = FontWeight.Medium
+                )
+                Text(
+                    text = "しばらくお待ちください",
+                    fontSize = 14.sp,
+                    color = Color(0xFF9E9E9E)
+                )
+            }
         }
     } else {
         SubcomposeAsyncImage(
@@ -553,4 +726,51 @@ fun QrCodeSection(qrCodeBitmap: ImageBitmap?, errorMessage: String? = null) {
             }
         }
     }
+}
+
+// 履歴から画像を生成する関数
+private fun startImageGenerationFromHistory(
+    proposal: Proposal?,
+    coordinateId: Int?,
+    modelBitmap: Bitmap?,
+    modelUri: Uri?,
+    modelTemplate: String?,
+    context: android.content.Context,
+    suggestionViewModel: SuggestionViewModel
+) {
+    if (proposal == null || coordinateId == null) {
+        Log.e("GeneratedResultScreen", "生成に必要な情報が不足しています")
+        return
+    }
+    
+    // proposal.itemsから各アイテムのimage_pathを取得
+    val imagePaths = mutableListOf<String>()
+    imagePaths.addAll(
+        listOfNotNull(
+            proposal.items.outer?.image_path,
+            proposal.items.tops?.image_path,
+            proposal.items.bottoms?.image_path
+        )
+    )
+    
+    if (imagePaths.isEmpty()) {
+        Log.e("GeneratedResultScreen", "画像パスが取得できませんでした")
+        return
+    }
+    
+    // モデル画像をbase64エンコード（カメラ撮影時のみ）
+    val modelImageBase64: String? = when {
+        modelBitmap != null -> ImageUtils.bitmapToBase64(modelBitmap)
+        modelUri != null -> ImageUtils.uriToBase64(context, modelUri)
+        else -> null
+    }
+    
+    // 画像生成を実行
+    suggestionViewModel.generateImage(
+        imagePaths = imagePaths,
+        modelImageBase64 = modelImageBase64,
+        modelTemplate = modelTemplate,
+        proposal = proposal,
+        coordinateId = coordinateId
+    )
 }

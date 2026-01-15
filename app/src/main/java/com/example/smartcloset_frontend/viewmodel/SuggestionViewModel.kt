@@ -129,4 +129,21 @@ class SuggestionViewModel : ViewModel() {
     fun onGenerateScreenNavigated() {
         _navigateToGenerate.value = false
     }
+    
+    // 履歴から生成結果画面に移動するためのデータを設定
+    fun setHistoryData(proposal: Proposal, coordinateId: Int?, generatedImagePath: String?) {
+        _selectedProposal.value = proposal
+        _coordinateId.value = coordinateId
+        // 生成画像のパスをURLに変換
+        generatedImagePath?.let { path ->
+            if (path.startsWith("http://") || path.startsWith("https://")) {
+                _generatedImage.value = path
+            } else {
+                // 相対パスの場合は、後でGeneratedResultScreenで処理される
+                _generatedImage.value = path
+            }
+        } ?: run {
+            _generatedImage.value = null
+        }
+    }
 }
