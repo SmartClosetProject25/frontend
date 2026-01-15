@@ -53,13 +53,25 @@ fun GeneratedResultScreen(
     val todayPlan by suggestionViewModel.todayPlan.collectAsState()
     val coordinateId by suggestionViewModel.coordinateId.collectAsState()
     var qrCodeBitmap by remember { mutableStateOf<ImageBitmap?>(null) }
+    var qrCodeError by remember { mutableStateOf<String?>(null) }
     
     // QRコードを生成（HTMLページのURLを使用）
     LaunchedEffect(generatedImageUrl, coordinateId) {
         generatedImageUrl?.let { imageUrl ->
-            // HTMLページのURLを生成
-            val htmlPageUrl = generateHtmlPageUrl(imageUrl, coordinateId)
-            qrCodeBitmap = QrCodeGenerator.generateQrCode(htmlPageUrl).asImageBitmap()
+            qrCodeError = null
+            try {
+                // HTMLページのURLを生成
+                val htmlPageUrl = generateHtmlPageUrl(imageUrl, coordinateId)
+                Log.d("GeneratedResultScreen", "QRコード生成URL: $htmlPageUrl")
+                qrCodeBitmap = QrCodeGenerator.generateQrCode(htmlPageUrl).asImageBitmap()
+            } catch (e: Exception) {
+                Log.e("GeneratedResultScreen", "QRコード生成エラー: ${e.message}", e)
+                qrCodeBitmap = null
+                qrCodeError = e.message ?: "QRコードの生成に失敗しました"
+            }
+        } ?: run {
+            qrCodeBitmap = null
+            qrCodeError = null
         }
     }
 
@@ -184,8 +196,8 @@ fun GeneratedResultScreen(
                     shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(containerColor = Color.White),
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                ) {
-                    QrCodeSection(qrCodeBitmap = qrCodeBitmap)
+                )                 {
+                    QrCodeSection(qrCodeBitmap = qrCodeBitmap, errorMessage = qrCodeError)
                 }
                 
                 // コーディネート理由
@@ -430,11 +442,16 @@ fun ItemDetailCard(category: String, item: Item) {
  * @return HTMLページの完全なURL
  */
 fun generateHtmlPageUrl(imageUrl: String, coordinateId: Int?): String {
-    val baseUrl = BuildConfig.SERVER_URL.trimEnd('/')
+    // ベースURLの前後のスペースと末尾のスラッシュを削除
+    val baseUrl = BuildConfig.SERVER_URL.trim().trimEnd('/')
+    
+    if (baseUrl.isBlank()) {
+        throw IllegalArgumentException("SERVER_URLが設定されていません")
+    }
     
     // 画像URLを完全なURLに変換
     val fullImageUrl = if (imageUrl.startsWith("http://") || imageUrl.startsWith("https://")) {
-        imageUrl
+        imageUrl.trim()
     } else {
         val imagePath = if (imageUrl.startsWith("/")) imageUrl else "/$imageUrl"
         "$baseUrl$imagePath"
@@ -453,7 +470,7 @@ fun generateHtmlPageUrl(imageUrl: String, coordinateId: Int?): String {
 }
 
 @Composable
-fun QrCodeSection(qrCodeBitmap: ImageBitmap?) {
+fun QrCodeSection(qrCodeBitmap: ImageBitmap?, errorMessage: String? = null) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -478,33 +495,62 @@ fun QrCodeSection(qrCodeBitmap: ImageBitmap?) {
             )
         }
         
-        qrCodeBitmap?.let {
-            Box(
-                modifier = Modifier
-                    .size(200.dp)
-                    .background(Color.White, RoundedCornerShape(12.dp))
-                    .border(1.dp, Color(0xFFE0E0E0), RoundedCornerShape(12.dp))
-                    .padding(12.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Image(
-                    bitmap = it,
-                    contentDescription = "QRコード",
-                    modifier = Modifier.fillMaxSize()
+        when {
+            qrCodeBitmap != null -> {
+                Box(
+                    modifier = Modifier
+                        .size(200.dp)
+                        .background(Color.White, RoundedCornerShape(12.dp))
+                        .border(1.dp, Color(0xFFE0E0E0), RoundedCornerShape(12.dp))
+                        .padding(12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Image(
+                        bitmap = qrCodeBitmap,
+                        contentDescription = "QRコード",
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = "このQRコードをスキャンして\n画像を表示できます",
+                    fontSize = 13.sp,
+                    color = Color.Gray,
+                    lineHeight = 18.sp
                 )
             }
-            Spacer(modifier = Modifier.height(12.dp))
-            Text(
-                text = "このQRコードをスキャンして\n画像を表示できます",
-                fontSize = 13.sp,
-                color = Color.Gray,
-                lineHeight = 18.sp
-            )
-        } ?: Box(
-            modifier = Modifier.size(200.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            CircularProgressIndicator()
+            errorMessage != null -> {
+                Box(
+                    modifier = Modifier.size(200.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.ErrorOutline,
+                            contentDescription = null,
+                            tint = Color.Gray,
+                            modifier = Modifier.size(48.dp)
+                        )
+                        Text(
+                            text = errorMessage,
+                            fontSize = 13.sp,
+                            color = Color.Gray,
+                            lineHeight = 18.sp
+                        )
+                    }
+                }
+            }
+            else -> {
+                Box(
+                    modifier = Modifier.size(200.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            }
         }
     }
 }
