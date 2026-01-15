@@ -32,6 +32,7 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.ThumbUp
+import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -50,6 +51,10 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
+import coil.ImageLoader
+import coil.request.ImageRequest
+import coil.imageLoader
 import com.example.smartcloset_frontend.BuildConfig
 import com.example.smartcloset_frontend.data.Item
 import com.example.smartcloset_frontend.data.JudgeRequestData
@@ -65,6 +70,8 @@ import com.example.smartcloset_frontend.utils.WeatherLocationLoader
 import com.example.smartcloset_frontend.viewmodel.ItemViewModel
 import com.example.smartcloset_frontend.viewmodel.UserSessionViewModel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -134,6 +141,74 @@ fun SuggestionScreen(
     val padding = (screenWidth - cardWidth) / 2
 
     val cardPx = with(LocalDensity.current) { cardWidth.toPx() }
+
+    // 画像プリロード状態
+    var isPreloadingImages by remember { mutableStateOf(false) }
+    var imagesPreloaded by remember { mutableStateOf(false) }
+    val imageLoader = context.imageLoader
+
+    // すべての画像URLを収集する関数
+    fun collectImageUrls(proposals: List<Proposal>): List<String> {
+        val imageUrls = mutableListOf<String>()
+        val baseUrl = (ServerUrlHolder.overrideBaseUrl ?: BuildConfig.SERVER_URL).trimEnd('/')
+        
+        proposals.forEach { proposal ->
+            listOfNotNull(
+                proposal.items.outer?.image_path,
+                proposal.items.tops?.image_path,
+                proposal.items.bottoms?.image_path
+            ).forEach { imagePath ->
+                val imageUrl = if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) {
+                    imagePath
+                } else {
+                    val path = if (imagePath.startsWith("/")) imagePath else "/$imagePath"
+                    "$baseUrl$path"
+                }
+                if (imageUrl.isNotBlank()) {
+                    imageUrls.add(imageUrl)
+                }
+            }
+        }
+        return imageUrls.distinct()
+    }
+
+    // 画像をプリロードする
+    LaunchedEffect(proposals) {
+        if (proposals.isNotEmpty() && !imagesPreloaded) {
+            isPreloadingImages = true
+            val imageUrls = collectImageUrls(proposals)
+            
+            if (imageUrls.isNotEmpty()) {
+                try {
+                    // すべての画像を並列でプリロード（実際に読み込む）
+                    val preloadJobs = imageUrls.map { imageUrl ->
+                        async {
+                            try {
+                                val request = ImageRequest.Builder(context)
+                                    .data(imageUrl)
+                                    .build()
+                                imageLoader.execute(request)
+                            } catch (e: Exception) {
+                                Log.e("SuggestionScreen", "画像プリロードエラー ($imageUrl): ${e.message}", e)
+                                // 個別のエラーは無視して続行
+                            }
+                        }
+                    }
+                    // すべてのプリロードが完了するまで待機
+                    preloadJobs.awaitAll()
+                    
+                    imagesPreloaded = true
+                } catch (e: Exception) {
+                    Log.e("SuggestionScreen", "画像プリロードエラー: ${e.message}", e)
+                    // エラーが発生しても表示は続行
+                    imagesPreloaded = true
+                }
+            } else {
+                imagesPreloaded = true
+            }
+            isPreloadingImages = false
+        }
+    }
 
     // -------- スナップ処理 --------
     LaunchedEffect(lazyListState.isScrollInProgress) {
@@ -332,21 +407,44 @@ fun SuggestionScreen(
             modifier = Modifier.padding(start = 16.dp, bottom = 8.dp)
         )
 
-        LazyRow(
-            state = lazyListState,
-            contentPadding = PaddingValues(horizontal = padding),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            items(proposals) { proposal ->
-                CoordinateCard(
-                    proposal = proposal,
-                    suggestionViewModel = suggestionViewModel,
-                    isGeneratingImage = isGeneratingImage,
-                    modifier = Modifier.width(cardWidth),
-                    userSessionViewModel = userSessionViewModel,
-                    itemViewModel = viewModel()
-                )
+        // 画像プリロード中または未完了の場合はローディング表示
+        if (isPreloadingImages || (proposals.isNotEmpty() && !imagesPreloaded)) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(400.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    CircularProgressIndicator()
+                    Text(
+                        text = "画像を読み込み中...",
+                        color = Color.Gray,
+                        fontSize = 14.sp
+                    )
+                }
+            }
+        } else if (proposals.isNotEmpty()) {
+            // プリロード完了後にLazyRowを表示
+            LazyRow(
+                state = lazyListState,
+                contentPadding = PaddingValues(horizontal = padding),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                items(proposals) { proposal ->
+                    CoordinateCard(
+                        proposal = proposal,
+                        suggestionViewModel = suggestionViewModel,
+                        isGeneratingImage = isGeneratingImage,
+                        modifier = Modifier.width(cardWidth),
+                        userSessionViewModel = userSessionViewModel,
+                        itemViewModel = viewModel()
+                    )
+                }
             }
         }
 
@@ -394,11 +492,64 @@ fun ItemDisplay(item: Item?, label: String) {
                     val imagePath = if (item.image_path.startsWith("/")) item.image_path else "/${item.image_path}"
                     "$baseUrl$imagePath"
                 }
-                AsyncImage(
-                    model = imageUrl,
+                
+                // リトライ用のキー
+                var retryKey by remember { mutableStateOf(0) }
+                val imageUrlWithRetry = remember(imageUrl, retryKey) {
+                    imageUrl?.let { url ->
+                        if (retryKey > 0) {
+                            val separator = if (url.contains("?")) "&" else "?"
+                            "$url${separator}_retry=$retryKey"
+                        } else {
+                            url
+                        }
+                    }
+                }
+                
+                SubcomposeAsyncImage(
+                    model = imageUrlWithRetry,
                     contentDescription = item.item_name,
                     modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
+                    contentScale = ContentScale.Crop,
+                    loading = {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                strokeWidth = 2.dp
+                            )
+                        }
+                    },
+                    error = { state ->
+                        val error = state.result.throwable
+                        Log.e("SuggestionScreen", "画像読み込みエラー: ${error?.message}", error)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clickable { retryKey++ },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(4.dp),
+                                modifier = Modifier.padding(4.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.ErrorOutline,
+                                    contentDescription = null,
+                                    tint = Color.Gray,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Text(
+                                    text = "タップして再読み込み",
+                                    color = Color.Gray,
+                                    fontSize = 8.sp
+                                )
+                            }
+                        }
+                    }
                 )
             } else {
                 Text(label, color = Color.Gray, fontSize = 11.sp)
