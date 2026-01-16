@@ -14,6 +14,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.platform.LocalContext
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -45,14 +46,13 @@ class MainActivity : ComponentActivity() {
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentRoute = navBackStackEntry?.destination?.route
                 
-                // 生成完了を監視してSnackbarを表示
+                // 生成完了を監視して自動遷移
                 val sharedPreferences = remember {
                     context.getSharedPreferences("app_prefs", android.content.Context.MODE_PRIVATE)
                 }
                 var imageGenerationComplete by remember { 
                     mutableStateOf(sharedPreferences.getBoolean("image_generation_complete", false))
                 }
-                val snackbarHostState = remember { SnackbarHostState() }
                 
                 // SharedPreferencesの変更を監視
                 DisposableEffect(Unit) {
@@ -70,32 +70,25 @@ class MainActivity : ComponentActivity() {
                     }
                 }
                 
-                // 生成完了時にSnackbarを表示
+                // 生成完了時に自動遷移（どの画面にいても）
                 LaunchedEffect(imageGenerationComplete) {
                     if (imageGenerationComplete) {
                         val imageUrl = sharedPreferences.getString("generated_image_url", null)
                         if (imageUrl != null) {
-                            // Snackbarを表示（アクションボタン付き）
-                            val result = snackbarHostState.showSnackbar(
-                                message = "画像生成が完了しました。",
-                                actionLabel = "確認",
-                                duration = SnackbarDuration.Long
-                            )
-                            // アクションボタンがクリックされた場合
-                            if (result == SnackbarResult.ActionPerformed) {
-                                sharedPreferences.edit().apply {
-                                    putBoolean("image_generation_complete", false)
-                                    putBoolean("has_new_generated_image", false)
-                                    apply()
-                                }
-                                navController.navigate("generate?imageUrl=${android.net.Uri.encode(imageUrl)}") {
-                                    popUpTo("home") { inclusive = false }
-                                    launchSingleTop = true
-                                }
-                            }
                             // フラグをリセット
+                            sharedPreferences.edit().apply {
+                                putBoolean("image_generation_complete", false)
+                                putBoolean("has_new_generated_image", false)
+                                apply()
+                            }
+                            // 自動的に生成結果画面へ遷移
+                            navController.navigate("generate?imageUrl=${android.net.Uri.encode(imageUrl)}") {
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    inclusive = false
+                                }
+                                launchSingleTop = true
+                            }
                             imageGenerationComplete = false
-                            sharedPreferences.edit().putBoolean("image_generation_complete", false).apply()
                         }
                     }
                 }
@@ -220,9 +213,6 @@ class MainActivity : ComponentActivity() {
                         if (showBottomBar) {
                             BottomNavBar(navController)
                         }
-                    },
-                    snackbarHost = {
-                        SnackbarHost(hostState = snackbarHostState)
                     }
                 ) { innerPadding ->
                     Box(modifier = Modifier.padding(innerPadding)) {

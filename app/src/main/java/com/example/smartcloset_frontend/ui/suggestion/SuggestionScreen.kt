@@ -58,15 +58,7 @@ fun SuggestionScreen(
     val isSending by suggestionViewModel.isSendingPlan.collectAsState()
     val isGeneratingImage by suggestionViewModel.isGeneratingImage.collectAsState()
     val proposals by suggestionViewModel.proposals.collectAsState()
-    val toastMessage by suggestionViewModel.toastMessage.collectAsState()
     val navigateToGenerate by suggestionViewModel.navigateToGenerate.collectAsState()
-
-    LaunchedEffect(toastMessage) {
-        toastMessage?.let {
-            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
-            suggestionViewModel.onToastShown()
-        }
-    }
 
     LaunchedEffect(Unit) {
         try {

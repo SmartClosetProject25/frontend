@@ -29,9 +29,6 @@ class SuggestionViewModel : ViewModel() {
     private val _proposals = MutableStateFlow<List<Proposal>>(emptyList())
     val proposals: StateFlow<List<Proposal>> = _proposals
 
-    private val _toastMessage = MutableStateFlow<String?>(null)
-    val toastMessage: StateFlow<String?> = _toastMessage
-
     private val _generatedImage = MutableStateFlow<String?>(null)
     val generatedImage: StateFlow<String?> = _generatedImage
 
@@ -58,18 +55,14 @@ class SuggestionViewModel : ViewModel() {
                     val proposals = response.body()?.proposals
                     if (!proposals.isNullOrEmpty()) {
                         _proposals.value = proposals
-                        _toastMessage.value = "おすすめのコーディネートを取得しました"
                         Log.d("SuggestionViewModel", "sendTodayPlan successful: ${response.body()}")
                     } else {
-                        _toastMessage.value = "おすすめのコーディネートが見つかりませんでした"
                         Log.d("SuggestionViewModel", "sendTodayPlan successful but no proposals: ${response.body()}")
                     }
                 } else {
-                    _toastMessage.value = "エラーが発生しました"
                     Log.e("SuggestionViewModel", "sendTodayPlan failed: ${response.errorBody()?.string()}")
                 }
             } catch (e: Exception) {
-                _toastMessage.value = "通信エラーが発生しました"
                 Log.e("SuggestionViewModel", "sendTodayPlan failed with exception", e)
             } finally {
                 _isSendingPlan.value = false
@@ -122,15 +115,13 @@ class SuggestionViewModel : ViewModel() {
                 WorkManager.getInstance(context.applicationContext).enqueue(workRequest)
                 Log.d("SuggestionViewModel", "WorkManagerにリクエストを追加しました")
                 
-                // 生成中フラグをSharedPreferencesにも保存（ナビゲーション用）
+                // 生成中フラグをSharedPreferencesにも保存
                 val sharedPreferences = context.applicationContext.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
                 sharedPreferences.edit().putBoolean("is_generating_image", true).apply()
                 
                 _isGeneratingImage.value = true
-                _toastMessage.value = "画像生成を開始しました。バックグラウンドで処理中です。"
             } catch (e: Exception) {
                 Log.e("SuggestionViewModel", "WorkManagerへのリクエスト追加に失敗", e)
-                _toastMessage.value = "画像生成の開始に失敗しました: ${e.message}"
                 _isGeneratingImage.value = false
             }
         } else {
@@ -153,26 +144,21 @@ class SuggestionViewModel : ViewModel() {
                             
                             if (imageUrl != null) {
                                 _generatedImage.value = imageUrl
-                                _toastMessage.value = "画像を生成しました"
                                 _navigateToGenerate.value = true // 画面遷移をトリガー
                                 Log.d("SuggestionViewModel", "Image URL received: $imageUrl")
                             } else {
                                 val errorMessage = imageResponse.message ?: "画像URLが取得できませんでした"
-                                _toastMessage.value = errorMessage
                                 Log.e("SuggestionViewModel", "generateImage failed: $errorMessage")
                             }
                         } else {
                             val errorMessage = imageResponse?.message ?: "画像生成に失敗しました"
-                            _toastMessage.value = errorMessage
                             Log.e("SuggestionViewModel", "generateImage failed: $errorMessage")
                         }
                     } else {
                         val errorBody = response.errorBody()?.string()
-                        _toastMessage.value = "画像生成に失敗しました: $errorBody"
                         Log.e("SuggestionViewModel", "generateImage failed with error: $errorBody")
                     }
                 } catch (e: Exception) {
-                    _toastMessage.value = "通信エラーが発生しました"
                     Log.e("SuggestionViewModel", "generateImage failed with exception", e)
                 } finally {
                     _isGeneratingImage.value = false
@@ -181,15 +167,11 @@ class SuggestionViewModel : ViewModel() {
         }
     }
     
-    // 生成結果を設定する関数（トーストやバッジから呼ばれる）
+    // 生成結果を設定する関数
     fun setGeneratedImageFromNotification(imageUrl: String) {
         _generatedImage.value = imageUrl
         _isGeneratingImage.value = false
         _navigateToGenerate.value = true
-    }
-
-    fun onToastShown() {
-        _toastMessage.value = null
     }
 
     fun onGenerateScreenNavigated() {
