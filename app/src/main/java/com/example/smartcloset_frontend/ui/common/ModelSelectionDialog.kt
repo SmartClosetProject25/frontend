@@ -5,6 +5,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -17,11 +22,13 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun ModelSelectionDialog(
     onDismiss: () -> Unit,
-    onCameraClick: () -> Unit,
-    onGalleryClick: () -> Unit,
-    onMannequinClick: () -> Unit,
-    onProfileClick: () -> Unit
+    onCameraClick: (Boolean) -> Unit,
+    onGalleryClick: (Boolean) -> Unit,
+    onMannequinClick: (Boolean) -> Unit,
+    onProfileClick: (Boolean) -> Unit
 ) {
+    var isOuter by remember { mutableStateOf(true) }
+    
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
@@ -34,12 +41,33 @@ fun ModelSelectionDialog(
         text = {
             Column(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
+                horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                // アウター切り替えスイッチ
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "アウター",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color.Black
+                    )
+                    Switch(
+                        checked = isOuter,
+                        onCheckedChange = { isOuter = it }
+                    )
+                }
+                
+                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
                 // カメラで撮影ボタン
                 Button(
-                    onClick = onCameraClick,
+                    onClick = { onCameraClick(isOuter) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
@@ -62,7 +90,7 @@ fun ModelSelectionDialog(
 
                 // アルバムから選択ボタン
                 Button(
-                    onClick = onGalleryClick,
+                    onClick = { onGalleryClick(isOuter) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
@@ -85,7 +113,7 @@ fun ModelSelectionDialog(
 
                 // マネキンを使用ボタン
                 Button(
-                    onClick = onMannequinClick,
+                    onClick = { onMannequinClick(isOuter) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
@@ -108,7 +136,7 @@ fun ModelSelectionDialog(
 
                 // プロフィール画像を使用ボタン
                 Button(
-                    onClick = onProfileClick,
+                    onClick = { onProfileClick(isOuter) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),

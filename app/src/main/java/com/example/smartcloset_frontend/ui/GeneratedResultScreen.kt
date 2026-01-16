@@ -46,6 +46,7 @@ import com.example.smartcloset_frontend.BuildConfig
 import com.example.smartcloset_frontend.data.Item
 import com.example.smartcloset_frontend.data.Proposal
 import com.example.smartcloset_frontend.network.ServerUrlHolder
+import com.example.smartcloset_frontend.ui.common.ModelSelectionDialog
 import com.example.smartcloset_frontend.utils.ImageUtils
 import com.example.smartcloset_frontend.utils.QrCodeGenerator
 import com.example.smartcloset_frontend.viewmodel.SuggestionViewModel
@@ -65,6 +66,8 @@ fun GeneratedResultScreen(
     var qrCodeBitmap by remember { mutableStateOf<ImageBitmap?>(null) }
     var qrCodeError by remember { mutableStateOf<String?>(null) }
     var showModelSelectionDialog by remember { mutableStateOf(false) }
+    // アウター設定を保持（カメラ/アルバム選択時に使用）
+    var selectedIsOuter by remember { mutableStateOf(true) }
     
     // カメラ撮影用のLauncher
     val cameraLauncherBitmap = rememberLauncherForActivityResult(
@@ -79,6 +82,7 @@ fun GeneratedResultScreen(
                 modelBitmap = it,
                 modelUri = null,
                 modelTemplate = null,
+                isOuter = selectedIsOuter,
                 context = context,
                 suggestionViewModel = suggestionViewModel
             )
@@ -109,6 +113,7 @@ fun GeneratedResultScreen(
                 modelBitmap = null,
                 modelUri = it,
                 modelTemplate = null,
+                isOuter = selectedIsOuter,
                 context = context,
                 suggestionViewModel = suggestionViewModel
             )
@@ -176,7 +181,8 @@ fun GeneratedResultScreen(
                         onDismiss = {
                             showModelSelectionDialog = false
                         },
-                        onCameraClick = {
+                        onCameraClick = { isOuter ->
+                            selectedIsOuter = isOuter
                             val granted = ContextCompat.checkSelfPermission(
                                 context,
                                 Manifest.permission.CAMERA
@@ -188,10 +194,11 @@ fun GeneratedResultScreen(
                                 cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
                             }
                         },
-                        onGalleryClick = {
+                        onGalleryClick = { isOuter ->
+                            selectedIsOuter = isOuter
                             galleryLauncher.launch("image/*")
                         },
-                        onMannequinClick = {
+                        onMannequinClick = { isOuter ->
                             showModelSelectionDialog = false
                             startImageGenerationFromHistory(
                                 proposal = selectedProposal,
@@ -199,11 +206,12 @@ fun GeneratedResultScreen(
                                 modelBitmap = null,
                                 modelUri = null,
                                 modelTemplate = "mannequin",
+                                isOuter = isOuter,
                                 context = context,
                                 suggestionViewModel = suggestionViewModel
                             )
                         },
-                        onProfileClick = {
+                        onProfileClick = { isOuter ->
                             showModelSelectionDialog = false
                             startImageGenerationFromHistory(
                                 proposal = selectedProposal,
@@ -211,6 +219,7 @@ fun GeneratedResultScreen(
                                 modelBitmap = null,
                                 modelUri = null,
                                 modelTemplate = "profile",
+                                isOuter = isOuter,
                                 context = context,
                                 suggestionViewModel = suggestionViewModel
                             )
@@ -802,6 +811,7 @@ private fun startImageGenerationFromHistory(
     modelBitmap: Bitmap?,
     modelUri: Uri?,
     modelTemplate: String?,
+    isOuter: Boolean = true,
     context: android.content.Context,
     suggestionViewModel: SuggestionViewModel
 ) {
@@ -832,12 +842,15 @@ private fun startImageGenerationFromHistory(
         else -> null
     }
     
+    Log.d("GeneratedResultScreen", "画像生成を開始: imagePaths=$imagePaths, coordinateId=$coordinateId, isOuter=$isOuter")
+    
     // 画像生成を実行（バックグラウンド処理に対応）
     suggestionViewModel.generateImage(
         context = context,
         imagePaths = imagePaths,
         modelImageBase64 = modelImageBase64,
         modelTemplate = modelTemplate,
+        isOuter = isOuter,
         proposal = proposal,
         coordinateId = coordinateId,
         useBackgroundGeneration = true

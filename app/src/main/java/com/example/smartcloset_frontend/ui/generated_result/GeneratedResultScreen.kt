@@ -58,6 +58,8 @@ fun GeneratedResultScreen(
     var showModelSelectionDialog by remember { mutableStateOf(false) }
     // カメラ撮影用の一時ファイルUriを保持
     var cameraImageUri by remember { mutableStateOf<Uri?>(null) }
+    // アウター設定を保持（カメラ/アルバム選択時に使用）
+    var selectedIsOuter by remember { mutableStateOf(true) }
 
     // カメラ撮影用のLauncher（高解像度で撮影）
     val cameraLauncher = rememberLauncherForActivityResult(
@@ -72,6 +74,7 @@ fun GeneratedResultScreen(
                     modelBitmap = null,
                     modelUri = uri,
                     modelTemplate = null,
+                    isOuter = selectedIsOuter,
                     context = context,
                     suggestionViewModel = suggestionViewModel
                 )
@@ -109,6 +112,7 @@ fun GeneratedResultScreen(
                 modelBitmap = null,
                 modelUri = it,
                 modelTemplate = null,
+                isOuter = selectedIsOuter,
                 context = context,
                 suggestionViewModel = suggestionViewModel
             )
@@ -176,7 +180,8 @@ fun GeneratedResultScreen(
                         onDismiss = {
                             showModelSelectionDialog = false
                         },
-                        onCameraClick = {
+                        onCameraClick = { isOuter ->
+                            selectedIsOuter = isOuter
                             val granted = ContextCompat.checkSelfPermission(
                                 context,
                                 Manifest.permission.CAMERA
@@ -194,10 +199,11 @@ fun GeneratedResultScreen(
                                 cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
                             }
                         },
-                        onGalleryClick = {
+                        onGalleryClick = { isOuter ->
+                            selectedIsOuter = isOuter
                             galleryLauncher.launch("image/*")
                         },
-                        onMannequinClick = {
+                        onMannequinClick = { isOuter ->
                             showModelSelectionDialog = false
                             ImageGenerationHelper.startImageGeneration(
                                 proposal = selectedProposal,
@@ -205,11 +211,12 @@ fun GeneratedResultScreen(
                                 modelBitmap = null,
                                 modelUri = null,
                                 modelTemplate = "mannequin",
+                                isOuter = isOuter,
                                 context = context,
                                 suggestionViewModel = suggestionViewModel
                             )
                         },
-                        onProfileClick = {
+                        onProfileClick = { isOuter ->
                             showModelSelectionDialog = false
                             ImageGenerationHelper.startImageGeneration(
                                 proposal = selectedProposal,
@@ -217,6 +224,7 @@ fun GeneratedResultScreen(
                                 modelBitmap = null,
                                 modelUri = null,
                                 modelTemplate = "profile",
+                                isOuter = isOuter,
                                 context = context,
                                 suggestionViewModel = suggestionViewModel
                             )

@@ -20,6 +20,7 @@ object ImageGenerationHelper {
      * @param modelBitmap モデル画像（Bitmap、カメラ撮影時）
      * @param modelUri モデル画像（Uri、アルバム選択時）
      * @param modelTemplate モデルテンプレート（"mannequin" または "profile"）
+     * @param isOuter アウターを含めるかどうか（デフォルトはtrue）
      * @param context Context
      * @param suggestionViewModel SuggestionViewModel
      */
@@ -29,6 +30,7 @@ object ImageGenerationHelper {
         modelBitmap: Bitmap?,
         modelUri: Uri?,
         modelTemplate: String?,
+        isOuter: Boolean = true,
         context: Context,
         suggestionViewModel: SuggestionViewModel
     ) {
@@ -61,13 +63,14 @@ object ImageGenerationHelper {
         }
         
         val actualCoordinateId = coordinateId ?: proposal.coordinate_id
-        Log.d("ImageGenerationHelper", "画像生成を開始: imagePaths=$imagePaths, coordinateId=$actualCoordinateId")
+        Log.d("ImageGenerationHelper", "画像生成を開始: imagePaths=$imagePaths, coordinateId=$actualCoordinateId, isOuter=$isOuter")
         
         suggestionViewModel.generateImage(
             context = context,
             imagePaths = imagePaths,
             modelImageBase64 = modelImageBase64,
             modelTemplate = modelTemplate,
+            isOuter = isOuter,
             proposal = proposal,
             coordinateId = actualCoordinateId,
             useBackgroundGeneration = true

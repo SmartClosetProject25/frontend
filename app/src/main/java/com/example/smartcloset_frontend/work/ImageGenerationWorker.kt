@@ -28,6 +28,7 @@ class ImageGenerationWorker(
             val coordinateId = inputData.getInt(KEY_COORDINATE_ID, -1).takeIf { it != -1 }
             val workRequestId = inputData.getString(KEY_WORK_REQUEST_ID) ?: ""
             val hasModelImage = inputData.getBoolean(KEY_HAS_MODEL_IMAGE, false)
+            val isOuter = inputData.getBoolean(KEY_IS_OUTER, true)  // デフォルトはtrue
             
             // SharedPreferencesからBase64データを取得
             val modelImageBase64 = if (hasModelImage) {
@@ -42,14 +43,15 @@ class ImageGenerationWorker(
                 null
             }
 
-            Log.d("ImageGenerationWorker", "画像生成を開始: imagePaths=$imagePaths, coordinateId=$coordinateId, hasModelImage=$hasModelImage")
+            Log.d("ImageGenerationWorker", "画像生成を開始: imagePaths=$imagePaths, coordinateId=$coordinateId, hasModelImage=$hasModelImage, isOuter=$isOuter")
 
             // 画像生成を実行
             val response = repository.generateImage(
                 imagePaths = imagePaths,
                 modelImageBase64 = modelImageBase64,
                 modelTemplate = modelTemplate,
-                coordinateId = coordinateId
+                coordinateId = coordinateId,
+                isOuter = isOuter
             )
 
             if (response.isSuccessful) {
@@ -107,5 +109,6 @@ class ImageGenerationWorker(
         const val KEY_COORDINATE_ID = "coordinate_id"
         const val KEY_WORK_REQUEST_ID = "work_request_id"
         const val KEY_HAS_MODEL_IMAGE = "has_model_image"
+        const val KEY_IS_OUTER = "is_outer"
     }
 }

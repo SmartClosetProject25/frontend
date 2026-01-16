@@ -63,6 +63,7 @@ import com.example.smartcloset_frontend.data.LocationData
 import com.example.smartcloset_frontend.data.Proposal
 import com.example.smartcloset_frontend.data.TodayPlanData
 import com.example.smartcloset_frontend.network.ServerUrlHolder
+import com.example.smartcloset_frontend.ui.common.ModelSelectionDialog
 import com.example.smartcloset_frontend.utils.GetLocation
 import com.example.smartcloset_frontend.utils.ImageUtils
 import com.example.smartcloset_frontend.utils.createImageFileUri
@@ -92,7 +93,7 @@ fun SuggestionScreen(
     val weatherData by getWeatherViewModel.weatherData.collectAsState()
     val weatherError by getWeatherViewModel.error.collectAsState()
     val todayPlan = remember { mutableStateOf("") }
-    val gender = remember { mutableStateOf<String?>(null) }
+    val gender = remember { mutableStateOf<String?>("male") }
     val isSending by suggestionViewModel.isSendingPlan.collectAsState()
     val isGeneratingImage by suggestionViewModel.isGeneratingImage.collectAsState()
     val proposals by suggestionViewModel.proposals.collectAsState()
@@ -625,6 +626,8 @@ fun CoordinateCard(
     var showModelSelectionDialog by remember { mutableStateOf(false) }
     // カメラ撮影用の一時ファイルUriを保持
     var cameraImageUri by remember { mutableStateOf<Uri?>(null) }
+    // アウター設定を保持（カメラ/アルバム選択時に使用）
+    var selectedIsOuter by remember { mutableStateOf(true) }
 
     // カメラ撮影用のLauncher（高解像度で撮影）
     val cameraLauncher = rememberLauncherForActivityResult(
@@ -639,6 +642,7 @@ fun CoordinateCard(
                     modelBitmap = null,
                     modelUri = uri,
                     modelTemplate = null,
+                    isOuter = selectedIsOuter,
                     context = context,
                     suggestionViewModel = suggestionViewModel
                 )
@@ -676,6 +680,7 @@ fun CoordinateCard(
                 modelBitmap = null,
                 modelUri = it,
                 modelTemplate = null,
+                isOuter = selectedIsOuter,
                 context = context,
                 suggestionViewModel = suggestionViewModel
             )
@@ -854,7 +859,8 @@ fun CoordinateCard(
             onDismiss = {
                 showModelSelectionDialog = false
             },
-            onCameraClick = {
+            onCameraClick = { isOuter ->
+                selectedIsOuter = isOuter
                 val granted = ContextCompat.checkSelfPermission(
                     context,
                     Manifest.permission.CAMERA
@@ -872,27 +878,30 @@ fun CoordinateCard(
                     cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
                 }
             },
-            onGalleryClick = {
+            onGalleryClick = { isOuter ->
+                selectedIsOuter = isOuter
                 galleryLauncher.launch("image/*")
             },
-            onMannequinClick = {
+            onMannequinClick = { isOuter ->
                 showModelSelectionDialog = false
                 startImageGeneration(
                     proposal = proposal,
                     modelBitmap = null,
                     modelUri = null,
                     modelTemplate = "mannequin",
+                    isOuter = isOuter,
                     context = context,
                     suggestionViewModel = suggestionViewModel
                 )
             },
-            onProfileClick = {
+            onProfileClick = { isOuter ->
                 showModelSelectionDialog = false
                 startImageGeneration(
                     proposal = proposal,
                     modelBitmap = null,
                     modelUri = null,
                     modelTemplate = "profile",
+                    isOuter = isOuter,
                     context = context,
                     suggestionViewModel = suggestionViewModel
                 )
@@ -907,6 +916,7 @@ fun startImageGeneration(
     modelBitmap: Bitmap?,
     modelUri: Uri?,
     modelTemplate: String?,
+    isOuter: Boolean = true,
     context: android.content.Context,
     suggestionViewModel: SuggestionViewModel
 ) {
@@ -935,140 +945,16 @@ fun startImageGeneration(
         else -> null
     }
     
-    Log.d("startImageGeneration", "画像生成を開始: imagePaths=$imagePaths, coordinateId=${proposal.coordinate_id}")
+    Log.d("startImageGeneration", "画像生成を開始: imagePaths=$imagePaths, coordinateId=${proposal.coordinate_id}, isOuter=$isOuter")
     
     suggestionViewModel.generateImage(
         context = context,
         imagePaths = imagePaths,
         modelImageBase64 = modelImageBase64,
         modelTemplate = modelTemplate,
+        isOuter = isOuter,
         proposal = proposal,
         coordinateId = proposal.coordinate_id,
         useBackgroundGeneration = true
-    )
-}
-
-// モデル選択ダイアログ
-@Composable
-fun ModelSelectionDialog(
-    onDismiss: () -> Unit,
-    onCameraClick: () -> Unit,
-    onGalleryClick: () -> Unit,
-    onMannequinClick: () -> Unit,
-    onProfileClick: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                text = "モデルを選択",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold
-            )
-        },
-        text = {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                // カメラで撮影ボタン
-                Button(
-                    onClick = onCameraClick,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Black)
-                ) {
-                    Icon(
-                        Icons.Default.CameraAlt,
-                        contentDescription = "カメラ",
-                        tint = Color.White,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "カメラで撮影",
-                        fontSize = 16.sp,
-                        color = Color.White,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-
-                // アルバムから選択ボタン
-                Button(
-                    onClick = onGalleryClick,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF9C27B0))
-                ) {
-                    Icon(
-                        Icons.Filled.PhotoLibrary,
-                        contentDescription = "アルバム",
-                        tint = Color.White,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "アルバムから選択",
-                        fontSize = 16.sp,
-                        color = Color.White,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-
-                // マネキンを使用ボタン
-                Button(
-                    onClick = onMannequinClick,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3))
-                ) {
-                    Icon(
-                        Icons.Default.Person,
-                        contentDescription = "マネキン",
-                        tint = Color.White,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "マネキンを使用",
-                        fontSize = 16.sp,
-                        color = Color.White,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-
-                // プロフィール画像を使用ボタン
-                Button(
-                    onClick = onProfileClick,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
-                ) {
-                    Icon(
-                        Icons.Default.AccountCircle,
-                        contentDescription = "プロフィール画像",
-                        tint = Color.White,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "プロフィール画像を使用",
-                        fontSize = 16.sp,
-                        color = Color.White,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("キャンセル", color = Color.Gray)
-            }
-        }
     )
 }

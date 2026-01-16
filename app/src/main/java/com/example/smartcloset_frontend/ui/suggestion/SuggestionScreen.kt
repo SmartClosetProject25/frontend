@@ -55,7 +55,7 @@ fun SuggestionScreen(
     val context = LocalContext.current
     val weatherData by getWeatherViewModel.weatherData.collectAsState()
     val todayPlan = remember { mutableStateOf("") }
-    val gender = remember { mutableStateOf<String?>(null) }
+    val gender = remember { mutableStateOf<String?>("male") }
     val isSending by suggestionViewModel.isSendingPlan.collectAsState()
     val isGeneratingImage by suggestionViewModel.isGeneratingImage.collectAsState()
     val proposals by suggestionViewModel.proposals.collectAsState()

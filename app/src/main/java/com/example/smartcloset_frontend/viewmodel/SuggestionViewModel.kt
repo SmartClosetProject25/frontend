@@ -75,6 +75,7 @@ class SuggestionViewModel : ViewModel() {
         imagePaths: List<String>,
         modelImageBase64: String? = null,
         modelTemplate: String? = null,
+        isOuter: Boolean = true,
         proposal: Proposal? = null,
         coordinateId: Int? = null,
         useBackgroundGeneration: Boolean = true
@@ -88,7 +89,7 @@ class SuggestionViewModel : ViewModel() {
             // バックグラウンド生成を使用（WorkManager）
             val workRequestId = UUID.randomUUID().toString()
             
-            Log.d("SuggestionViewModel", "WorkManagerで画像生成を開始: workRequestId=$workRequestId, imagePaths=$imagePaths")
+            Log.d("SuggestionViewModel", "WorkManagerで画像生成を開始: workRequestId=$workRequestId, imagePaths=$imagePaths, isOuter=$isOuter")
             
             // SharedPreferencesにBase64データを保存（サイズが大きいためWorkManagerのDataには含めない）
             val sharedPreferences = context.applicationContext.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
@@ -109,6 +110,7 @@ class SuggestionViewModel : ViewModel() {
                     putInt(ImageGenerationWorker.KEY_COORDINATE_ID, it)
                     Log.d("SuggestionViewModel", "coordinateId: $it")
                 }
+                putBoolean(ImageGenerationWorker.KEY_IS_OUTER, isOuter)
                 putString(ImageGenerationWorker.KEY_WORK_REQUEST_ID, workRequestId)
                 // Base64データがある場合はフラグを設定
                 if (modelImageBase64 != null) {
@@ -140,8 +142,9 @@ class SuggestionViewModel : ViewModel() {
                 Log.d("SuggestionViewModel", "Model image base64 length: ${modelImageBase64?.length ?: 0}")
                 Log.d("SuggestionViewModel", "Model template: $modelTemplate")
                 Log.d("SuggestionViewModel", "Coordinate ID: $coordinateId")
+                Log.d("SuggestionViewModel", "Is Outer: $isOuter")
                 try {
-                    val response = repository.generateImage(imagePaths, modelImageBase64, modelTemplate, coordinateId)
+                    val response = repository.generateImage(imagePaths, modelImageBase64, modelTemplate, coordinateId, isOuter)
                     if (response.isSuccessful) {
                         val imageResponse = response.body()
                         if (imageResponse?.status == "success") {
