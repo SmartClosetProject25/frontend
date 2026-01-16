@@ -6,13 +6,22 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.clickable
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.core.tween
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,13 +33,29 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
+import android.util.Log
 import androidx.navigation.NavHostController
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
+import coil.ImageLoader
+import coil.request.ImageRequest
+import coil.imageLoader
 import com.example.smartcloset_frontend.BuildConfig
 import com.example.smartcloset_frontend.data.CoordinateData
 import com.example.smartcloset_frontend.data.CoordinateItem
+import com.example.smartcloset_frontend.data.Item
+import com.example.smartcloset_frontend.data.Items
+import com.example.smartcloset_frontend.data.Proposal
 import com.example.smartcloset_frontend.network.ServerUrlHolder
 import com.example.smartcloset_frontend.viewmodel.SuggestionHistoryViewModel
+import com.example.smartcloset_frontend.viewmodel.SuggestionViewModel
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -38,7 +63,8 @@ import java.util.*
 @Composable
 fun SuggestionHistoryScreen(
     navController: NavHostController,
-    viewModel: SuggestionHistoryViewModel
+    viewModel: SuggestionHistoryViewModel,
+    suggestionViewModel: SuggestionViewModel
 ) {
 
     var isSearchVisible by remember { mutableStateOf(false) }
@@ -47,6 +73,11 @@ fun SuggestionHistoryScreen(
     val coordinatesData by viewModel.coordinatesData.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val error by viewModel.error.collectAsState()
+    
+    // CoordinateDataのマップを作成（coordinate_idをキーとして）
+    val coordinateDataMap = remember(coordinatesData) {
+        coordinatesData?.coordinates?.associateBy { it.coordinate_id } ?: emptyMap()
+    }
 
     // 画面が表示されるたびにデータを取得
     DisposableEffect(Unit) {
@@ -162,11 +193,17 @@ fun SuggestionHistoryScreen(
             // ──────────────────
             //   日別一覧
             // ──────────────────
+            val scrollState = rememberScrollState()
+            val density = LocalDensity.current
+            val screenHeight = with(density) { 
+                androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp.dp.toPx()
+            }
+            
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(16.dp)
-                    .verticalScroll(rememberScrollState())
+                    .verticalScroll(scrollState)
             ) {
                 when {
                     isLoading -> {
@@ -200,8 +237,26 @@ fun SuggestionHistoryScreen(
                         }
                     }
                     else -> {
-                        historyData.forEach { dateGroup ->
-                            DateGroupSection(dateGroup)
+                        // 各日付グループの展開状態を管理（一番新しい日付はデフォルトで展開）
+                        val expandedStates = remember {
+                            mutableStateMapOf<Int, Boolean>().apply {
+                                // 最初の日付（index 0）はデフォルトで展開
+                                put(0, true)
+                            }
+                        }
+                        
+                        historyData.forEachIndexed { index, dateGroup ->
+                            DateGroupSection(
+                                dateGroup = dateGroup,
+                                index = index,
+                                isExpanded = expandedStates.getOrDefault(index, false),
+                                onExpandedChange = { expandedStates[index] = it },
+                                scrollState = scrollState,
+                                screenHeight = screenHeight,
+                                navController = navController,
+                                suggestionViewModel = suggestionViewModel,
+                                coordinateDataMap = coordinateDataMap
+                            )
                             Spacer(Modifier.height(24.dp))
                         }
                     }
@@ -212,12 +267,116 @@ fun SuggestionHistoryScreen(
 }
 
 @Composable
-fun DateGroupSection(dateGroup: HistoryDateGroup) {
-    Column {
+fun DateGroupSection(
+    dateGroup: HistoryDateGroup,
+    index: Int,
+    isExpanded: Boolean,
+    onExpandedChange: (Boolean) -> Unit,
+    scrollState: ScrollState,
+    screenHeight: Float,
+    navController: NavHostController,
+    suggestionViewModel: SuggestionViewModel,
+    coordinateDataMap: Map<Int, CoordinateData>
+) {
+    val context = LocalContext.current
+    val imageLoader = context.imageLoader
+    val density = LocalDensity.current
+    
+    // セクションの位置を追跡
+    var sectionTopY by remember { mutableStateOf<Float?>(null) }
+    var sectionHeight by remember { mutableStateOf<Float?>(null) }
+    
+    // 画像プリロード状態
+    var imagesPreloaded by remember(dateGroup, isExpanded) { mutableStateOf(false) }
+    var shouldPreload by remember { mutableStateOf(false) }
+    
+    // すべての画像URLを収集（展開されている場合のみ）
+    val imageUrls = remember(dateGroup, isExpanded) {
+        if (!isExpanded) {
+            emptyList()
+        } else {
+            val urls = mutableListOf<String>()
+            dateGroup.suggestions.forEach { suggestion ->
+                // アイテム画像
+                listOfNotNull(
+                    suggestion.outer?.image_path,
+                    suggestion.top.image_path,
+                    suggestion.bottom.image_path
+                ).forEach { imagePath ->
+                    buildImageUrl(imagePath)?.let { urls.add(it) }
+                }
+                // 生成画像
+                suggestion.genimgPath?.let { genimgPath ->
+                    buildImageUrl(genimgPath)?.let { urls.add(it) }
+                }
+            }
+            urls.distinct()
+        }
+    }
+    
+    // スクロール位置を監視して可視領域を判定（展開されている場合のみ）
+    LaunchedEffect(scrollState.value, sectionTopY, sectionHeight, isExpanded) {
+        if (!isExpanded) {
+            shouldPreload = false
+            return@LaunchedEffect
+        }
+        
+        val scrollY = with(density) { scrollState.value.toFloat() }
+        val viewportBottom = scrollY + screenHeight
+        
+        // 一番新しい日付（index == 0）は即座にプリロード
+        if (index == 0) {
+            shouldPreload = true
+        } else if (sectionTopY != null && sectionHeight != null) {
+            // セクションが表示領域に入ったか判定（少し前からプリロード開始）
+            val preloadThreshold = screenHeight * 0.5f // 画面の50%手前からプリロード
+            val sectionBottom = sectionTopY!! + sectionHeight!!
+            shouldPreload = sectionTopY!! < viewportBottom + preloadThreshold
+        }
+    }
+    
+    // 画像をプリロードする（展開されている場合のみ）
+    LaunchedEffect(dateGroup, shouldPreload, isExpanded) {
+        if (isExpanded && shouldPreload && imageUrls.isNotEmpty() && !imagesPreloaded) {
+            try {
+                // すべての画像を並列でプリロード
+                val preloadJobs = imageUrls.map { imageUrl ->
+                    async {
+                        try {
+                            val request = ImageRequest.Builder(context)
+                                .data(imageUrl)
+                                .build()
+                            imageLoader.execute(request)
+                        } catch (e: Exception) {
+                            Log.e("SuggestionHistoryScreen", "画像プリロードエラー ($imageUrl): ${e.message}", e)
+                        }
+                    }
+                }
+                // すべてのプリロードが完了するまで待機
+                preloadJobs.awaitAll()
+                imagesPreloaded = true
+            } catch (e: Exception) {
+                Log.e("SuggestionHistoryScreen", "画像プリロードエラー: ${e.message}", e)
+                imagesPreloaded = true
+            }
+        } else if (!isExpanded) {
+            // 折りたたまれた場合はプリロード状態をリセット
+            imagesPreloaded = false
+        }
+    }
 
-        // 日付ヘッダー
+    Column(
+        modifier = Modifier.onGloballyPositioned { coordinates ->
+            val position = coordinates.positionInRoot()
+            sectionTopY = position.y
+            sectionHeight = coordinates.size.height.toFloat()
+        }
+    ) {
+        // 日付ヘッダー（クリック可能）
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onExpandedChange(!isExpanded) },
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
@@ -237,28 +396,73 @@ fun DateGroupSection(dateGroup: HistoryDateGroup) {
             Spacer(Modifier.width(8.dp))
 
             Icon(
-                Icons.Default.ArrowForward,
-                contentDescription = null,
+                if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                contentDescription = if (isExpanded) "折りたたむ" else "展開する",
                 tint = Color.Gray,
                 modifier = Modifier.size(20.dp)
             )
         }
 
-        Spacer(Modifier.height(12.dp))
+        // コンテンツ（折りたたみ可能）
+        AnimatedVisibility(
+            visible = isExpanded,
+            enter = expandVertically(
+                animationSpec = tween(300),
+                expandFrom = Alignment.Top
+            ),
+            exit = shrinkVertically(
+                animationSpec = tween(300),
+                shrinkTowards = Alignment.Top
+            )
+        ) {
+            Column {
+                Spacer(Modifier.height(12.dp))
 
-        // 横スクロールカード
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            items(dateGroup.suggestions) { suggestion ->
-                HistoryCoordinateCard(suggestion)
+                // 画像プリロード中はローディング表示
+                if (!imagesPreloaded && imageUrls.isNotEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            strokeWidth = 2.dp
+                        )
+                    }
+                } else {
+                    // 横スクロールカード
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        items(dateGroup.suggestions) { suggestion ->
+                            HistoryCoordinateCard(
+                                suggestion = suggestion,
+                                onClick = {
+                                    navigateToGeneratedResult(
+                                        suggestion = suggestion,
+                                        navController = navController,
+                                        suggestionViewModel = suggestionViewModel,
+                                        coordinateDataMap = coordinateDataMap
+                                    )
+                                }
+                            )
+                        }
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-fun HistoryCoordinateCard(suggestion: HistoryCoordinate) {
+fun HistoryCoordinateCard(
+    suggestion: HistoryCoordinate,
+    onClick: () -> Unit
+) {
     Card(
-        modifier = Modifier.width(200.dp),
+        modifier = Modifier
+            .width(200.dp)
+            .clickable(onClick = onClick),
         shape = RoundedCornerShape(12.dp),
         border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE0E0E0)),
         colors = CardDefaults.cardColors(containerColor = Color(0xFFF6F6F6))
@@ -355,6 +559,8 @@ fun HistoryItemGridCell(
     label: String,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -372,11 +578,61 @@ fun HistoryItemGridCell(
         ) {
             val imageUrl = buildImageUrl(item.image_path)
             if (imageUrl != null) {
-                AsyncImage(
-                    model = imageUrl,
+                // リトライ用のキー
+                var retryKey by remember { mutableStateOf(0) }
+                val imageUrlWithRetry = remember(imageUrl, retryKey) {
+                    if (retryKey > 0) {
+                        val separator = if (imageUrl.contains("?")) "&" else "?"
+                        "$imageUrl${separator}_retry=$retryKey"
+                    } else {
+                        imageUrl
+                    }
+                }
+                
+                SubcomposeAsyncImage(
+                    model = imageUrlWithRetry,
                     contentDescription = item.name,
                     modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
+                    contentScale = ContentScale.Crop,
+                    loading = {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp
+                            )
+                        }
+                    },
+                    error = { state ->
+                        val error = state.result.throwable
+                        Log.e("SuggestionHistoryScreen", "画像読み込みエラー: ${error?.message}", error)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clickable { retryKey++ },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(2.dp),
+                                modifier = Modifier.padding(2.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.ErrorOutline,
+                                    contentDescription = null,
+                                    tint = Color.Gray,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Text(
+                                    text = "タップ",
+                                    color = Color.Gray,
+                                    fontSize = 7.sp
+                                )
+                            }
+                        }
+                    }
                 )
             } else {
                 Text(label, color = Color.Gray, fontSize = 9.sp)
@@ -412,6 +668,8 @@ fun HistoryGeneratedImageCell(
     label: String,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -429,11 +687,61 @@ fun HistoryGeneratedImageCell(
         ) {
             val imageUrl = buildImageUrl(imagePath)
             if (imageUrl != null) {
-                AsyncImage(
-                    model = imageUrl,
+                // リトライ用のキー
+                var retryKey by remember { mutableStateOf(0) }
+                val imageUrlWithRetry = remember(imageUrl, retryKey) {
+                    if (retryKey > 0) {
+                        val separator = if (imageUrl.contains("?")) "&" else "?"
+                        "$imageUrl${separator}_retry=$retryKey"
+                    } else {
+                        imageUrl
+                    }
+                }
+                
+                SubcomposeAsyncImage(
+                    model = imageUrlWithRetry,
                     contentDescription = label,
                     modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
+                    contentScale = ContentScale.Crop,
+                    loading = {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp
+                            )
+                        }
+                    },
+                    error = { state ->
+                        val error = state.result.throwable
+                        Log.e("SuggestionHistoryScreen", "画像読み込みエラー: ${error?.message}", error)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clickable { retryKey++ },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(2.dp),
+                                modifier = Modifier.padding(2.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.ErrorOutline,
+                                    contentDescription = null,
+                                    tint = Color.Gray,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Text(
+                                    text = "タップ",
+                                    color = Color.Gray,
+                                    fontSize = 7.sp
+                                )
+                            }
+                        }
+                    }
                 )
             } else {
                 Text(label, color = Color.Gray, fontSize = 9.sp)
@@ -503,4 +811,78 @@ private fun buildTags(coordinate: CoordinateData): List<String> {
     }
     
     return tags.take(5) // 最大5つまで
+}
+
+// ヘルパー関数: CoordinateItemからItemに変換
+private fun coordinateItemToItem(coordinateItem: CoordinateItem): Item {
+    return Item(
+        id = coordinateItem.id,
+        item_name = coordinateItem.name,
+        image_path = coordinateItem.image_path,
+        taste = emptyList() // CoordinateItemにはtasteがないため空リスト
+    )
+}
+
+// ヘルパー関数: CoordinateDataからProposalを作成
+private fun createProposalFromCoordinateData(coordinate: CoordinateData): Proposal {
+    val items = Items(
+        tops = coordinateItemToItem(coordinate.top),
+        bottoms = coordinateItemToItem(coordinate.bottom),
+        outer = coordinate.outer?.let { coordinateItemToItem(it) }
+    )
+    
+    val itemIds = mutableListOf<Int>()
+    itemIds.add(coordinate.top.id)
+    itemIds.add(coordinate.bottom.id)
+    coordinate.outer?.let { itemIds.add(it.id) }
+    
+    // reasonはfeaturesから生成（簡易版）
+    val reason = buildString {
+        if (coordinate.scene.isNotBlank()) {
+            append("シーン: ${coordinate.scene}")
+        }
+        coordinate.features["style"]?.let {
+            if (isNotEmpty()) append("、")
+            append("スタイル: $it")
+        }
+    }.ifBlank { "コーディネート" }
+    
+    return Proposal(
+        pattern = 0, // パターンは履歴には保存されていないため0
+        items = items,
+        item_ids = itemIds,
+        reason = reason,
+        coordinate_id = coordinate.coordinate_id
+    )
+}
+
+// ナビゲーション関数: 生成結果画面に移動
+private fun navigateToGeneratedResult(
+    suggestion: HistoryCoordinate,
+    navController: NavHostController,
+    suggestionViewModel: SuggestionViewModel,
+    coordinateDataMap: Map<Int, CoordinateData>
+) {
+    val coordinateId = suggestion.id.toIntOrNull()
+    val coordinateData = coordinateId?.let { coordinateDataMap[it] }
+    
+    if (coordinateData != null) {
+        // Proposalを作成
+        val proposal = createProposalFromCoordinateData(coordinateData)
+        
+        // 生成画像のパスを設定
+        val generatedImagePath = suggestion.genimgPath
+        
+        // SuggestionViewModelにデータを設定
+        suggestionViewModel.setHistoryData(
+            proposal = proposal,
+            coordinateId = coordinateId,
+            generatedImagePath = generatedImagePath
+        )
+        
+        // ナビゲーション
+        navController.navigate("generate")
+    } else {
+        Log.e("SuggestionHistoryScreen", "Coordinate data not found for id: ${suggestion.id}")
+    }
 }

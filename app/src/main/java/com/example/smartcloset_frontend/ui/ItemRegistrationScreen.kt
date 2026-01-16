@@ -39,6 +39,7 @@ import androidx.navigation.compose.rememberNavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.smartcloset_frontend.BuildConfig
 import com.example.smartcloset_frontend.network.ServerUrlHolder
+import com.example.smartcloset_frontend.utils.createImageFileUri
 import com.example.smartcloset_frontend.utils.saveBitmapAndGetUri
 import com.example.smartcloset_frontend.viewmodel.AddItemViewModel
 import com.example.smartcloset_frontend.viewmodel.MasterDataViewModel
@@ -134,18 +135,21 @@ fun ItemRegistrationScreen(
     }
     // Bitmapを保持するための状態を追加
     var capturedBitmap by remember { mutableStateOf<Bitmap?>(null) }
+    // カメラ撮影用の一時ファイルUriを保持
+    var cameraImageUri by remember { mutableStateOf<Uri?>(null) }
 
-    val cameraLauncherBitmap = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicturePreview()
-    ) { bitmap: Bitmap? ->
-        bitmap?.let {
-            capturedBitmap = it
-            // 画像を保存してUriを取得する場合
-            val uri = saveBitmapAndGetUri(context, it)
-            val newState = itemState.copy(imageUri = uri.toString())
-            itemState = newState
-            viewModel.setFormState(newState)
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success: Boolean ->
+        if (success && cameraImageUri != null) {
+            cameraImageUri?.let { uri ->
+                capturedBitmap = null // Uriから読み込むのでBitmapは不要
+                val newState = itemState.copy(imageUri = uri.toString())
+                itemState = newState
+                viewModel.setFormState(newState)
+            }
         }
+        cameraImageUri = null
     }
 
     // 追加：カメラ権限リクエスト用
@@ -154,7 +158,13 @@ fun ItemRegistrationScreen(
             ActivityResultContracts.RequestPermission()
         ) { granted ->
             if (granted) {
-                cameraLauncherBitmap.launch(null)
+                val uri = createImageFileUri(context)
+                if (uri != null) {
+                    cameraImageUri = uri
+                    cameraLauncher.launch(uri)
+                } else {
+                    Toast.makeText(context, "画像ファイルの作成に失敗しました", Toast.LENGTH_SHORT).show()
+                }
             } else {
                 Toast.makeText(context, "カメラの権限が必要です", Toast.LENGTH_SHORT).show()
             }
@@ -272,7 +282,13 @@ fun ItemRegistrationScreen(
                         ) == PackageManager.PERMISSION_GRANTED
 
                         if (granted) {
-                            cameraLauncherBitmap.launch(null)
+                            val uri = createImageFileUri(context)
+                            if (uri != null) {
+                                cameraImageUri = uri
+                                cameraLauncher.launch(uri)
+                            } else {
+                                Toast.makeText(context, "画像ファイルの作成に失敗しました", Toast.LENGTH_SHORT).show()
+                            }
                         } else {
                             cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
                         }

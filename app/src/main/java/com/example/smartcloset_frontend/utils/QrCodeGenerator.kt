@@ -15,6 +15,10 @@ object QrCodeGenerator {
      * @return 生成されたQRコードのBitmap
      */
     fun generateQrCode(text: String, size: Int = 512): Bitmap {
+        if (text.isBlank()) {
+            throw IllegalArgumentException("QRコードにエンコードするテキストが空です")
+        }
+        
         val hints = hashMapOf<EncodeHintType, Any>().apply {
             put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.H)
             put(EncodeHintType.CHARACTER_SET, "UTF-8")

@@ -32,6 +32,8 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.ThumbUp
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -50,6 +52,10 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
+import coil.ImageLoader
+import coil.request.ImageRequest
+import coil.imageLoader
 import com.example.smartcloset_frontend.BuildConfig
 import com.example.smartcloset_frontend.data.Item
 import com.example.smartcloset_frontend.data.JudgeRequestData
@@ -57,19 +63,24 @@ import com.example.smartcloset_frontend.data.LocationData
 import com.example.smartcloset_frontend.data.Proposal
 import com.example.smartcloset_frontend.data.TodayPlanData
 import com.example.smartcloset_frontend.network.ServerUrlHolder
+import com.example.smartcloset_frontend.ui.common.ModelSelectionDialog
 import com.example.smartcloset_frontend.utils.GetLocation
 import com.example.smartcloset_frontend.utils.ImageUtils
+import com.example.smartcloset_frontend.utils.createImageFileUri
 import com.example.smartcloset_frontend.viewmodel.SuggestionViewModel
 import com.example.smartcloset_frontend.viewmodel.GetWeatherViewModel
 import com.example.smartcloset_frontend.utils.WeatherLocationLoader
 import com.example.smartcloset_frontend.viewmodel.ItemViewModel
 import com.example.smartcloset_frontend.viewmodel.UserSessionViewModel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 // ------------------- メイン画面 -------------------
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SuggestionScreen(
     navController: NavHostController,
@@ -82,18 +93,10 @@ fun SuggestionScreen(
     val weatherData by getWeatherViewModel.weatherData.collectAsState()
     val weatherError by getWeatherViewModel.error.collectAsState()
     val todayPlan = remember { mutableStateOf("") }
+    val gender = remember { mutableStateOf<String?>("male") }
     val isSending by suggestionViewModel.isSendingPlan.collectAsState()
     val isGeneratingImage by suggestionViewModel.isGeneratingImage.collectAsState()
     val proposals by suggestionViewModel.proposals.collectAsState()
-    val toastMessage by suggestionViewModel.toastMessage.collectAsState()
-    val navigateToGenerate by suggestionViewModel.navigateToGenerate.collectAsState()
-
-    LaunchedEffect(toastMessage ) {
-        toastMessage?.let {
-            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
-            suggestionViewModel.onToastShown()
-        }
-    }
     LaunchedEffect(Unit) {
         try {
             val loc = GetLocation.getLastLocationSuspend(context)
@@ -110,20 +113,13 @@ fun SuggestionScreen(
     val locationText = weatherData?.location ?: "取得中..."
     val tempText = weatherData?.tempC?.let { "${it}℃" } ?: "--℃"
     val popText = weatherData?.precipitationPercent?.let { "${it}%" } ?: "--%"
-    val humText = weatherData?.humidityPercent?.let { "${it}%" } ?: "--%"
+    val humText = weatherData?.humidityPercent?.let { "${it}%" } ?: "--%" 
     val emoji = when (weatherData?.today3h?.firstOrNull()?.weatherType) {
         "clear" -> "☀️"
         "rain" -> "🌧️"
         "snow" -> "❄️"
         "cloud" -> "☁️"
         else -> "☁️"
-    }
-
-    LaunchedEffect(navigateToGenerate) {
-        if (navigateToGenerate) {
-            navController.navigate("generate")
-            suggestionViewModel.onGenerateScreenNavigated()
-        }
     }
 
     val lazyListState = rememberLazyListState()
@@ -134,6 +130,74 @@ fun SuggestionScreen(
     val padding = (screenWidth - cardWidth) / 2
 
     val cardPx = with(LocalDensity.current) { cardWidth.toPx() }
+
+    // 画像プリロード状態
+    var isPreloadingImages by remember { mutableStateOf(false) }
+    var imagesPreloaded by remember { mutableStateOf(false) }
+    val imageLoader = context.imageLoader
+
+    // すべての画像URLを収集する関数
+    fun collectImageUrls(proposals: List<Proposal>): List<String> {
+        val imageUrls = mutableListOf<String>()
+        val baseUrl = (ServerUrlHolder.overrideBaseUrl ?: BuildConfig.SERVER_URL).trimEnd('/')
+        
+        proposals.forEach { proposal ->
+            listOfNotNull(
+                proposal.items.outer?.image_path,
+                proposal.items.tops?.image_path,
+                proposal.items.bottoms?.image_path
+            ).forEach { imagePath ->
+                val imageUrl = if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) {
+                    imagePath
+                } else {
+                    val path = if (imagePath.startsWith("/")) imagePath else "/$imagePath"
+                    "$baseUrl$path"
+                }
+                if (imageUrl.isNotBlank()) {
+                    imageUrls.add(imageUrl)
+                }
+            }
+        }
+        return imageUrls.distinct()
+    }
+
+    // 画像をプリロードする
+    LaunchedEffect(proposals) {
+        if (proposals.isNotEmpty() && !imagesPreloaded) {
+            isPreloadingImages = true
+            val imageUrls = collectImageUrls(proposals)
+            
+            if (imageUrls.isNotEmpty()) {
+                try {
+                    // すべての画像を並列でプリロード（実際に読み込む）
+                    val preloadJobs = imageUrls.map { imageUrl ->
+                        async {
+                            try {
+                                val request = ImageRequest.Builder(context)
+                                    .data(imageUrl)
+                                    .build()
+                                imageLoader.execute(request)
+                            } catch (e: Exception) {
+                                Log.e("SuggestionScreen", "画像プリロードエラー ($imageUrl): ${e.message}", e)
+                                // 個別のエラーは無視して続行
+                            }
+                        }
+                    }
+                    // すべてのプリロードが完了するまで待機
+                    preloadJobs.awaitAll()
+                    
+                    imagesPreloaded = true
+                } catch (e: Exception) {
+                    Log.e("SuggestionScreen", "画像プリロードエラー: ${e.message}", e)
+                    // エラーが発生しても表示は続行
+                    imagesPreloaded = true
+                }
+            } else {
+                imagesPreloaded = true
+            }
+            isPreloadingImages = false
+        }
+    }
 
     // -------- スナップ処理 --------
     LaunchedEffect(lazyListState.isScrollInProgress) {
@@ -223,16 +287,52 @@ fun SuggestionScreen(
             modifier = Modifier.padding(start = 16.dp, bottom = 8.dp)
         )
 
-        OutlinedTextField(
-            value = todayPlan.value,
-            onValueChange = { todayPlan.value = it },
-            placeholder = { Text("ランチ", color = Color.Gray) },
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
-            singleLine = true,
-            enabled = !isSending
-        )
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            OutlinedTextField(
+                value = todayPlan.value,
+                onValueChange = { todayPlan.value = it },
+                placeholder = { Text("ランチ", color = Color.Gray) },
+                modifier = Modifier
+                    .weight(1f),
+                singleLine = true,
+                enabled = !isSending
+            )
+
+            // 男女選択のFilterChip
+            Row(
+                modifier = Modifier.height(56.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // 男性ボタン
+                FilterChip(
+                    selected = gender.value == "male",
+                    onClick = {
+                        gender.value = if (gender.value == "male") null else "male"
+                    },
+                    enabled = !isSending,
+                    label = { Text("男", fontSize = 14.sp) },
+                    modifier = Modifier.height(36.dp)
+                )
+
+                // 女性ボタン
+                FilterChip(
+                    selected = gender.value == "female",
+                    onClick = {
+                        gender.value = if (gender.value == "female") null else "female"
+                    },
+                    enabled = !isSending,
+                    label = { Text("女", fontSize = 14.sp) },
+                    modifier = Modifier.height(36.dp)
+                )
+            }
+        }
 
         Spacer(modifier = Modifier.height(8.dp))
 
@@ -301,7 +401,8 @@ fun SuggestionScreen(
                         location = sendLocation,
                         weather = sendWeather,
                         precipitation = sendPrecip,
-                        humidity = sendHumidity
+                        humidity = sendHumidity,
+                        gender = gender.value
                     )
                     suggestionViewModel.sendTodayPlan(todayPlanData)
                 } else {
@@ -332,21 +433,44 @@ fun SuggestionScreen(
             modifier = Modifier.padding(start = 16.dp, bottom = 8.dp)
         )
 
-        LazyRow(
-            state = lazyListState,
-            contentPadding = PaddingValues(horizontal = padding),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            items(proposals) { proposal ->
-                CoordinateCard(
-                    proposal = proposal,
-                    suggestionViewModel = suggestionViewModel,
-                    isGeneratingImage = isGeneratingImage,
-                    modifier = Modifier.width(cardWidth),
-                    userSessionViewModel = userSessionViewModel,
-                    itemViewModel = viewModel()
-                )
+        // 画像プリロード中または未完了の場合はローディング表示
+        if (isPreloadingImages || (proposals.isNotEmpty() && !imagesPreloaded)) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(400.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    CircularProgressIndicator()
+                    Text(
+                        text = "画像を読み込み中...",
+                        color = Color.Gray,
+                        fontSize = 14.sp
+                    )
+                }
+            }
+        } else if (proposals.isNotEmpty()) {
+            // プリロード完了後にLazyRowを表示
+            LazyRow(
+                state = lazyListState,
+                contentPadding = PaddingValues(horizontal = padding),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                items(proposals) { proposal ->
+                    CoordinateCard(
+                        proposal = proposal,
+                        suggestionViewModel = suggestionViewModel,
+                        isGeneratingImage = isGeneratingImage,
+                        modifier = Modifier.width(cardWidth),
+                        userSessionViewModel = userSessionViewModel,
+                        itemViewModel = viewModel()
+                    )
+                }
             }
         }
 
@@ -394,11 +518,53 @@ fun ItemDisplay(item: Item?, label: String) {
                     val imagePath = if (item.image_path.startsWith("/")) item.image_path else "/${item.image_path}"
                     "$baseUrl$imagePath"
                 }
-                AsyncImage(
-                    model = imageUrl,
+                
+                // リトライ用のキー
+                var retryKey by remember { mutableStateOf(0) }
+                val imageUrlWithRetry = remember(imageUrl, retryKey) {
+                    imageUrl?.let { url ->
+                        if (retryKey > 0) {
+                            val separator = if (url.contains("?")) "&" else "?"
+                            "$url${separator}_retry=$retryKey"
+                        } else {
+                            url
+                        }
+                    }
+                }
+                
+                SubcomposeAsyncImage(
+                    model = imageUrlWithRetry,
                     contentDescription = item.item_name,
                     modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
+                    contentScale = ContentScale.Crop,
+                    loading = {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                strokeWidth = 2.dp
+                            )
+                        }
+                    },
+                    error = { state ->
+                        val error = state.result.throwable
+                        Log.e("SuggestionScreen", "画像読み込みエラー: ${error?.message}", error)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clickable { retryKey++ },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Default.Refresh,
+                                contentDescription = null,
+                                tint = Color.Gray,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
                 )
             } else {
                 Text(label, color = Color.Gray, fontSize = 11.sp)
@@ -458,23 +624,31 @@ fun CoordinateCard(
     var isDisliked by remember { mutableStateOf(false) }
     var isReasonExpanded by remember { mutableStateOf(false) }
     var showModelSelectionDialog by remember { mutableStateOf(false) }
+    // カメラ撮影用の一時ファイルUriを保持
+    var cameraImageUri by remember { mutableStateOf<Uri?>(null) }
+    // アウター設定を保持（カメラ/アルバム選択時に使用）
+    var selectedIsOuter by remember { mutableStateOf(true) }
 
-    // カメラ撮影用のLauncher
-    val cameraLauncherBitmap = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicturePreview()
-    ) { bitmap: Bitmap? ->
-        bitmap?.let {
+    // カメラ撮影用のLauncher（高解像度で撮影）
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success: Boolean ->
+        if (success && cameraImageUri != null) {
             showModelSelectionDialog = false
-            // カメラで撮影した画像で生成を開始
-            startImageGeneration(
-                proposal = proposal,
-                modelBitmap = it,
-                modelUri = null,
-                modelTemplate = null,
-                context = context,
-                suggestionViewModel = suggestionViewModel
-            )
+            cameraImageUri?.let { uri ->
+                // カメラで撮影した画像で生成を開始（Uriから読み込む）
+                startImageGeneration(
+                    proposal = proposal,
+                    modelBitmap = null,
+                    modelUri = uri,
+                    modelTemplate = null,
+                    isOuter = selectedIsOuter,
+                    context = context,
+                    suggestionViewModel = suggestionViewModel
+                )
+            }
         }
+        cameraImageUri = null
     }
 
     // カメラ権限リクエスト用
@@ -482,9 +656,34 @@ fun CoordinateCard(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
         if (granted) {
-            cameraLauncherBitmap.launch(null)
+            val uri = createImageFileUri(context)
+            if (uri != null) {
+                cameraImageUri = uri
+                cameraLauncher.launch(uri)
+            } else {
+                Toast.makeText(context, "画像ファイルの作成に失敗しました", Toast.LENGTH_SHORT).show()
+            }
         } else {
             Toast.makeText(context, "カメラの権限が必要です", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    // アルバムから画像選択用のLauncher
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            showModelSelectionDialog = false
+            // アルバムから選択した画像で生成を開始
+            startImageGeneration(
+                proposal = proposal,
+                modelBitmap = null,
+                modelUri = it,
+                modelTemplate = null,
+                isOuter = selectedIsOuter,
+                context = context,
+                suggestionViewModel = suggestionViewModel
+            )
         }
     }
 
@@ -660,36 +859,49 @@ fun CoordinateCard(
             onDismiss = {
                 showModelSelectionDialog = false
             },
-            onCameraClick = {
+            onCameraClick = { isOuter ->
+                selectedIsOuter = isOuter
                 val granted = ContextCompat.checkSelfPermission(
                     context,
                     Manifest.permission.CAMERA
                 ) == PackageManager.PERMISSION_GRANTED
 
                 if (granted) {
-                    cameraLauncherBitmap.launch(null)
+                    val uri = createImageFileUri(context)
+                    if (uri != null) {
+                        cameraImageUri = uri
+                        cameraLauncher.launch(uri)
+                    } else {
+                        Toast.makeText(context, "画像ファイルの作成に失敗しました", Toast.LENGTH_SHORT).show()
+                    }
                 } else {
                     cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
                 }
             },
-            onMannequinClick = {
+            onGalleryClick = { isOuter ->
+                selectedIsOuter = isOuter
+                galleryLauncher.launch("image/*")
+            },
+            onMannequinClick = { isOuter ->
                 showModelSelectionDialog = false
                 startImageGeneration(
                     proposal = proposal,
                     modelBitmap = null,
                     modelUri = null,
                     modelTemplate = "mannequin",
+                    isOuter = isOuter,
                     context = context,
                     suggestionViewModel = suggestionViewModel
                 )
             },
-            onProfileClick = {
+            onProfileClick = { isOuter ->
                 showModelSelectionDialog = false
                 startImageGeneration(
                     proposal = proposal,
                     modelBitmap = null,
                     modelUri = null,
                     modelTemplate = "profile",
+                    isOuter = isOuter,
                     context = context,
                     suggestionViewModel = suggestionViewModel
                 )
@@ -704,6 +916,7 @@ fun startImageGeneration(
     modelBitmap: Bitmap?,
     modelUri: Uri?,
     modelTemplate: String?,
+    isOuter: Boolean = true,
     context: android.content.Context,
     suggestionViewModel: SuggestionViewModel
 ) {
@@ -719,6 +932,12 @@ fun startImageGeneration(
         )
     )
     
+    if (imagePaths.isEmpty()) {
+        Toast.makeText(context, "画像パスが取得できませんでした", Toast.LENGTH_SHORT).show()
+        Log.e("startImageGeneration", "画像パスが空です")
+        return
+    }
+    
     // モデル画像をbase64エンコード（カメラ撮影時のみ）
     val modelImageBase64: String? = when {
         modelBitmap != null -> ImageUtils.bitmapToBase64(modelBitmap)
@@ -726,106 +945,16 @@ fun startImageGeneration(
         else -> null
     }
     
-    suggestionViewModel.generateImage(imagePaths, modelImageBase64, modelTemplate, proposal, proposal.coordinate_id)
-}
-
-// モデル選択ダイアログ
-@Composable
-fun ModelSelectionDialog(
-    onDismiss: () -> Unit,
-    onCameraClick: () -> Unit,
-    onMannequinClick: () -> Unit,
-    onProfileClick: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                text = "モデルを選択",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold
-            )
-        },
-        text = {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                // カメラで撮影ボタン
-                Button(
-                    onClick = onCameraClick,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Black)
-                ) {
-                    Icon(
-                        Icons.Default.CameraAlt,
-                        contentDescription = "カメラ",
-                        tint = Color.White,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "カメラで撮影",
-                        fontSize = 16.sp,
-                        color = Color.White,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-
-                // マネキンを使用ボタン
-                Button(
-                    onClick = onMannequinClick,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3))
-                ) {
-                    Icon(
-                        Icons.Default.Person,
-                        contentDescription = "マネキン",
-                        tint = Color.White,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "マネキンを使用",
-                        fontSize = 16.sp,
-                        color = Color.White,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-
-                // プロフィール画像を使用ボタン
-                Button(
-                    onClick = onProfileClick,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
-                ) {
-                    Icon(
-                        Icons.Default.AccountCircle,
-                        contentDescription = "プロフィール画像",
-                        tint = Color.White,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "プロフィール画像を使用",
-                        fontSize = 16.sp,
-                        color = Color.White,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("キャンセル", color = Color.Gray)
-            }
-        }
+    Log.d("startImageGeneration", "画像生成を開始: imagePaths=$imagePaths, coordinateId=${proposal.coordinate_id}, isOuter=$isOuter")
+    
+    suggestionViewModel.generateImage(
+        context = context,
+        imagePaths = imagePaths,
+        modelImageBase64 = modelImageBase64,
+        modelTemplate = modelTemplate,
+        isOuter = isOuter,
+        proposal = proposal,
+        coordinateId = proposal.coordinate_id,
+        useBackgroundGeneration = true
     )
 }

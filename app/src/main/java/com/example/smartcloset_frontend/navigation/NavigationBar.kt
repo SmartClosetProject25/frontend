@@ -31,6 +31,7 @@ fun BottomNavBar(navController: NavHostController) {
             NavigationBarItem(
                 selected = currentRoute == route,
                 onClick = {
+                    // 通常通り指定された画面へ遷移
                     navController.navigate(route) {
                         popUpTo(navController.graph.findStartDestination().id) {
                             saveState = true   // 画面と ViewModel の状態を保持

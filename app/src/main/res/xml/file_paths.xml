@@ -11,4 +11,9 @@
         name="internal_images"
         path="." />
 
+    <!-- カメラ撮影用の外部ファイルディレクトリ -->
+    <external-files-path
+        name="external_images"
+        path="." />
+
 </paths>
