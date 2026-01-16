@@ -95,6 +95,25 @@ fun GeneratedResultScreen(
             Toast.makeText(context, "カメラの権限が必要です", Toast.LENGTH_SHORT).show()
         }
     }
+
+    // アルバムから画像選択用のLauncher
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            showModelSelectionDialog = false
+            // アルバムから選択した画像で生成を開始
+            startImageGenerationFromHistory(
+                proposal = selectedProposal,
+                coordinateId = coordinateId,
+                modelBitmap = null,
+                modelUri = it,
+                modelTemplate = null,
+                context = context,
+                suggestionViewModel = suggestionViewModel
+            )
+        }
+    }
     
     // QRコードを生成（HTMLページのURLを使用）
     LaunchedEffect(generatedImageUrl, coordinateId) {
@@ -168,6 +187,9 @@ fun GeneratedResultScreen(
                             } else {
                                 cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
                             }
+                        },
+                        onGalleryClick = {
+                            galleryLauncher.launch("image/*")
                         },
                         onMannequinClick = {
                             showModelSelectionDialog = false
@@ -411,7 +433,7 @@ fun CoordinateImageSection(
                 modifier = Modifier.padding(24.dp)
             ) {
                 Icon(
-                    Icons.Default.Image,
+                    Icons.Filled.Image,
                     contentDescription = null,
                     tint = Color(0xFF9E9E9E),
                     modifier = Modifier.size(64.dp)

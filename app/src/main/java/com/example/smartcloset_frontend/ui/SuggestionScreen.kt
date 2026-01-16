@@ -33,6 +33,7 @@ import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -639,6 +640,24 @@ fun CoordinateCard(
         }
     }
 
+    // アルバムから画像選択用のLauncher
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            showModelSelectionDialog = false
+            // アルバムから選択した画像で生成を開始
+            startImageGeneration(
+                proposal = proposal,
+                modelBitmap = null,
+                modelUri = it,
+                modelTemplate = null,
+                context = context,
+                suggestionViewModel = suggestionViewModel
+            )
+        }
+    }
+
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(12.dp),
@@ -823,6 +842,9 @@ fun CoordinateCard(
                     cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
                 }
             },
+            onGalleryClick = {
+                galleryLauncher.launch("image/*")
+            },
             onMannequinClick = {
                 showModelSelectionDialog = false
                 startImageGeneration(
@@ -885,6 +907,7 @@ fun startImageGeneration(
 fun ModelSelectionDialog(
     onDismiss: () -> Unit,
     onCameraClick: () -> Unit,
+    onGalleryClick: () -> Unit,
     onMannequinClick: () -> Unit,
     onProfileClick: () -> Unit
 ) {
@@ -920,6 +943,29 @@ fun ModelSelectionDialog(
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "カメラで撮影",
+                        fontSize = 16.sp,
+                        color = Color.White,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+
+                // アルバムから選択ボタン
+                Button(
+                    onClick = onGalleryClick,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF9C27B0))
+                ) {
+                    Icon(
+                        Icons.Filled.PhotoLibrary,
+                        contentDescription = "アルバム",
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "アルバムから選択",
                         fontSize = 16.sp,
                         color = Color.White,
                         fontWeight = FontWeight.Medium
