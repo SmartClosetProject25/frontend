@@ -58,7 +58,6 @@ fun SuggestionScreen(
     val isSending by suggestionViewModel.isSendingPlan.collectAsState()
     val isGeneratingImage by suggestionViewModel.isGeneratingImage.collectAsState()
     val proposals by suggestionViewModel.proposals.collectAsState()
-    val navigateToGenerate by suggestionViewModel.navigateToGenerate.collectAsState()
 
     LaunchedEffect(Unit) {
         try {
@@ -73,13 +72,6 @@ fun SuggestionScreen(
 
     // 位置情報パーミッションの許可
     WeatherLocationLoader(getWeatherViewModel)
-
-    LaunchedEffect(navigateToGenerate) {
-        if (navigateToGenerate) {
-            navController.navigate("generate")
-            suggestionViewModel.onGenerateScreenNavigated()
-        }
-    }
 
     val lazyListState = rememberLazyListState()
     val coroutine = rememberCoroutineScope()
