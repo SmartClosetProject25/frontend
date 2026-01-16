@@ -24,12 +24,25 @@ class ImageGenerationWorker(
             val imagePaths = inputData.getStringArray(KEY_IMAGE_PATHS)?.toList()
                 ?: return@withContext Result.failure()
             
-            val modelImageBase64 = inputData.getString(KEY_MODEL_IMAGE_BASE64)
             val modelTemplate = inputData.getString(KEY_MODEL_TEMPLATE)
             val coordinateId = inputData.getInt(KEY_COORDINATE_ID, -1).takeIf { it != -1 }
             val workRequestId = inputData.getString(KEY_WORK_REQUEST_ID) ?: ""
+            val hasModelImage = inputData.getBoolean(KEY_HAS_MODEL_IMAGE, false)
+            
+            // SharedPreferencesからBase64データを取得
+            val modelImageBase64 = if (hasModelImage) {
+                val key = "model_image_base64_$workRequestId"
+                val base64 = sharedPreferences.getString(key, null)
+                // 取得後に削除（メモリ節約のため）
+                base64?.let {
+                    sharedPreferences.edit().remove(key).apply()
+                }
+                base64
+            } else {
+                null
+            }
 
-            Log.d("ImageGenerationWorker", "画像生成を開始: imagePaths=$imagePaths, coordinateId=$coordinateId")
+            Log.d("ImageGenerationWorker", "画像生成を開始: imagePaths=$imagePaths, coordinateId=$coordinateId, hasModelImage=$hasModelImage")
 
             // 画像生成を実行
             val response = repository.generateImage(
@@ -93,5 +106,6 @@ class ImageGenerationWorker(
         const val KEY_MODEL_TEMPLATE = "model_template"
         const val KEY_COORDINATE_ID = "coordinate_id"
         const val KEY_WORK_REQUEST_ID = "work_request_id"
+        const val KEY_HAS_MODEL_IMAGE = "has_model_image"
     }
 }

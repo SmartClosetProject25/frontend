@@ -32,6 +32,7 @@ import com.example.smartcloset_frontend.data.JudgeRequestData
 import com.example.smartcloset_frontend.data.Proposal
 import com.example.smartcloset_frontend.ui.common.ImageGenerationHelper
 import com.example.smartcloset_frontend.ui.common.ModelSelectionDialog
+import com.example.smartcloset_frontend.utils.createImageFileUri
 import com.example.smartcloset_frontend.viewmodel.ItemViewModel
 import com.example.smartcloset_frontend.viewmodel.SuggestionViewModel
 import com.example.smartcloset_frontend.viewmodel.UserSessionViewModel
@@ -54,22 +55,27 @@ fun CoordinateCard(
     var isDisliked by remember { mutableStateOf(false) }
     var isReasonExpanded by remember { mutableStateOf(false) }
     var showModelSelectionDialog by remember { mutableStateOf(false) }
+    // カメラ撮影用の一時ファイルUriを保持
+    var cameraImageUri by remember { mutableStateOf<Uri?>(null) }
 
-    // カメラ撮影用のLauncher
-    val cameraLauncherBitmap = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicturePreview()
-    ) { bitmap: Bitmap? ->
-        bitmap?.let {
+    // カメラ撮影用のLauncher（高解像度で撮影）
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success: Boolean ->
+        if (success && cameraImageUri != null) {
             showModelSelectionDialog = false
-            ImageGenerationHelper.startImageGeneration(
-                proposal = proposal,
-                modelBitmap = it,
-                modelUri = null,
-                modelTemplate = null,
-                context = context,
-                suggestionViewModel = suggestionViewModel
-            )
+            cameraImageUri?.let { uri ->
+                ImageGenerationHelper.startImageGeneration(
+                    proposal = proposal,
+                    modelBitmap = null,
+                    modelUri = uri,
+                    modelTemplate = null,
+                    context = context,
+                    suggestionViewModel = suggestionViewModel
+                )
+            }
         }
+        cameraImageUri = null
     }
 
     // カメラ権限リクエスト用
@@ -77,7 +83,13 @@ fun CoordinateCard(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
         if (granted) {
-            cameraLauncherBitmap.launch(null)
+            val uri = createImageFileUri(context)
+            if (uri != null) {
+                cameraImageUri = uri
+                cameraLauncher.launch(uri)
+            } else {
+                Toast.makeText(context, "画像ファイルの作成に失敗しました", Toast.LENGTH_SHORT).show()
+            }
         } else {
             Toast.makeText(context, "カメラの権限が必要です", Toast.LENGTH_SHORT).show()
         }
@@ -278,7 +290,13 @@ fun CoordinateCard(
                 ) == PackageManager.PERMISSION_GRANTED
 
                 if (granted) {
-                    cameraLauncherBitmap.launch(null)
+                    val uri = createImageFileUri(context)
+                    if (uri != null) {
+                        cameraImageUri = uri
+                        cameraLauncher.launch(uri)
+                    } else {
+                        Toast.makeText(context, "画像ファイルの作成に失敗しました", Toast.LENGTH_SHORT).show()
+                    }
                 } else {
                     cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
                 }

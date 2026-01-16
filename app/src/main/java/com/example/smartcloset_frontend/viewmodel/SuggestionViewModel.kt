@@ -90,12 +90,17 @@ class SuggestionViewModel : ViewModel() {
             
             Log.d("SuggestionViewModel", "WorkManagerで画像生成を開始: workRequestId=$workRequestId, imagePaths=$imagePaths")
             
+            // SharedPreferencesにBase64データを保存（サイズが大きいためWorkManagerのDataには含めない）
+            val sharedPreferences = context.applicationContext.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+            modelImageBase64?.let { base64 ->
+                val key = "model_image_base64_$workRequestId"
+                sharedPreferences.edit().putString(key, base64).apply()
+                Log.d("SuggestionViewModel", "modelImageBase64をSharedPreferencesに保存: key=$key, length=${base64.length}")
+            }
+            
             val inputData = Data.Builder().apply {
                 putStringArray(ImageGenerationWorker.KEY_IMAGE_PATHS, imagePaths.toTypedArray())
-                modelImageBase64?.let { 
-                    putString(ImageGenerationWorker.KEY_MODEL_IMAGE_BASE64, it)
-                    Log.d("SuggestionViewModel", "modelImageBase64 length: ${it.length}")
-                }
+                // Base64データはSharedPreferencesに保存したので、ここには含めない
                 modelTemplate?.let { 
                     putString(ImageGenerationWorker.KEY_MODEL_TEMPLATE, it)
                     Log.d("SuggestionViewModel", "modelTemplate: $it")
@@ -105,6 +110,10 @@ class SuggestionViewModel : ViewModel() {
                     Log.d("SuggestionViewModel", "coordinateId: $it")
                 }
                 putString(ImageGenerationWorker.KEY_WORK_REQUEST_ID, workRequestId)
+                // Base64データがある場合はフラグを設定
+                if (modelImageBase64 != null) {
+                    putBoolean(ImageGenerationWorker.KEY_HAS_MODEL_IMAGE, true)
+                }
             }.build()
             
             val workRequest = OneTimeWorkRequestBuilder<ImageGenerationWorker>()
@@ -116,7 +125,6 @@ class SuggestionViewModel : ViewModel() {
                 Log.d("SuggestionViewModel", "WorkManagerにリクエストを追加しました")
                 
                 // 生成中フラグをSharedPreferencesにも保存
-                val sharedPreferences = context.applicationContext.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
                 sharedPreferences.edit().putBoolean("is_generating_image", true).apply()
                 
                 _isGeneratingImage.value = true

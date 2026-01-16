@@ -21,11 +21,18 @@ object ImageUtils {
 
     /**
      * Uriから画像を読み込んでbase64エンコードされた文字列に変換
+     * 高解像度で読み込むように修正
      */
     fun uriToBase64(context: Context, uri: Uri, quality: Int = 80): String? {
         return try {
             val inputStream = context.contentResolver.openInputStream(uri)
-            val bitmap = BitmapFactory.decodeStream(inputStream)
+            // 高解像度で読み込むためのオプションを設定
+            val options = BitmapFactory.Options().apply {
+                inJustDecodeBounds = false
+                inSampleSize = 1 // サンプリングを無効化してフル解像度で読み込む
+                inPreferredConfig = Bitmap.Config.ARGB_8888 // 高品質な色深度
+            }
+            val bitmap = BitmapFactory.decodeStream(inputStream, null, options)
             inputStream?.close()
             bitmap?.let { bitmapToBase64(it, quality) }
         } catch (e: IOException) {

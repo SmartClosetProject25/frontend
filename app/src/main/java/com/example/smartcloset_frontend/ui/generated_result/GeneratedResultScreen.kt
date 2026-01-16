@@ -36,6 +36,7 @@ import com.example.smartcloset_frontend.ui.generated_result.components.ItemDetai
 import com.example.smartcloset_frontend.ui.generated_result.components.QrCodeSection
 import com.example.smartcloset_frontend.ui.generated_result.utils.UrlGenerator
 import com.example.smartcloset_frontend.utils.QrCodeGenerator
+import com.example.smartcloset_frontend.utils.createImageFileUri
 import com.example.smartcloset_frontend.viewmodel.SuggestionViewModel
 
 /**
@@ -55,23 +56,28 @@ fun GeneratedResultScreen(
     var qrCodeBitmap by remember { mutableStateOf<ImageBitmap?>(null) }
     var qrCodeError by remember { mutableStateOf<String?>(null) }
     var showModelSelectionDialog by remember { mutableStateOf(false) }
+    // カメラ撮影用の一時ファイルUriを保持
+    var cameraImageUri by remember { mutableStateOf<Uri?>(null) }
 
-    // カメラ撮影用のLauncher
-    val cameraLauncherBitmap = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicturePreview()
-    ) { bitmap: Bitmap? ->
-        bitmap?.let {
+    // カメラ撮影用のLauncher（高解像度で撮影）
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success: Boolean ->
+        if (success && cameraImageUri != null) {
             showModelSelectionDialog = false
-            ImageGenerationHelper.startImageGeneration(
-                proposal = selectedProposal,
-                coordinateId = coordinateId,
-                modelBitmap = it,
-                modelUri = null,
-                modelTemplate = null,
-                context = context,
-                suggestionViewModel = suggestionViewModel
-            )
+            cameraImageUri?.let { uri ->
+                ImageGenerationHelper.startImageGeneration(
+                    proposal = selectedProposal,
+                    coordinateId = coordinateId,
+                    modelBitmap = null,
+                    modelUri = uri,
+                    modelTemplate = null,
+                    context = context,
+                    suggestionViewModel = suggestionViewModel
+                )
+            }
         }
+        cameraImageUri = null
     }
 
     // カメラ権限リクエスト用
@@ -79,7 +85,13 @@ fun GeneratedResultScreen(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
         if (granted) {
-            cameraLauncherBitmap.launch(null)
+            val uri = createImageFileUri(context)
+            if (uri != null) {
+                cameraImageUri = uri
+                cameraLauncher.launch(uri)
+            } else {
+                Toast.makeText(context, "画像ファイルの作成に失敗しました", Toast.LENGTH_SHORT).show()
+            }
         } else {
             Toast.makeText(context, "カメラの権限が必要です", Toast.LENGTH_SHORT).show()
         }
@@ -171,7 +183,13 @@ fun GeneratedResultScreen(
                             ) == PackageManager.PERMISSION_GRANTED
 
                             if (granted) {
-                                cameraLauncherBitmap.launch(null)
+                                val uri = createImageFileUri(context)
+                                if (uri != null) {
+                                    cameraImageUri = uri
+                                    cameraLauncher.launch(uri)
+                                } else {
+                                    Toast.makeText(context, "画像ファイルの作成に失敗しました", Toast.LENGTH_SHORT).show()
+                                }
                             } else {
                                 cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
                             }
