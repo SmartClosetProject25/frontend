@@ -79,6 +79,7 @@ import java.util.Date
 import java.util.Locale
 
 // ------------------- メイン画面 -------------------
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SuggestionScreen(
     navController: NavHostController,
@@ -91,6 +92,7 @@ fun SuggestionScreen(
     val weatherData by getWeatherViewModel.weatherData.collectAsState()
     val weatherError by getWeatherViewModel.error.collectAsState()
     val todayPlan = remember { mutableStateOf("") }
+    val gender = remember { mutableStateOf<String?>(null) }
     val isSending by suggestionViewModel.isSendingPlan.collectAsState()
     val isGeneratingImage by suggestionViewModel.isGeneratingImage.collectAsState()
     val proposals by suggestionViewModel.proposals.collectAsState()
@@ -284,16 +286,52 @@ fun SuggestionScreen(
             modifier = Modifier.padding(start = 16.dp, bottom = 8.dp)
         )
 
-        OutlinedTextField(
-            value = todayPlan.value,
-            onValueChange = { todayPlan.value = it },
-            placeholder = { Text("ランチ", color = Color.Gray) },
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
-            singleLine = true,
-            enabled = !isSending
-        )
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            OutlinedTextField(
+                value = todayPlan.value,
+                onValueChange = { todayPlan.value = it },
+                placeholder = { Text("ランチ", color = Color.Gray) },
+                modifier = Modifier
+                    .weight(1f),
+                singleLine = true,
+                enabled = !isSending
+            )
+
+            // 男女選択のFilterChip
+            Row(
+                modifier = Modifier.height(56.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // 男性ボタン
+                FilterChip(
+                    selected = gender.value == "male",
+                    onClick = {
+                        gender.value = if (gender.value == "male") null else "male"
+                    },
+                    enabled = !isSending,
+                    label = { Text("男", fontSize = 14.sp) },
+                    modifier = Modifier.height(36.dp)
+                )
+
+                // 女性ボタン
+                FilterChip(
+                    selected = gender.value == "female",
+                    onClick = {
+                        gender.value = if (gender.value == "female") null else "female"
+                    },
+                    enabled = !isSending,
+                    label = { Text("女", fontSize = 14.sp) },
+                    modifier = Modifier.height(36.dp)
+                )
+            }
+        }
 
         Spacer(modifier = Modifier.height(8.dp))
 
@@ -362,7 +400,8 @@ fun SuggestionScreen(
                         location = sendLocation,
                         weather = sendWeather,
                         precipitation = sendPrecip,
-                        humidity = sendHumidity
+                        humidity = sendHumidity,
+                        gender = gender.value
                     )
                     suggestionViewModel.sendTodayPlan(todayPlanData)
                 } else {

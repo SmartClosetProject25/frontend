@@ -10,7 +10,8 @@ data class TodayPlanData(
     val location: String,
     val weather: String,
     val precipitation: String,
-    val humidity: String
+    val humidity: String,
+    val gender: String? = null
 )
 
 @Serializable

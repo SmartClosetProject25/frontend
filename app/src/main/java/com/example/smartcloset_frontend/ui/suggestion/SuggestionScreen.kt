@@ -55,6 +55,7 @@ fun SuggestionScreen(
     val context = LocalContext.current
     val weatherData by getWeatherViewModel.weatherData.collectAsState()
     val todayPlan = remember { mutableStateOf("") }
+    val gender = remember { mutableStateOf<String?>(null) }
     val isSending by suggestionViewModel.isSendingPlan.collectAsState()
     val isGeneratingImage by suggestionViewModel.isGeneratingImage.collectAsState()
     val proposals by suggestionViewModel.proposals.collectAsState()
@@ -141,6 +142,8 @@ fun SuggestionScreen(
             todayPlan = todayPlan.value,
             onPlanChange = { todayPlan.value = it },
             isSending = isSending,
+            gender = gender.value,
+            onGenderChange = { gender.value = it },
             onSendClick = {
                 if (todayPlan.value.isNotBlank()) {
                     val currentDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
@@ -156,7 +159,8 @@ fun SuggestionScreen(
                         location = sendLocation,
                         weather = sendWeather,
                         precipitation = sendPrecip,
-                        humidity = sendHumidity
+                        humidity = sendHumidity,
+                        gender = gender.value
                     )
                     suggestionViewModel.sendTodayPlan(todayPlanData)
                 } else {

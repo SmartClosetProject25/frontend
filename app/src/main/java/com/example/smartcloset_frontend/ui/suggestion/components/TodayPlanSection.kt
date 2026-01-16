@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -22,6 +23,8 @@ fun TodayPlanSection(
     onPlanChange: (String) -> Unit,
     isSending: Boolean,
     onSendClick: () -> Unit,
+    gender: String? = null,
+    onGenderChange: (String?) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier) {
@@ -32,16 +35,52 @@ fun TodayPlanSection(
             modifier = Modifier.padding(start = 16.dp, bottom = 8.dp)
         )
 
-        OutlinedTextField(
-            value = todayPlan,
-            onValueChange = onPlanChange,
-            placeholder = { Text("ランチ", color = Color.Gray) },
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
-            singleLine = true,
-            enabled = !isSending
-        )
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            OutlinedTextField(
+                value = todayPlan,
+                onValueChange = onPlanChange,
+                placeholder = { Text("ランチ", color = Color.Gray) },
+                modifier = Modifier
+                    .weight(1f),
+                singleLine = true,
+                enabled = !isSending
+            )
+
+            // 男女選択のFilterChip
+            Row(
+                modifier = Modifier.height(56.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // 男性ボタン
+                FilterChip(
+                    selected = gender == "male",
+                    onClick = {
+                        onGenderChange(if (gender == "male") null else "male")
+                    },
+                    enabled = !isSending,
+                    label = { Text("男", fontSize = 14.sp) },
+                    modifier = Modifier.height(36.dp)
+                )
+
+                // 女性ボタン
+                FilterChip(
+                    selected = gender == "female",
+                    onClick = {
+                        onGenderChange(if (gender == "female") null else "female")
+                    },
+                    enabled = !isSending,
+                    label = { Text("女", fontSize = 14.sp) },
+                    modifier = Modifier.height(36.dp)
+                )
+            }
+        }
 
         Spacer(modifier = Modifier.height(8.dp))
 
