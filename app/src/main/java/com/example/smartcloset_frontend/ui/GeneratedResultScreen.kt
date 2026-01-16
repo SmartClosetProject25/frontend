@@ -832,12 +832,14 @@ private fun startImageGenerationFromHistory(
         else -> null
     }
     
-    // 画像生成を実行
+    // 画像生成を実行（バックグラウンド処理に対応）
     suggestionViewModel.generateImage(
+        context = context,
         imagePaths = imagePaths,
         modelImageBase64 = modelImageBase64,
         modelTemplate = modelTemplate,
         proposal = proposal,
-        coordinateId = coordinateId
+        coordinateId = coordinateId,
+        useBackgroundGeneration = true
     )
 }

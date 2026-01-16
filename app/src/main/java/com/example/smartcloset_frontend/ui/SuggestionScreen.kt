@@ -892,6 +892,12 @@ fun startImageGeneration(
         )
     )
     
+    if (imagePaths.isEmpty()) {
+        Toast.makeText(context, "画像パスが取得できませんでした", Toast.LENGTH_SHORT).show()
+        Log.e("startImageGeneration", "画像パスが空です")
+        return
+    }
+    
     // モデル画像をbase64エンコード（カメラ撮影時のみ）
     val modelImageBase64: String? = when {
         modelBitmap != null -> ImageUtils.bitmapToBase64(modelBitmap)
@@ -899,7 +905,17 @@ fun startImageGeneration(
         else -> null
     }
     
-    suggestionViewModel.generateImage(imagePaths, modelImageBase64, modelTemplate, proposal, proposal.coordinate_id)
+    Log.d("startImageGeneration", "画像生成を開始: imagePaths=$imagePaths, coordinateId=${proposal.coordinate_id}")
+    
+    suggestionViewModel.generateImage(
+        context = context,
+        imagePaths = imagePaths,
+        modelImageBase64 = modelImageBase64,
+        modelTemplate = modelTemplate,
+        proposal = proposal,
+        coordinateId = proposal.coordinate_id,
+        useBackgroundGeneration = true
+    )
 }
 
 // モデル選択ダイアログ

@@ -93,4 +93,7 @@ dependencies {
     implementation("com.journeyapps:zxing-android-embedded:4.3.0")
     // DataStore
         implementation("androidx.datastore:datastore-preferences:1.0.0")
+    
+    // WorkManager (バックグラウンド処理用)
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
 }

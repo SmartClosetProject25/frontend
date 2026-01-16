@@ -1,5 +1,6 @@
 package com.example.smartcloset_frontend.navigation
 
+import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
@@ -24,12 +25,12 @@ import com.example.smartcloset_frontend.ui.ForgotPasswordResetScreen
 import com.example.smartcloset_frontend.ui.ForgotPasswordCompleteScreen
 import com.example.smartcloset_frontend.ui.ProfileEditScreen
 import com.example.smartcloset_frontend.ui.ProfileScreen
-import com.example.smartcloset_frontend.ui.SuggestionHistoryScreen
-import com.example.smartcloset_frontend.ui.SuggestionScreen
+import com.example.smartcloset_frontend.ui.suggestion.SuggestionScreen
+import com.example.smartcloset_frontend.ui.suggestion_history.SuggestionHistoryScreen
+import com.example.smartcloset_frontend.ui.generated_result.GeneratedResultScreen
 import com.example.smartcloset_frontend.ui.ClothesDetailScreen
 import com.example.smartcloset_frontend.ui.ItemConfirmationScreen
 import com.example.smartcloset_frontend.ui.ItemRegistrationScreen
-import com.example.smartcloset_frontend.ui.GeneratedResultScreen
 import com.example.smartcloset_frontend.viewmodel.AddItemViewModel
 import com.example.smartcloset_frontend.viewmodel.ItemViewModel
 import com.example.smartcloset_frontend.viewmodel.SuggestionHistoryViewModel
@@ -83,7 +84,9 @@ fun NavGraph(
             )
         }
 //        composable("test") { TestScreen(navController) }
-        composable("coordinate") { SuggestionScreen(navController, suggestionViewModel = suggestionViewModel, userSessionViewModel = userSessionViewModel) }
+        composable("coordinate") { 
+            SuggestionScreen(navController, suggestionViewModel = suggestionViewModel, userSessionViewModel = userSessionViewModel) 
+        }
 
 
 
@@ -91,7 +94,32 @@ fun NavGraph(
             val historyViewModel: SuggestionHistoryViewModel = viewModel()
             SuggestionHistoryScreen(navController, historyViewModel, suggestionViewModel)
         }
-        composable("generate") { GeneratedResultScreen(navController, suggestionViewModel) }
+        composable(
+            route = "generate?imageUrl={imageUrl}",
+            arguments = listOf(
+                navArgument("imageUrl") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) { backStackEntry ->
+            val imageUrl = backStackEntry.arguments?.getString("imageUrl")
+            val context = LocalContext.current
+            
+            // 画像URLが指定されている場合、ViewModelに設定
+            imageUrl?.let { url ->
+                LaunchedEffect(url) {
+                    suggestionViewModel.setGeneratedImageFromNotification(url)
+                }
+            }
+            // 生成結果画面に遷移したらバッジを消す
+            LaunchedEffect(Unit) {
+                val sharedPreferences = context.applicationContext.getSharedPreferences("app_prefs", android.content.Context.MODE_PRIVATE)
+                sharedPreferences.edit().putBoolean("has_new_generated_image", false).apply()
+            }
+            GeneratedResultScreen(navController, suggestionViewModel)
+        }
         composable("profile") { ProfileScreen(navController, userSessionViewModel = userSessionViewModel) }
         composable("profile_edit") { ProfileEditScreen(navController) }
 //        composable("clothes_detail") { ClothesDetailScreen(navController) }

@@ -1,6 +1,7 @@
 package com.example.smartcloset_frontend
 
 import android.content.Intent
+import android.content.SharedPreferences
 import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -22,6 +23,7 @@ import com.example.smartcloset_frontend.ui.theme.SmartClosetTheme
 import com.example.smartcloset_frontend.data.PreferencesManager
 import com.example.smartcloset_frontend.data.repository.UserSessionRepository
 import com.example.smartcloset_frontend.viewmodel.LoginViewModel
+import com.example.smartcloset_frontend.viewmodel.SuggestionViewModel
 import com.example.smartcloset_frontend.viewmodel.UserSessionViewModel
 import com.example.smartcloset_frontend.viewmodel.UserSessionViewModelFactory
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -42,6 +44,61 @@ class MainActivity : ComponentActivity() {
                 val navController = rememberNavController()
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentRoute = navBackStackEntry?.destination?.route
+                
+                // 生成完了を監視してSnackbarを表示
+                val sharedPreferences = remember {
+                    context.getSharedPreferences("app_prefs", android.content.Context.MODE_PRIVATE)
+                }
+                var imageGenerationComplete by remember { 
+                    mutableStateOf(sharedPreferences.getBoolean("image_generation_complete", false))
+                }
+                val snackbarHostState = remember { SnackbarHostState() }
+                
+                // SharedPreferencesの変更を監視
+                DisposableEffect(Unit) {
+                    val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+                        if (key == "image_generation_complete") {
+                            val isComplete = sharedPreferences.getBoolean(key, false)
+                            if (isComplete && !imageGenerationComplete) {
+                                imageGenerationComplete = true
+                            }
+                        }
+                    }
+                    sharedPreferences.registerOnSharedPreferenceChangeListener(listener)
+                    onDispose {
+                        sharedPreferences.unregisterOnSharedPreferenceChangeListener(listener)
+                    }
+                }
+                
+                // 生成完了時にSnackbarを表示
+                LaunchedEffect(imageGenerationComplete) {
+                    if (imageGenerationComplete) {
+                        val imageUrl = sharedPreferences.getString("generated_image_url", null)
+                        if (imageUrl != null) {
+                            // Snackbarを表示（アクションボタン付き）
+                            val result = snackbarHostState.showSnackbar(
+                                message = "画像生成が完了しました。",
+                                actionLabel = "確認",
+                                duration = SnackbarDuration.Long
+                            )
+                            // アクションボタンがクリックされた場合
+                            if (result == SnackbarResult.ActionPerformed) {
+                                sharedPreferences.edit().apply {
+                                    putBoolean("image_generation_complete", false)
+                                    putBoolean("has_new_generated_image", false)
+                                    apply()
+                                }
+                                navController.navigate("generate?imageUrl=${android.net.Uri.encode(imageUrl)}") {
+                                    popUpTo("home") { inclusive = false }
+                                    launchSingleTop = true
+                                }
+                            }
+                            // フラグをリセット
+                            imageGenerationComplete = false
+                            sharedPreferences.edit().putBoolean("image_generation_complete", false).apply()
+                        }
+                    }
+                }
                 
                 // Deep Link処理
                 var deepLinkUri by rememberSaveable { mutableStateOf<Uri?>(null) }
@@ -72,12 +129,16 @@ class MainActivity : ComponentActivity() {
                 
                 // 自動ログイン可能かどうかを同期的にチェック（Deep Link優先）
                 val initialDestination = remember(initialIntentUri) {
-                    // Deep Linkが来ている場合は、パスワード再設定画面を初期画面に
+                    // Deep Linkが来ている場合は、適切な画面を初期画面に
                     initialIntentUri?.let { uri ->
-                        if (uri.scheme == "smartcloset" && uri.host == "reset-password") {
-                            val token = uri.getQueryParameter("token")
-                            if (!token.isNullOrEmpty()) {
-                                return@remember "forgot_reset?token=$token"
+                        if (uri.scheme == "smartcloset") {
+                            when (uri.host) {
+                                "reset-password" -> {
+                                    val token = uri.getQueryParameter("token")
+                                    if (!token.isNullOrEmpty()) {
+                                        return@remember "forgot_reset?token=$token"
+                                    }
+                                }
                             }
                         }
                     }
@@ -102,19 +163,24 @@ class MainActivity : ComponentActivity() {
                 // Deep Link処理（onNewIntentで来た場合の処理）
                 LaunchedEffect(deepLinkUri) {
                     deepLinkUri?.let { uri ->
-                        // initialDestinationが既にforgot_resetの場合は処理不要
-                        if (initialDestination.startsWith("forgot_reset")) {
-                            deepLinkUri = null
-                            return@LaunchedEffect
-                        }
-                        
                         delay(200)  // NavGraphが設定されるまで待つ
-                        if (uri.scheme == "smartcloset" && uri.host == "reset-password") {
-                            val token = uri.getQueryParameter("token")
-                            if (!token.isNullOrEmpty()) {
-                                navController.navigate("forgot_reset?token=$token") {
-                                    popUpTo(0) { inclusive = true }
-                                    launchSingleTop = true
+                        
+                        if (uri.scheme == "smartcloset") {
+                            when (uri.host) {
+                                "reset-password" -> {
+                                    // initialDestinationが既にforgot_resetの場合は処理不要
+                                    if (initialDestination.startsWith("forgot_reset")) {
+                                        deepLinkUri = null
+                                        return@LaunchedEffect
+                                    }
+                                    
+                                    val token = uri.getQueryParameter("token")
+                                    if (!token.isNullOrEmpty()) {
+                                        navController.navigate("forgot_reset?token=$token") {
+                                            popUpTo(0) { inclusive = true }
+                                            launchSingleTop = true
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -154,6 +220,9 @@ class MainActivity : ComponentActivity() {
                         if (showBottomBar) {
                             BottomNavBar(navController)
                         }
+                    },
+                    snackbarHost = {
+                        SnackbarHost(hostState = snackbarHostState)
                     }
                 ) { innerPadding ->
                     Box(modifier = Modifier.padding(innerPadding)) {
