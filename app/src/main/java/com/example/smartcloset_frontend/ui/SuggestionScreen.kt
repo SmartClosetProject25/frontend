@@ -64,12 +64,11 @@ import com.example.smartcloset_frontend.data.Proposal
 import com.example.smartcloset_frontend.data.TodayPlanData
 import com.example.smartcloset_frontend.network.ServerUrlHolder
 import com.example.smartcloset_frontend.ui.common.ModelSelectionDialog
-import com.example.smartcloset_frontend.utils.GetLocation
 import com.example.smartcloset_frontend.utils.ImageUtils
 import com.example.smartcloset_frontend.utils.createImageFileUri
 import com.example.smartcloset_frontend.viewmodel.SuggestionViewModel
-import com.example.smartcloset_frontend.viewmodel.GetWeatherViewModel
 import com.example.smartcloset_frontend.utils.WeatherLocationLoader
+import com.example.smartcloset_frontend.viewmodel.GetWeatherViewModel
 import com.example.smartcloset_frontend.viewmodel.ItemViewModel
 import com.example.smartcloset_frontend.viewmodel.UserSessionViewModel
 import kotlinx.coroutines.launch
@@ -84,9 +83,9 @@ import java.util.Locale
 @Composable
 fun SuggestionScreen(
     navController: NavHostController,
-    suggestionViewModel: SuggestionViewModel = viewModel(),
-    getWeatherViewModel: GetWeatherViewModel = viewModel(),
-    userSessionViewModel : UserSessionViewModel,
+    suggestionViewModel: SuggestionViewModel,
+    getWeatherViewModel: GetWeatherViewModel,
+    userSessionViewModel : UserSessionViewModel
 ) {
     val userId by userSessionViewModel.userId.collectAsState()
     val context = LocalContext.current
@@ -97,16 +96,7 @@ fun SuggestionScreen(
     val isSending by suggestionViewModel.isSendingPlan.collectAsState()
     val isGeneratingImage by suggestionViewModel.isGeneratingImage.collectAsState()
     val proposals by suggestionViewModel.proposals.collectAsState()
-    LaunchedEffect(Unit) {
-        try {
-            val loc = GetLocation.getLastLocationSuspend(context)
-            getWeatherViewModel.fetchWeather(
-                LocationData(lat = loc.latitude, lon = loc.longitude)
-            )
-        } catch (e: Exception) {
-            Log.e("Weather", "Location error: ${e.message}", e)
-        }
-    }
+
     // 位置情報パーミッションの許可
     WeatherLocationLoader(getWeatherViewModel)
 

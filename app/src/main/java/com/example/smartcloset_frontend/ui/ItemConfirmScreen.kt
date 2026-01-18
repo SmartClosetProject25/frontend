@@ -114,9 +114,9 @@ fun ItemConfirmationScreen(
                             overflow = TextOverflow.Ellipsis
                         )
 
-                        IconButton(onClick = { /* お気に入り登録ロジック */ }) {
-                            Icon(Icons.Filled.Star, contentDescription = "Favorite", tint = Color.LightGray)
-                        }
+//                        IconButton(onClick = { /* お気に入り登録ロジック */ }) {
+//                            Icon(Icons.Filled.Star, contentDescription = "Favorite", tint = Color.LightGray)
+//                        }
                     }
                 },
                 navigationIcon = {

@@ -7,6 +7,7 @@ import kotlinx.serialization.Serializable
 // @Serializableアノテーションにより、KotlinのオブジェクトとJSON形式との間で自動的に変換される
 @Serializable
 data class ProfileData(
+    val userId: Int?,
     val name: String,
     val gender: String,
     val height: Int,

@@ -31,11 +31,16 @@ import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
 import com.example.smartcloset_frontend.R
 import com.example.smartcloset_frontend.viewmodel.ProfileEditViewModel
+import com.example.smartcloset_frontend.viewmodel.UserSessionViewModel
 
 // プロフィール編集画面のUIを定義するメインのComposable関数
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfileEditScreen(navController: NavHostController, profileEditViewModel: ProfileEditViewModel = viewModel()) {
+fun ProfileEditScreen(
+    navController: NavHostController,
+    profileEditViewModel: ProfileEditViewModel = viewModel(),
+    userSessionViewModel: UserSessionViewModel
+) {
     // --- 状態管理 ---
     // rememberとmutableStateOfを使い、UIの状態を保持・監視する
     var name by remember { mutableStateOf("はるたろう") } // 名前
@@ -54,6 +59,7 @@ fun ProfileEditScreen(navController: NavHostController, profileEditViewModel: Pr
         contract = ActivityResultContracts.GetContent(),
         onResult = { uri: Uri? -> imageUri = uri } // 結果をimageUri状態にセット
     )
+    val userId by userSessionViewModel.userId.collectAsState()
 
     // Scaffold: TopAppBar, BottomBar, Drawerなど基本的な画面構造を簡単に実装できるコンポーネント
     Scaffold(
@@ -149,7 +155,7 @@ fun ProfileEditScreen(navController: NavHostController, profileEditViewModel: Pr
                 Button(
                     onClick = {
                         // ViewModelの関数を呼び出し、現在のフォームデータをサーバーに送信
-                        profileEditViewModel.updateProfile(name, gender, height, weight, personalColor, skeleton)
+                        profileEditViewModel.updateProfile(userId ,name, gender, height, weight, personalColor, skeleton)
                         navController.popBackStack() // 送信後、前の画面に戻る
                     },
                     modifier = Modifier.weight(1f).height(48.dp),
@@ -268,8 +274,8 @@ private fun FormNumberField(label: String, value: String, onValueChange: (String
 }
 
 // プレビュー用の設定
-@Preview(showBackground = true)
-@Composable
-fun ProfileEditScreenPreview() {
-    ProfileEditScreen(navController = rememberNavController())
-}
+//@Preview(showBackground = true)
+//@Composable
+//fun ProfileEditScreenPreview() {
+//    ProfileEditScreen(navController = rememberNavController())
+//}
