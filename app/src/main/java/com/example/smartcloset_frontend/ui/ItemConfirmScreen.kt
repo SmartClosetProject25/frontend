@@ -119,11 +119,11 @@ fun ItemConfirmationScreen(
 //                        }
                     }
                 },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                }
+//                navigationIcon = {
+//                    IconButton(onClick = { navController.popBackStack() }) {
+//                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+//                    }
+//                }
             )
         }
     ) { paddingValues ->

@@ -25,7 +25,6 @@ import com.example.smartcloset_frontend.viewmodel.UserSessionViewModel
 import com.example.smartcloset_frontend.network.RetrofitClient
 import com.example.smartcloset_frontend.network.ServerUrlHolder
 
-const val serverUrl = BuildConfig.SERVER_URL
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
@@ -51,11 +50,11 @@ fun SettingsScreen(
         topBar = {
             TopAppBar(
                 title = { Text("設定") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "戻る")
-                    }
-                }
+//                navigationIcon = {
+//                    IconButton(onClick = onBack) {
+//                        Icon(Icons.Default.ArrowBack, contentDescription = "戻る")
+//                    }
+//                }
             )
         }
     ) { padding ->
