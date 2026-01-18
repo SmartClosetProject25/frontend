@@ -184,11 +184,11 @@ fun ItemRegistrationScreen(
                             Text(if (isEditMode) "編集" else "登録")
                         }
                     },
-                    navigationIcon = {
-                        IconButton(onClick = { navController.popBackStack() }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                        }
-                    }
+//                    navigationIcon = {
+//                        IconButton(onClick = { navController.popBackStack() }) {
+//                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+//                        }
+//                    }
                 )
                 HorizontalDivider(color = Color(0xFFE0E0E0), thickness = 1.dp)
             }

@@ -112,7 +112,7 @@ class MainActivity : ComponentActivity() {
                 
                 val showBottomBar = currentRoute != null && currentRoute !in listOf(
                     "login", 
-                    "register", 
+//                    "register",
                     "forgot", 
                     "forgot_email_sent",
                     "signup", 
