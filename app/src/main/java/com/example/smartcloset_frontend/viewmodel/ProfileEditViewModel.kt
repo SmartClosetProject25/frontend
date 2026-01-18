@@ -5,12 +5,12 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.smartcloset_frontend.data.ProfileData
 import com.example.smartcloset_frontend.data.repository.ProfileRepository
-import com.example.smartcloset_frontend.network.ApiService
 import com.example.smartcloset_frontend.ui.networkErr.ProfileUiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+
 
 
 // ProfileEditScreenのためのViewModel。UI関連のデータとロジックを管理する
@@ -19,6 +19,7 @@ class ProfileEditViewModel : ViewModel() {
 
     // フォームのデータをサーバーに送信する関数
     fun updateProfile(
+        userId: Int?,
         name: String,
         gender: String,
         height: String,
@@ -31,6 +32,7 @@ class ProfileEditViewModel : ViewModel() {
             try {
                 // 送信するデータをProfileDataオブジェクトにまとめる
                 val profileData = ProfileData(
+                    userId = userId,
                     name = name,
                     gender = gender,
                     height = height.toInt(),
