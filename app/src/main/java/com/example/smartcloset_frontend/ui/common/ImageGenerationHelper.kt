@@ -40,14 +40,17 @@ object ImageGenerationHelper {
         }
         
         // proposal.itemsから各アイテムのimage_pathを取得
-        val imagePaths = mutableListOf<String>()
-        imagePaths.addAll(
-            listOfNotNull(
-                proposal.items.outer?.image_path,
-                proposal.items.tops?.image_path,
-                proposal.items.bottoms?.image_path
-            )
-        )
+        // isOuterがtrue: アウターとボトムスのみを送信（トップスは送らない）
+        // isOuterがfalse: トップスとボトムスのみを送信（アウターは送らない）
+        val imagePaths = mutableListOf<String>().apply {
+            if (isOuter) {
+                proposal.items.outer?.image_path?.let { add(it) }
+                proposal.items.bottoms?.image_path?.let { add(it) }
+            } else {
+                proposal.items.tops?.image_path?.let { add(it) }
+                proposal.items.bottoms?.image_path?.let { add(it) }
+            }
+        }
         
         if (imagePaths.isEmpty()) {
             Toast.makeText(context, "画像パスが取得できませんでした", Toast.LENGTH_SHORT).show()
