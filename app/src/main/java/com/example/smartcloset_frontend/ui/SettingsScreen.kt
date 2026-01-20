@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material3.Icon
 import androidx.navigation.NavHostController
+import kotlinx.coroutines.launch
 import com.example.smartcloset_frontend.BuildConfig
 import com.example.smartcloset_frontend.data.PreferencesManager
 import com.example.smartcloset_frontend.viewmodel.UserSessionViewModel
@@ -42,9 +43,28 @@ fun SettingsScreen(
     var locationUsage by remember { mutableStateOf(false) }
     var aiDataUsage by remember { mutableStateOf(true) }
 
+    var aiSuggestionEnabled by remember { mutableStateOf(true) }
+    var aiImageGenerationEnabled by remember { mutableStateOf(true) }
+
     var serverUrlInput by remember { mutableStateOf("") }
     var serverUrlMessage by remember { mutableStateOf<String?>(null) }
     var showServerForm by remember { mutableStateOf(false) }
+
+    val coroutineScope = rememberCoroutineScope()
+
+    LaunchedEffect(Unit) {
+        try {
+            val response = RetrofitClient.instance.getTestFlags()
+            if (response.isSuccessful) {
+                response.body()?.let { flags ->
+                    aiImageGenerationEnabled = flags.enableAiImage
+                    aiSuggestionEnabled = flags.enableAiSuggest
+                }
+            }
+        } catch (e: Exception) {
+            // 取得に失敗した場合はデフォルト値（どちらもON）のままにする
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -162,7 +182,7 @@ fun SettingsScreen(
                         .padding(horizontal = 16.dp)
                 ) {
                     Text(
-                        text = "サーバーURL）",
+                        text = "サーバーURL",
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -218,6 +238,49 @@ fun SettingsScreen(
             }
             }
 
+            item {
+                SettingSwitchItem("AI提案", aiSuggestionEnabled) { newValue ->
+                    aiSuggestionEnabled = newValue
+                    coroutineScope.launch {
+                        try {
+                            val response = RetrofitClient.instance.setTestFlags(
+                                enableAiImage = aiImageGenerationEnabled,
+                                enableAiSuggest = newValue
+                            )
+                            if (response.isSuccessful) {
+                                response.body()?.let { flags ->
+                                    aiImageGenerationEnabled = flags.enableAiImage
+                                    aiSuggestionEnabled = flags.enableAiSuggest
+                                }
+                            }
+                        } catch (e: Exception) {
+                            // エラー時はUI状態のみ変更し、サーバーエラーは無視する
+                        }
+                    }
+                }
+            }
+
+            item {
+                SettingSwitchItem("AI画像生成", aiImageGenerationEnabled) { newValue ->
+                    aiImageGenerationEnabled = newValue
+                    coroutineScope.launch {
+                        try {
+                            val response = RetrofitClient.instance.setTestFlags(
+                                enableAiImage = newValue,
+                                enableAiSuggest = aiSuggestionEnabled
+                            )
+                            if (response.isSuccessful) {
+                                response.body()?.let { flags ->
+                                    aiImageGenerationEnabled = flags.enableAiImage
+                                    aiSuggestionEnabled = flags.enableAiSuggest
+                                }
+                            }
+                        } catch (e: Exception) {
+                            // エラー時はUI状態のみ変更し、サーバーエラーは無視する
+                        }
+                    }
+                }
+            }
 
             item { Spacer(modifier = Modifier.height(32.dp)) }
         }

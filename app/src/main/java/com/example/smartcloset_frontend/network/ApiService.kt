@@ -23,6 +23,7 @@ import com.example.smartcloset_frontend.data.SignUpData
 import com.example.smartcloset_frontend.data.TodayPlanData
 import com.example.smartcloset_frontend.data.WeatherData
 import com.example.smartcloset_frontend.data.WeatherDto
+import com.example.smartcloset_frontend.data.TestFlagsResponse
 
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
@@ -164,6 +165,17 @@ interface ApiService {
 
     @GET("/get_master_data")
     suspend fun getMasterData(): Response<MasterDataResponse>
+
+    // テストフラグ取得
+    @GET("/config/test_flags")
+    suspend fun getTestFlags(): Response<TestFlagsResponse>
+
+    // テストフラグ更新（GETクエリで送信）
+    @GET("/config/test_flags")
+    suspend fun setTestFlags(
+        @Query("enable_ai_image") enableAiImage: Boolean,
+        @Query("enable_ai_suggest") enableAiSuggest: Boolean
+    ): Response<TestFlagsResponse>
 
     // コーディネート履歴取得処理
     @GET("/get_coordinates")
