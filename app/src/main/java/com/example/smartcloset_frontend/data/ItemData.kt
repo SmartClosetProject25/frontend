@@ -6,6 +6,8 @@ data class ItemData (
     val id: Int,
     val itemName: String,
     val category: Int,
+//    0 : なし　1: favorite
+    val isFavorite: Int,
     val imageUrl: String?=null
 )
 @Serializable

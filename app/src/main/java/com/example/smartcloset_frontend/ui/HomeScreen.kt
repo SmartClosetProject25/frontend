@@ -84,8 +84,21 @@ fun HomeScreen(
 
     var selectedCategory by remember { mutableStateOf("すべて") }
     var searchText by remember { mutableStateOf("") }
+    // お気に入り状態を保持するマップ
+    val favorites = remember {
+        mutableStateMapOf<Int, Boolean>()
+    }
+    // isFavorite(0/1) を反映（初期表示用）
+    LaunchedEffect(items) {
+        items.forEach { item ->
+            // すでにユーザー操作で値が入ってたら上書きしない
+            if (!favorites.containsKey(item.id)) {
+                favorites[item.id] = (item.isFavorite == 1)
+            }
+        }
+    }
 
-    val categories = listOf("すべて", "トップス", "パーカー", "パンツ", "スカート")
+    val categories = listOf("すべて", "お気に入り", "トップス", "パーカー", "パンツ", "スカート")
 
     val categoryMap = mapOf(
         1 to "Tシャツ・トップス",
@@ -135,23 +148,31 @@ fun HomeScreen(
         45 to "デニムスカート",
         46 to "その他スカート",
     )
-    val filteredItems = remember(items, selectedCategory, searchText) {
+    val filteredItems = remember(items, selectedCategory, searchText, favorites) {
+        val favoriteOnly = (selectedCategory == "お気に入り")
+
         val categoryId = when (selectedCategory) {
             "トップス" -> 1
             "パーカー" -> 7
             "パンツ" -> 39
             "スカート" -> 45
+            "お気に入り" -> null
             else -> null // "すべて"
         }
 
         items.filter { item ->
-            // カテゴリ条件
-            (categoryId == null || item.category == categoryId) &&
+            // 表示上の「お気に入り」状態（ローカル優先、なければDB値）
+            val effectiveFavorite = favorites[item.id] ?: (item.isFavorite == 1)
+
+            // お気に入り絞り込み
+            (!favoriteOnly || effectiveFavorite) &&
+                    // カテゴリ条件
+                    (categoryId == null || item.category == categoryId) &&
                     // 検索条件
-                    (searchText.isBlank() ||
-                            item.itemName.contains(searchText, ignoreCase = true))
+                    (searchText.isBlank() || item.itemName.contains(searchText, ignoreCase = true))
         }
     }
+
     val extendedItems = remember(filteredItems) {
         if (filteredItems.isEmpty()) emptyList()
         else List(20) { index -> filteredItems[index % filteredItems.size] }
@@ -160,10 +181,7 @@ fun HomeScreen(
     val listState = rememberLazyListState(initialFirstVisibleItemIndex = 500)
 
     val flingBehavior = rememberSnapFlingBehavior(lazyListState = listState)
-// お気に入り状態を保持するマップ
-    val favorites = remember {
-        mutableStateMapOf<Int, Boolean>()
-    }
+
     // キーボードとフォーカスマネージャーの取得
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
@@ -374,7 +392,7 @@ fun HomeScreen(
                                             .size(40.dp)
                                             .padding(horizontal = 8.dp)
                                     ) {
-                                        val isFavorite = favorites[item.id] ?: false
+                                        val isFavorite = favorites[item.id] ?: (item.isFavorite == 1)
                                         Icon(
                                             painter = painterResource(
                                                 id = if (isFavorite) R.drawable.star_filled_icon else R.drawable.star_empty_icon

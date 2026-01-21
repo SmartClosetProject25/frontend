@@ -92,7 +92,7 @@ fun ItemRegistrationScreen(
     var showSizeDialog by remember { mutableStateOf(false) }
     var showColorDialog by remember { mutableStateOf(false) }
     var showPatternDialog by remember { mutableStateOf(false) }
-    
+
     // ViewModelの状態が変更されたらローカル状態も更新
     LaunchedEffect(viewModel.itemState, isEditMode) {
         val vmState = viewModel.itemState
@@ -104,19 +104,20 @@ fun ItemRegistrationScreen(
                 itemState = vmState
             }
         } else {
-            // 新規登録モードの場合は、空の状態の場合は更新しない（クリアされた状態を防ぐ）
-            val isEmpty = vmState.itemName.isBlank() && 
-                          vmState.imageUri.isBlank() && 
-                          vmState.category == 0 && 
-                          vmState.color == 0 && 
-                          vmState.pattern == 0 && 
-                          vmState.size == 0 && 
-                          vmState.brand.isBlank() && 
-                          vmState.material.isBlank() && 
-                          vmState.feature.isBlank() && 
-                          vmState.taste.isBlank() && 
+//            itemState = vmState
+//             新規登録モードの場合は、空の状態の場合は更新しない（クリアされた状態を防ぐ）
+            val isEmpty = vmState.itemName.isBlank() &&
+                          vmState.imageUri.isBlank() &&
+                          vmState.category == 0 &&
+                          vmState.color == 0 &&
+                          vmState.pattern == 0 &&
+                          vmState.size == 0 &&
+                          vmState.brand.isBlank() &&
+                          vmState.material.isBlank() &&
+                          vmState.feature.isBlank() &&
+                          vmState.taste.isBlank() &&
                           vmState.season.isBlank()
-            
+
             if (!isEmpty) {
                 itemState = vmState
             }
@@ -184,11 +185,13 @@ fun ItemRegistrationScreen(
                             Text(if (isEditMode) "編集" else "登録")
                         }
                     },
-//                    navigationIcon = {
-//                        IconButton(onClick = { navController.popBackStack() }) {
-//                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-//                        }
-//                    }
+                    navigationIcon = {
+                        if (isEditMode) {
+                            IconButton(onClick = { navController.popBackStack() }) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                            }
+                        }
+                    }
                 )
                 HorizontalDivider(color = Color(0xFFE0E0E0), thickness = 1.dp)
             }

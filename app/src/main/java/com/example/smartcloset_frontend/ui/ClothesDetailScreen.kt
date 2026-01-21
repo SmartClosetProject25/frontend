@@ -306,7 +306,7 @@ fun ClothesDetailScreen(
                         // 編集ボタン
                         Button(
                             onClick = {
-                                itemDetail?.id?.let { id ->
+                                itemDetail.id.let { id ->
                                     navController.navigate("item_edit/$id")
                                 }
                             },
