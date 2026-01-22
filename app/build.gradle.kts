@@ -96,4 +96,7 @@ dependencies {
     
     // WorkManager (バックグラウンド処理用)
     implementation("androidx.work:work-runtime-ktx:2.9.0")
+    
+    // EXIF情報読み取り用
+    implementation("androidx.exifinterface:exifinterface:1.3.7")
 }
